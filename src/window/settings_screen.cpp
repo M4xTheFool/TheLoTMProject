@@ -33,6 +33,10 @@ void addSampleSet(WindowState& w, const SampleSet& set) {
 // Ready-made characters and Sealed Artifacts from data/samples, such as the Tarot Club.
 void sampleSetsSection(WindowState& w) {
     ImGui::SeparatorText("Sample sets");
+    if (w.showSampleSets) {
+        ImGui::SetScrollHereY(0.0f);
+        w.showSampleSets = false;
+    }
     if (!w.sampleSets) {
         try {
             w.sampleSets = w.app.storage.loadSampleSets();

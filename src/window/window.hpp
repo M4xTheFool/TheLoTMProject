@@ -95,6 +95,7 @@ struct WindowState {
     // Sample sets in data/samples, read the first time the Settings tab shows them.
     std::optional<std::vector<SampleSet>> sampleSets;
     std::string sampleSetsProblem;
+    bool showSampleSets = false;  // scroll the Settings tab down to them on the next frame
 
     // The line at the bottom of the window: the result of the last save, export or error.
     std::string status;

@@ -520,7 +520,10 @@ void drawCharactersScreen(WindowState& w) {
         ImGui::Unindent();
     }
     ImGui::Spacing();
-    if (ImGui::TextLink("Add the Tarot Club or other samples")) w.switchTo = Tab::Settings;
+    if (ImGui::TextLink("Add the Tarot Club or other samples")) {
+        w.switchTo = Tab::Settings;
+        w.showSampleSets = true;
+    }
     ImGui::SetItemTooltip("Ready-made characters and Sealed Artifacts, under Sample sets in Settings.");
     ImGui::EndChild();
     ImGui::SameLine();
