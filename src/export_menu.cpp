@@ -102,6 +102,9 @@ std::vector<Sheet> allSheets(const App& app) {
     std::vector<Sheet> sheets;
     for (const auto& c : app.db.characters) sheets.push_back(buildCharacterSheet(c, app.db));
     for (const auto& a : app.db.artifacts) sheets.push_back(buildArtifactSheet(a, app.db));
+    for (const auto& p : app.db.pathways) {
+        if (p.custom) sheets.push_back(buildPathwaySheet(p));
+    }
     return sheets;
 }
 
@@ -125,11 +128,21 @@ void exportArtifact(App& app, int id) {
                 {buildArtifactSheet(*a, app.db)}, a->name);
 }
 
+void exportPathway(App& app, const std::string& id) {
+    const Pathway* p = app.db.findPathway(id);
+    if (!p) return;
+    auto format = chooseFormat();
+    if (!format) return;
+    writeExport(app, "pathway-" + slug(p->id), *format, {buildPathwaySheet(*p)}, p->name + " pathway");
+}
+
 void runExportMenu(App& app) {
     while (true) {
         ui::header("Export");
         ui::info("Files go to: " + app.storage.exportsDir().string());
-        int pick = ui::choose("", {"One character", "One Sealed Artifact", "Everything (the whole catalogue in one file)"},
+        int pick = ui::choose("",
+                              {"One character", "One Sealed Artifact", "One pathway",
+                               "Everything (characters, Sealed Artifacts and your own pathways in one file)"},
                               "Back to the main menu");
         if (pick == 0) {
             if (app.db.characters.empty()) { ui::info("No characters yet."); continue; }
@@ -144,6 +157,9 @@ void runExportMenu(App& app) {
             int which = ui::choose("Which Sealed Artifact?", names, "Cancel");
             if (which >= 0) exportArtifact(app, app.db.artifacts[which].id);
         } else if (pick == 2) {
+            int which = choosePathway(app, "Which pathway?", "Cancel", false);
+            if (which >= 0) exportPathway(app, app.db.pathways[which].id);
+        } else if (pick == 3) {
             if (app.db.characters.empty() && app.db.artifacts.empty()) { ui::info("The catalogue is empty."); continue; }
             auto format = chooseFormat();
             if (format) writeExport(app, "catalogue-" + compactTimestamp(), *format, allSheets(app), "The Catalogue");

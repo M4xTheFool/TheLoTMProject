@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <sstream>
+#include <utility>
 
 #include "rules.hpp"
 
@@ -353,13 +354,14 @@ std::string renderHtmlPage(const std::string& pageTitle, const std::vector<Sheet
     if (sheets.size() > 1) {
         out << "<nav class=\"contents\">\n<div class=\"kind\">Catalogue</div>\n<h1>" << escapeHtml(pageTitle)
             << "</h1>\n";
-        for (const char* kind : {"Character", "Sealed Artifact"}) {
+        const std::pair<const char*, const char*> kinds[] = {
+            {"Character", "Characters"}, {"Sealed Artifact", "Sealed Artifacts"}, {"Pathway", "Pathways"}};
+        for (const auto& [kind, plural] : kinds) {
             bool any = false;
             for (const auto& s : sheets) {
                 if (s.kind != kind) continue;
                 if (!any) {
-                    out << "<h2>" << (std::string(kind) == "Character" ? "Characters" : "Sealed Artifacts")
-                        << "</h2>\n<ul>\n";
+                    out << "<h2>" << plural << "</h2>\n<ul>\n";
                     any = true;
                 }
                 out << "<li><a href=\"#" << escapeHtml(s.anchor) << "\">" << escapeHtml(s.title) << "</a></li>\n";

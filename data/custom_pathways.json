@@ -1,0 +1,151 @@
+{
+  "about": [
+    "Your own pathways. The Pathways menu in the program creates, edits and deletes them,",
+    "and you can also edit this file by hand. It uses the same layout as pathways.json,",
+    "and every id must be different from the ids in both files.",
+    "Write each ability as \"Name: what it does\"."
+  ],
+  "version": 1,
+  "pathways": [
+    {
+      "id": "maestro",
+      "name": "Maestro",
+      "god": "The Maestro",
+      "group": "Maestro",
+      "primaryStat": "CHA",
+      "secondaryStat": "DEX",
+      "speedGrade": "Fast",
+      "speedNote": "Acrobat agility first; later Backstage Shuffle, Vanishing Act and Nests do the travelling.",
+      "description": "A fan-made pathway from The Maestro compendium by Max. Core concepts: agility, deception, performance, plays, command, puppets, art, Ars Moriendi, Theatrum Mundi and arachnid motifs, with black-and-white silk running through every Sequence. It is a single-pathway Great Old One pathway with no neighbours, the way the Wheel of Fortune is the only pathway beneath the Key of Light. Its Sefirah is the Everstage and its Divine Kingdom is The Scripts. Above Sequence 0 stands the Sovereign of Strings. Core Authorities: Fate, Puppetry, Physical Properties and Creation. Losing control means forgetting it is a play: the body unravels into a cocoon of black and white silk that keeps replaying the last scene it performed.",
+      "uniqueness": "The Shifting Silk Cloak: the only one in existence, an indestructible cloak of constantly shifting black and white silk threads, kept in the Uniqueness Room backstage of the Everstage. It stays passive near a Sequence 2 Playwright but turns aggressive toward a Sequence 1 Storyweaver and tries to attach itself, so the Storyweaver must subdue it with a great many Strings. A Storyweaver who becomes a King of Angels with the Cloak gains the Shifting Panoply, with 2 constructs manifested and 4 stored.",
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Acrobat",
+          "abilities": [
+            "Wire-Weaver's Step: Exceptional balance, reflexes, flexibility, and precise muscle control.",
+            "Limelight Sense: An instinct for being watched, giving a rough idea of how many people are looking and from where.",
+            "Captivating Performance: Movements naturally draw and hold attention. Can be turned on or off.",
+            "Spirit Vision: Standard baseline ability to see spiritual entities and auras.",
+            "Masterful Handiwork: An innate talent for handiwork, sewing, and weaving."
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Musician",
+          "abilities": [
+            "Overture of Strings: Play or hum a melody that subtly alters the thinking speed, movement, and tempo of listeners (e.g., slowing the body while speeding up the mind). Pauses in the hum can cause a focused opponent to stumble. The Musician cannot be disrupted by their own music. Range & Audience: Affects every listener within about 20 meters who can clearly hear the melody, one tempo effect per listener at a time. At this Sequence the Musician cannot choose who hears it: allies in range are affected just like enemies, which makes the Overture a liability in group fights. Resistance: Listeners can resist spiritually. Resisting targets must constantly expend a small amount of spirituality to maintain their resistance; if they become distracted and let it lapse, the music takes hold again. Other abilities can suppress it where they fit.",
+            "Musical Ears: Hear even the faintest whisper or melody clearly if focused, and replicate music perfectly.",
+            "Star's Guile: Boosted charisma, deception, acting, and performance skills."
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Puppeteer",
+          "abilities": [
+            "Strings: Fine spider-silk threads extending from your fingers that attach to targets to pull or move them. Movements are restricted by the target's weight and size. Range is 10 meters with line of sight. Maximum of 5 strings. Drains spirituality quickly.",
+            "Backstage Shuffle: A quick, short-range backward warp. You can instantly appear behind any curtain, doorway, or cloth within 20 meters. Anchors: A cloth anchor must be large enough to hide a whole body. Loose or long clothing counts (coat tails, cloaks, long skirts, robes), but a shirt does not. A worn garment can be used as an anchor whether it belongs to an ally or an enemy; you step out from behind the wearer.",
+            "Stunt Double: A hand-woven arachnid effigy made from silk, yarn, or hair that acts as a damage substitute. To arm it, you must keep it on your person and permanently attach one of your available Strings to it. When struck by a lethal or highly damaging attack, your physical body briefly flickers and you reappear unharmed a short distance away, transferring the damage entirely to the effigy. Upon destruction, the effigy violently unravels into a dense mass of sticky spider silk, momentarily binding the weapon or limb that struck it.",
+            "Ensemble Sense: The ability to coordinate and conduct a loosely gathered group, cueing silence, entrances, and exits. Works on anyone, but targets can resist. Only simple group actions are possible (e.g., a fleeing crowd parting ways). This is the embryo of Thought Weaving.",
+            "Upgrades: Wire-Weaver's Step improves. Limelight Sense now reveals the exact number and precise location of watchers. Overture of Strings is more effective."
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Illusionist",
+          "abilities": [
+            "Smoke and Mirrors: Create illusions affecting all five senses, up to room-sized. They fool the Spirit Vision of Sequence 7 and below; Sequence 6 and above can notice inconsistencies with focus.",
+            "Misdirection: Anyone you sense through Limelight Sense can have their attention steered toward a point, object, or illusion for a few seconds. Resisted spiritually; the more captivated the target, the harder it is to resist.",
+            "Suspension of Disbelief: If a target fully believes an illusion, it can harm them (burns, cuts, pain), though it cannot inflict more than a serious wound. Disbelieving dispels the illusion for that target, but any harm already inflicted is real and remains.",
+            "Vanishing Act: By setting up a prepared exit in advance (a physical prop or a heavily constructed illusion), you can trigger a theatrical trap-door escape, vanishing entirely from a scene up to a 200-meter range. It requires preparation. The Curtain Falls: Unlike a swap, nothing is left behind in your place and no string connects you to where you went. For a short time after the exit, divination and tracking lose the performer entirely. The range grows with each Sequence.",
+            "Upgrades: Strings range reaches 15 meters, can handle heavier movements, with a maximum of 10 strings. Overture of Strings effects are notably stronger. General physical stats improve. Spirituality heavily improved."
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Player",
+          "abilities": [
+            "Flawless Facsimile: Accurately mimic the appearance, voice, mannerisms, and spiritual aura of someone you've studied. Only humanoids can be mimicked; a Player cannot play a real dragon. This holds up against telepathic or spiritual scrutiny from Sequence 5 and below; Sequence 4 and above, or strong divination, can see through it with effort.",
+            "Method Acting: By deeply studying an Archetype (a real person, a profession, or a type of Beyonder), step into the role and temporarily take on its physical capabilities, mannerisms, and spiritual aura. Adopted physical stats can never go beyond what the Player's own Sequence could reach: playing a demigod's body gives a mid-Sequence approximation of it, not demigod strength. Only one Archetype role can be held at a time. The role drains spirituality constantly, and holding a high-intensity role for longer than 1 hour risks neural backlash (e.g., brain working slower, random moments of being unable to move).",
+            "Prop Master: Pour spirituality into one of your own illusions and cast it as a prop, making it genuinely real (e.g., a fake bridge that holds real weight, a fake sword that truly cuts). A prop stays real for its full duration (about one minute) no matter what: seeing through it, disbelieving it, Spirit Vision, divination, or powers that dispel illusions cannot unmake it, because it is no longer an illusion. Being real, it can still be broken the way the real object could be. Limits: Roughly human-sized at most, and no more than 3 props real at once. Props are mundane: they copy the physical properties of what they depict (weight, hardness, sharpness, temperature) but never Beyonder powers, mystical properties, or living functions. A prop cannot be formed inside an occupied space (a body, a lock, a wall). Spirituality cost scales heavily with size and complexity. When the minute ends, the prop dissolves into loose black-and-white silk.",
+            "The Understudy: If one of your Strings is attached to an object, puppet, or ally, you can instantly swap physical places with them using a brief visual misdirection. The String must be live and attached, so at this Sequence the swap is limited to the reach of your Strings. Cutting the String, sealing it, or severing spiritual connections stops the swap.",
+            "Upgrades: Backstage Shuffle now works through thin walls and doors. Vanishing Act range expands to 500 meters. Noticeable boosts to speed and spirituality, higher durability, and a slight increase in strength. Smoke and Mirrors illusions can be larger and more detailed. Overture of Strings triggers automatically with a thought, resonating directly in the physical, ether, and spirit bodies of chosen targets within a 50-meter range (spiritual resistance still applies)."
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Director",
+          "abilities": [
+            "Stage Directions: A spoken command infused with spirituality (e.g., \"Drop your weapon\"). Targets who fail to resist spiritually are physically forced to obey.",
+            "Set Design: Temporarily alter the physical properties of the surrounding environment to fit your play (like making stone floors bouncy). Restricted by a maximum size limit. Major changes cost medium-to-high spirituality. Cannot create instant-death or absolute effects.",
+            "House of Threads: Threads are now nearly invisible and don't need line of sight. They are very fast and can be placed in advance as environmental traps. Duration & Cost: Threads turn into normal spider silk after 3 days if outside a 500-meter radius from the Director. The Silk: If a target touches a thread, it binds to them, slowing their movement and thinking, and draining spirituality based on the number of attached Threads. Siphon: Attached Threads can siphon instead of only draining; you recover roughly a quarter of what they drain, never beyond your maximum. Siphoning from Beyonders carries fragments of their madness: whispers, intrusive emotions, flashes of their role. Heavy siphoning from higher Sequences, or from pathways with violent madness, risks loss of control. Siphoning from a Beyonder three or more Sequences below you automatically filters the madness out. The Budget Cast: You can only fully control a target if their spirituality hits zero or they die with a thread attached. Puppets degrade into an unusable state and unravel into silk after exactly 5 days (120 hours).",
+            "Cut!: Yell \"Cut!\" to violently hijack the Spirit Bodies of those watching the scene, overwriting short-term memory and sensory input. The Director chooses who is affected. Usable once per scene. Captivation: The effect scales with how captivated the target is. Someone fully absorbed in the Director's performance freezes for up to ~8 seconds, as if frozen in time; someone only half-paying attention freezes for a moment or loses a beat; someone not watching at all (eyes closed, blind, deliberately ignoring the Director) only gets a brief memory blip. Physical disturbance breaks the freeze early. Resistance: Sequence 5 and below cannot resist. Sequence 4–1 can resist spiritually, more easily the higher their Sequence.",
+            "Requiem for Eight Strings: Overture of Strings expands to a 100-meter range. You can play completely different melodies for different people simultaneously.",
+            "Mythical Creature Form (incomplete): Your body unwinds into a faceless humanoid shape of white thread, with strings extending endlessly upward. Looking directly at this form drives anyone below Sequence 4 mad.",
+            "Upgrades: Backstage Shuffle passes through thicker walls and goes further. Vanishing Act range expands to 1 kilometer. Smoke and Mirrors can cover a theater-sized area. The Understudy now works through House of Threads threads within 500 meters, but the swap partner must be between roughly child-sized and carriage-sized."
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Impresario",
+          "abilities": [
+            "Editorial Privilege: A limited form of probability manipulation. You can gently edit an event to change its outcome, as long as the new result makes narrative sense (e.g., a sniper's bullet becoming a glancing blow).",
+            "Thought Weaving: Plant an idea or impulse into a target's Spirit Body so they believe it is their own intuition. Can be countered if the target has strong willpower, is highly paranoid, or uses mind-shielding abilities.",
+            "Casting Call: Summon temporary spiritual projections of the puppets stored in your House of Threads to fight for you, rather than needing to transport their physical bodies.",
+            "House of Threads (upgrade): Puppets no longer degrade after 5 days. By spending a small amount of daily spirituality, they can be maintained for up to 30 days.",
+            "Thread Potency (upgrade): The rate at which attached threads drain spirituality and hinder movement/thinking scales up noticeably with every Sequence advancement.",
+            "Set Design (upgrade): Range expands to a full city block. Changes last longer and can include subtle weather/elemental shifts.",
+            "Method Acting – Beyonder Roles (upgrade): If the Impresario has deeply studied a pathway (through observation, records, a captured Beyonder, or that pathway's formulas), Method Acting can now mimic active Beyonder powers of that pathway's Archetype. Passive traits cannot be mimicked. Mimicry follows the Rule of the Understudy: an understudy can play the lead, but never better than the lead. Only one mimicked power can be active at a time, and only while the role is held. Sequences 9–7: Performed at nearly full strength. Sequences 6–5: Performed at about half strength. Sequence 4: Performed at noticeably reduced strength, and attempts often fall flat. Above the Impresario's own Sequence (Seq 2 and higher): The performance almost always fails, and even a success reaches no more than Sequence 4 strength. Each failed attempt still costs the full spirituality and causes backlash, because the role rejects the actor. Sequence 1 and 0 powers, Authorities, and Symbols cannot be mimicked at all.",
+            "Fourth Wall (upgrade): Limelight Sense now extends to unseen watchers: the Impresario feels when they are being divined, scried, prophesied about, or having their fate read, though not where or by whom.",
+            "Range (upgrade): Vanishing Act reaches 5 kilometers. The Understudy reaches 1 kilometer."
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Playwright",
+          "abilities": [
+            "The Script: Write a short script using spirituality on a surface. If the setup is logical, reality plays it out. The target must be within 1500 meters when finalized. Throwaway Scripts: You can pre-write slips with blanks (e.g., \"Due to being too focused, the ... didn't notice a crack and fell.\") to fill in during combat. High detail and accuracy increase success and reduce the spirituality cost.",
+            "Ars Moriendi: A passive aura. If enemies in range are dying with a genuinely broken will, profound despair, or an absolute certainty of defeat, their survival instinct fades completely. They peacefully accept death without trying to flee, heal, or retaliate.",
+            "Weaver's Relic: Weave your spirituality and silk into an item to give it a permanent magical effect (e.g., a silk shirt that heals wounds). Must be personally hand-woven. A Playwright can maintain at most 3 Relics at once. Each takes 1–4 days of fully committed weaving depending on its power; the days count as committed time, so weaving on and off stretches the work until the full count is reached.",
+            "Nests: Set up silk or small statuettes in advance. You can instantly teleport to them across vast distances.",
+            "Strings of Fate: Silk can connect via sympathetic links. By touching an object previously held by a target, you can attach a string remotely and pull yourself to them. Weak connections carry a higher spirituality cost and a chance to fail.",
+            "Set Design (upgrade): Reaches the level of reshaping geographic landscapes and physical laws on a large scale.",
+            "Requiem for Eight Strings (upgrade): Covers a city. Can inflict minor conceptual time statuses, like slightly aging someone or pausing them for a couple of seconds, on one target at a time.",
+            "Fourth Wall (upgrade): The Playwright also knows the location from which they were divined or had their fate read.",
+            "The Understudy (upgrade): Reaches 3 kilometers, its final limit. Anything further is the job of Nests and Strings of Fate.",
+            "House of Threads (upgrade): The 30-day limit is removed. Puppets can be kept indefinitely as long as the daily spirituality upkeep is met.",
+            "Mythical Creature Form (complete): The humanoid shape unwinds, drops to the floor like a doll, and grows six void-black spider legs. Eyes burst around the thread-like body. You have full conscious control over this form, can launch strings directly from it, and possess high-level regeneration as long as the string body isn't fully destroyed. Passively inflicts madness on lower-Sequence onlookers."
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Storyweaver",
+          "abilities": [
+            "Theatrum Mundi: Project a large conceptual domain (city/region-sized) into reality, treating it as a Stage. Genre Enforcement: Set the rules of the stage (e.g., \"Tragedy\" disables healing/luck, \"Silent Film\" disables sound-based casting). Role Enforcement: Assign broad roles to targets (e.g., making an enemy \"The Victim\" lowers their defenses and draws attacks).",
+            "Controlled Mythical Manifestation: Manifest parts of your Mythical Creature Form (like the spider legs) for combat without fully transforming or projecting madness onto bystanders. From this Sequence on, a Maestro Beyonder chooses exactly which parts of the form to show. Advancing never costs them their former face, demeanor or human appearance; they keep it, helped by the Player's Flawless Facsimile.",
+            "The Cosmic Loom: Silk can now attach to physical bodies, abstract concepts, or fate itself. You can tie two unrelated things together, creating a correlation between them, not a guarantee: when the two pull against each other, the stronger concept dominates. Requires similar Sequence 1 authority to break or alter. Cannot make anyone immortal or omnipotent, and tying anything to a cosmic constant is effectively impossible or ruinously expensive. The more abstract and powerful the concept, the higher the spirituality cost.",
+            "Weaver's Net: Weave a massive net of black and white silk tapestry from your Safehouse and pull it into reality. Tapestries: Each woven tapestry can be dropped up to 3 times; the count does not reset if the net is expanded. A Storyweaver can keep a maximum of 2 tapestries at once. The Drop: Anything caught is violently banished to The Scripts. Against entities of lower Sequences, this erasure is practically permanent. Entities of equal or greater Godhood (a Sequence 1 Angel or True God) can conceptually contest, tear, or resist the Net using their own pathway's authorities. Angels who fail to fully resist still suffer the unraveling and damage; True Gods only suffer it if caught by surprise or at 50% spirituality or lower.",
+            "The Safehouse: Your permanent section in The Scripts. You can retreat there instantly and bring up to 3 people to protect them. Curtain Call: If killed, your body and spirit automatically reassemble from Silk in your Safehouse, where you must remain for a week while rebuilding. You can do this up to 3 times, as long as your Sequence 1 characteristic hasn't been accommodated by someone else. One spent revival regenerates every 15 years. Aftermath: For a week after a full revival, your spirituality pool is capped at 3/4, your Mythical Creature Form can only be fully unleashed (no partial manifestation), and regeneration is slower while in full form.",
+            "The World as Parchment: The 1500-meter limit is removed. You can weave Throwaway Scripts directly into The Scripts, giving them a near-continental range, and write with pure spirituality in the air.",
+            "Symphony of the Void-Spider: The music can rewrite recent physical history (like making a body forget a wound or remember venom). It reaches events within the last hour, one target per melody.",
+            "Requiem for Eight Strings (upgrade): Conceptual time statuses can target up to three people at once.",
+            "Fourth Wall (upgrade): The Storyweaver knows who divined them or read their fate.",
+            "Ars Moriendi (upgrade): Bypasses standard Angel-level immunities.",
+            "Nests (upgrade): Teleport to anywhere a story or rumor about you is currently being told."
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Maestro",
+          "abilities": [
+            "The Shifting Panoply: The Uniqueness merges with your will. You can instantly weave its silk into any physical or conceptual constructs; more powerful constructs cost more spirituality and take longer to create (e.g., fate-severing weapons or continent-spanning instruments). Higher Grade than Weaver's Relic: A Playwright's Relic is an object with one fixed enchantment, hand-woven over days. A Panoply construct is woven from the Shifting Silk Cloak itself. Stored in the Uniqueness: Constructs can be unwoven back into the Cloak at will and rewoven later, instantly and without paying the creation cost again. Up to 9 can be stored and 3 manifested at once. Stored constructs cannot be stolen, sealed, or destroyed separately from the Cloak. Speed: Seconds for simple constructs, minutes for complex ones, hours for continent-scale or fate-severing works. Authority-Grade Effects: A construct can carry one of the Maestro's Authorities (Fate, Puppetry, Physical Properties, Creation), not just an effect. Drawback: If a manifested construct is destroyed, the Maestro suffers spiritual backlash in proportion to its power, and it cannot be rewoven for a week. At zero spirituality, every manifested construct unravels. (A construct is a creation of the Cloak, not a piece of the Uniqueness itself.)",
+            "Theatrum Mundi: Establish your True Divine Kingdom in The Scripts. You can summon it into the physical/spirit/astral world. Absolute Set Design: You gain deep control over the physical laws and environment inside this kingdom. Casting Call: You can assign conceptual weights, making the universe naturally favor your narrative over the designated \"Antagonist.\" The Extras: Lower-Sequence entities designated as \"Extras\" struggle to affect the core conflict, with their actions largely failing to impact the main plot.",
+            "Ars Moriendi: Deaths you orchestrate that fit a completed script become permanent. Standard resurrection methods (historical voids, miracles, time loops) are disabled for that target, and they are archived in The Scripts.",
+            "Weaver's Net: Powered by a True God's spirituality, these nets can be scaled up to cover armies, regions, or rival Divine Kingdoms, dragging them into The Scripts. The Maestro can keep a maximum of 6 tapestries.",
+            "The Omniscient Director: You gain deep insight into the flow of fate. By plucking destiny's threads, you can subtly guide global events and wars to fit your narrative. This requires careful planning and can still be contested by other Deities."
+          ]
+        }
+      ]
+    }
+  ]
+}

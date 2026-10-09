@@ -2,7 +2,9 @@
 // Run with: ctest --test-dir build -C Release   (or run build/lotm_tests directly)
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <string>
 
 #include "dice.hpp"
@@ -235,6 +237,18 @@ static void testAbilitiesAndEligibility() {
     c.hasUniqueness = false;  // turning it off drops its details
     normalizeCharacter(c);
     CHECK(c.uniquenessAbilities.empty());
+
+    // Moving up to Sequence 0 keeps the description of the absorbed Uniqueness, quietly.
+    c.hasUniqueness = true;
+    c.beyonderCharacteristics = 1;
+    c.uniquenessForm = "A cloak of shifting silk";
+    c.uniquenessAbilities = {"Fooling: deceives reality"};
+    c.sequence = 0;
+    CHECK(normalizeCharacter(c).empty());
+    CHECK(!c.hasUniqueness && c.uniquenessForm == "A cloak of shifting silk" && c.uniquenessAbilities.empty());
+    c.sequence = 4;  // dropping below Sequence 1 loses it
+    normalizeCharacter(c);
+    CHECK(c.uniquenessForm.empty());
     Character mortal;
     mortal.sequence = 1;  // no pathway: no Sequence 1 choices
     CHECK(!sequenceOneChoices(mortal));
@@ -343,7 +357,13 @@ static void testPathwayDatabase() {
     const fs::path dataDir = fs::path(LOTM_SOURCE_DIR) / "data";
     Database db;
     Storage(dataDir).loadAll(db);
-    CHECK(db.pathways.size() == 22);
+    // 22 built-in pathways, then the ones from custom_pathways.json (the Maestro).
+    CHECK(db.pathways.size() == 23);
+    CHECK(std::count_if(db.pathways.begin(), db.pathways.end(), [](const Pathway& p) { return p.custom; }) == 1);
+    const Pathway* maestro = db.findPathway("maestro");
+    CHECK(maestro != nullptr && maestro->custom && maestro->god == "The Maestro");
+    CHECK(maestro && maestro->findSequence(4) && maestro->findSequence(4)->name == "Director");
+    CHECK(maestro && maestro->uniqueness.rfind("The Shifting Silk Cloak: ", 0) == 0);
     for (const auto& p : db.pathways) {
         CHECK(p.sequences.size() == 10);
         CHECK(statIndex(p.primaryStat) >= 0);
@@ -392,6 +412,86 @@ static void testSaveLoadAndBackups() {
         if (entry.path().filename().string().rfind("artifacts-", 0) == 0) ++backups;
     }
     CHECK(backups == 2);
+    fs::remove_all(temp);
+}
+
+static void testCustomPathways() {
+    const fs::path temp = fs::temp_directory_path() / "lotm_tests_pathways";
+    fs::remove_all(temp);
+    fs::create_directories(temp);
+    const fs::path source = fs::path(LOTM_SOURCE_DIR) / "data";
+    fs::copy_file(source / "pathways.json", temp / "pathways.json");
+
+    // No custom file: only the built-in pathways, and saving creates the file.
+    Database db;
+    Storage storage(temp);
+    storage.loadAll(db);
+    CHECK(db.pathways.size() == 22);
+    CHECK(db.newPathwayId("Mystery Pryer") == "mystery_pryer_2");
+    CHECK(db.newPathwayId("Night Weaver!") == "night_weaver");
+    CHECK(db.newPathwayId("??") == "pathway");
+
+    Pathway p;
+    p.id = db.newPathwayId("Night Weaver");
+    p.name = "Night Weaver";
+    p.god = "The Loom";
+    p.primaryStat = "DEX";
+    p.uniqueness = "A spindle of moonlight";
+    p.custom = true;
+    for (int s = 9; s >= 0; --s) p.sequences.push_back({s, "", {}});
+    p.sequences[0] = {9, "Night Weaver", {"Thread Sight: Sees the threads between people."}};
+    db.pathways.push_back(p);
+    storage.saveCustomPathways(db);
+    CHECK(fs::exists(temp / "custom_pathways.json"));
+    CHECK(fs::file_size(source / "pathways.json") == fs::file_size(temp / "pathways.json"));  // never rewritten
+
+    Database reloaded;
+    storage.loadAll(reloaded);
+    CHECK(reloaded.pathways.size() == 23);
+    const Pathway* loaded = reloaded.findPathway("night_weaver");
+    CHECK(loaded && loaded->custom && loaded->god == "The Loom" && loaded->uniqueness == "A spindle of moonlight");
+    CHECK(loaded && loaded->findSequence(9)->abilities.size() == 1);
+    CHECK(!reloaded.findPathway("seer")->custom);
+
+    // A pathway in use can't simply vanish: pathwayUsers lists what still points at it.
+    Character c;
+    c.id = 1;
+    c.name = "Ada";
+    c.pathwayId = "night_weaver";
+    reloaded.characters.push_back(c);
+    CHECK(reloaded.pathwayUsers("night_weaver") == std::vector<std::string>{"Ada (C-001)"});
+    CHECK(reloaded.pathwayUsers("seer").empty());
+
+    // The shipped custom file loads and saves back byte for byte, so the program keeps its layout.
+    fs::copy_file(source / "custom_pathways.json", temp / "custom_pathways.json", fs::copy_options::overwrite_existing);
+    Database shipped;
+    storage.loadAll(shipped);
+    storage.saveCustomPathways(shipped);
+    auto readAll = [](const fs::path& file) {
+        std::ifstream in(file, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(in), {});
+    };
+    CHECK(readAll(temp / "custom_pathways.json") == readAll(source / "custom_pathways.json"));
+
+    // An id used in both files is refused with a message naming the file.
+    shipped.pathways.back().id = "seer";
+    storage.saveCustomPathways(shipped);
+    bool refused = false;
+    try {
+        Database clash;
+        storage.loadAll(clash);
+    } catch (const StorageError& e) {
+        refused = std::string(e.what()).find("custom_pathways.json") != std::string::npos;
+    }
+    CHECK(refused);
+
+    // The pathway sheet lists every Sequence and its abilities.
+    const std::string text = renderText(buildPathwaySheet(*loaded));
+    CHECK(text.find("NIGHT WEAVER PATHWAY") != std::string::npos);
+    CHECK(text.find("one of your own pathways") != std::string::npos);
+    CHECK(text.find("Thread Sight: Sees the threads between people.") != std::string::npos);
+    CHECK(text.find("No abilities written yet.") != std::string::npos);
+    CHECK(text.find("Primary stat: Dexterity (DEX)") != std::string::npos);
     fs::remove_all(temp);
 }
 
@@ -464,8 +564,10 @@ static void testRendering() {
     CHECK(angelText.find("- Twilight: Ages whatever it touches.") != std::string::npos);
     Character god = c;
     god.sequence = 0;
-    CHECK(renderText(buildCharacterSheet(god, db)).find("Has absorbed the Uniqueness of the Warrior pathway.") !=
-          std::string::npos);
+    god.uniquenessForm = "A crown of dusk";
+    const std::string godText = renderText(buildCharacterSheet(god, db));
+    CHECK(godText.find("Has absorbed the Uniqueness of the Warrior pathway.") != std::string::npos);
+    CHECK(godText.find("A crown of dusk") != std::string::npos);
 
     // Held By shows on the artifact sheet.
     const std::string artifactText = renderText(buildArtifactSheet(a, db));
@@ -486,6 +588,7 @@ int main() {
     testRelationships();
     testPathwayDatabase();
     testSaveLoadAndBackups();
+    testCustomPathways();
     testRendering();
     if (failures == 0) {
         std::cout << "All checks passed.\n";
