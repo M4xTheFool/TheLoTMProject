@@ -6,6 +6,15 @@
 
 namespace lotm {
 
+namespace {
+
+std::string lowercase(std::string text) {
+    for (char& c : text) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return text;
+}
+
+}  // namespace
+
 int statIndex(const std::string& code) {
     std::string upper;
     for (char c : code) upper += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
@@ -42,6 +51,19 @@ const Character* Database::findCharacter(int id) const {
         if (c.id == id) return &c;
     }
     return nullptr;
+}
+
+std::vector<const Character*> Database::findCharactersByName(const std::string& text, int excludeId) const {
+    const std::string wanted = lowercase(text);
+    std::vector<const Character*> matches;
+    if (wanted.empty()) return matches;
+    for (const auto& c : characters) {
+        if (c.id == excludeId) continue;
+        const std::string name = lowercase(c.name);
+        if (name == wanted) return {&c};
+        if (name.find(wanted) != std::string::npos) matches.push_back(&c);
+    }
+    return matches;
 }
 
 Artifact* Database::findArtifact(int id) {
@@ -95,6 +117,13 @@ std::string sequenceLabel(const Pathway* pathway, int sequence) {
         }
     }
     return label;
+}
+
+std::string relationshipName(const Database& db, const Relationship& r) {
+    if (const Character* other = r.characterId != 0 ? db.findCharacter(r.characterId) : nullptr) {
+        return other->name + " (" + characterCode(other->id) + ")";
+    }
+    return r.name.empty() ? "(unknown)" : r.name;
 }
 
 }  // namespace lotm

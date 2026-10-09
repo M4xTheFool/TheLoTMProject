@@ -63,8 +63,9 @@ struct Affiliation {
 };
 
 struct Relationship {
-    int characterId = 0;
-    std::string type;  // Ally, Rival, Mentor ...
+    int characterId = 0;  // 0 = someone who isn't a saved character
+    std::string name;     // who they are; for a saved character, their name when the link was made
+    std::string type;     // Ally, Rival, Mentor ...
     std::string note;
 };
 
@@ -136,6 +137,9 @@ struct Database {
     const Pathway* findPathway(const std::string& id) const;
     Character* findCharacter(int id);
     const Character* findCharacter(int id) const;
+    // Saved characters (other than excludeId) whose name contains the text, ignoring case.
+    // An exact name match is returned on its own.
+    std::vector<const Character*> findCharactersByName(const std::string& text, int excludeId) const;
     Artifact* findArtifact(int id);
     const Artifact* findArtifact(int id) const;
     int nextCharacterId() const;
@@ -147,5 +151,6 @@ std::string characterCode(int id);  // "C-001"
 std::string artifactCode(int id);   // "A-001"
 std::string pathwayLabel(const Database& db, const std::string& pathwayId);  // "Seer (The Fool)"
 std::string sequenceLabel(const Pathway* pathway, int sequence);             // "Sequence 7: Magician"
+std::string relationshipName(const Database& db, const Relationship& r);     // "Fors Wall (C-002)" or "Fors Wall"
 
 }  // namespace lotm

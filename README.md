@@ -50,6 +50,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - Type the number of a menu entry and press Enter. `0` goes back.
 - When a value is shown in `[brackets]`, pressing Enter keeps it. Typing `-` clears an optional text.
 - Longer texts (descriptions, backstory, abilities) end with an empty line.
+- Relationships take any name, like `Fors Wall`. If the name matches a character you've already saved,
+  the two are linked and the sheet shows their ID. Press Enter when you're done adding people.
 - Every creator finishes on a review screen where you can change any step before saving.
 - In the stat block, `R` rolls 4d6 and drops the lowest die; roll again as often as you like or type a value.
 

@@ -170,20 +170,59 @@ static void testJsonRoundTrip() {
     c.stats.hpIncluded = true;
     c.stats.hp = 22;
     c.artifactIds = {1, 3};
-    c.relationships = {{2, "Rival", "Old grudge"}};
+    c.relationships = {{2, "Fors Wall", "Rival", "Old grudge"}, {0, "Azik Eggers", "Mentor", ""}};
     nlohmann::json j = c;
     Character back = j.get<Character>();
     CHECK(back.name == c.name);
     CHECK(back.stats.base == c.stats.base);
     CHECK(back.stats.hp == 22);
     CHECK(back.artifactIds == c.artifactIds);
-    CHECK(back.relationships.size() == 1 && back.relationships[0].type == "Rival");
+    CHECK(back.relationships.size() == 2 && back.relationships[0].type == "Rival");
+    CHECK(back.relationships[1].characterId == 0 && back.relationships[1].name == "Azik Eggers");
+
+    // Relationships saved before names existed still load.
+    Relationship oldLink = nlohmann::json::parse(R"({"characterId": 4, "type": "Ally"})").get<Relationship>();
+    CHECK(oldLink.characterId == 4 && oldLink.name.empty() && oldLink.type == "Ally");
 
     // Older files with missing fields still load, using defaults.
     Character partial = nlohmann::json::parse(R"({"id": 3, "name": "Old Save"})").get<Character>();
     CHECK(partial.name == "Old Save");
     CHECK(partial.sequence == 9);
     CHECK(partial.stats.base[0] == 10);
+}
+
+static void testRelationships() {
+    Database db;
+    Character klein;
+    klein.id = 1;
+    klein.name = "Klein Moretti";
+    Character fors;
+    fors.id = 2;
+    fors.name = "Fors Wall";
+    Character forsCopy = fors;
+    forsCopy.id = 3;
+    forsCopy.name = "Fors Wall (copy)";
+    db.characters = {klein, fors, forsCopy};
+
+    // An exact name (any case) finds just that character; part of a name finds every match.
+    auto exact = db.findCharactersByName("fors wall", klein.id);
+    CHECK(exact.size() == 1 && exact[0]->id == 2);
+    CHECK(db.findCharactersByName("Fors", klein.id).size() == 2);
+    CHECK(db.findCharactersByName("Klein", klein.id).empty());  // never yourself
+    CHECK(db.findCharactersByName("Audrey", klein.id).empty());
+    CHECK(db.findCharactersByName("", klein.id).empty());
+
+    // Saved characters show their current name and code; anyone else shows the typed name.
+    CHECK(relationshipName(db, {2, "Old name", "Friend", ""}) == "Fors Wall (C-002)");
+    CHECK(relationshipName(db, {0, "Audrey Hall", "Friend", ""}) == "Audrey Hall");
+    CHECK(relationshipName(db, {9, "Gone", "Friend", ""}) == "Gone");
+    CHECK(relationshipName(db, {0, "", "Friend", ""}) == "(unknown)");
+
+    // Both kinds appear on the character sheet.
+    db.characters[0].relationships = {{2, "Fors Wall", "Friend", "Met at the Tarot Club"}, {0, "Audrey Hall", "Ally", ""}};
+    const std::string text = renderText(buildCharacterSheet(db.characters[0], db));
+    CHECK(text.find("Friend: Fors Wall (C-002), Met at the Tarot Club") != std::string::npos);
+    CHECK(text.find("Ally: Audrey Hall") != std::string::npos);
 }
 
 static void testPathwayDatabase() {
@@ -284,6 +323,7 @@ int main() {
     testPointBuy();
     testDice();
     testJsonRoundTrip();
+    testRelationships();
     testPathwayDatabase();
     testSaveLoadAndBackups();
     testRendering();

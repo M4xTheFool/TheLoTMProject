@@ -73,11 +73,17 @@ std::optional<int> parseIndex(const std::string& input, size_t count) {
 
 void deleteCharacter(App& app, int id) {
     const auto backup = app.db.characters;
+    const Character* deleted = app.db.findCharacter(id);
+    const std::string name = deleted ? deleted->name : "";
     auto& list = app.db.characters;
     list.erase(std::remove_if(list.begin(), list.end(), [id](const Character& c) { return c.id == id; }), list.end());
+    // Other characters keep the relationship, by name only.
     for (auto& c : list) {
-        auto& r = c.relationships;
-        r.erase(std::remove_if(r.begin(), r.end(), [id](const Relationship& x) { return x.characterId == id; }), r.end());
+        for (auto& r : c.relationships) {
+            if (r.characterId != id) continue;
+            r.characterId = 0;
+            if (!name.empty()) r.name = name;
+        }
     }
     try {
         app.storage.saveCharacters(app.db);
