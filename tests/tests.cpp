@@ -351,6 +351,15 @@ static void testPathwayDatabase() {
         CHECK(p.speedGrade == "Slow" || p.speedGrade == "Average" || p.speedGrade == "Fast" ||
               p.speedGrade == "Very fast");
         for (int s = 0; s <= 9; ++s) CHECK(p.findSequence(s) != nullptr);
+        // Every Sequence is filled in, and every ability reads "Name: what it does".
+        for (const auto& seq : p.sequences) {
+            CHECK(!seq.abilities.empty());
+            for (const auto& a : seq.abilities) {
+                const size_t colon = a.find(": ");
+                CHECK(colon != std::string::npos && colon > 0 && colon <= 48);
+                CHECK(a.rfind("Edit me", 0) != 0);
+            }
+        }
     }
 }
 
