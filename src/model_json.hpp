@@ -13,15 +13,18 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MovementUnlock, sequence, mode)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Pathway, id, name, god, group, primaryStat, secondaryStat,
                                                 speedGrade, speedNote, movement, sequences)
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Appearance, hair, eyes, build, height, clothing,
-                                                distinguishingMark, description)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Appearance, hair, hairLength, hairStyle, eyes, skin, face, voice,
+                                                build, height, clothing, distinguishingMark, description)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Affiliation, organization, rank)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Relationship, characterId, name, type, note)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Dossier, filedBy, recentActions, recentActionsNote, threatLevel, status,
+                                                lastSeen, remarks)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StatBlock, base, speedBase, hpIncluded, hp, spirituality)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, appearance, age, gender, shortDescription,
                                                 backstory, pathwayId, sequence, alignment, titles, aliases,
-                                                honorificName, hasUniqueness, uniquenessForm, stats, artifactIds,
-                                                affiliation, relationships, notes, createdAt, updatedAt)
+                                                honorificName, beyonderCharacteristics, hasUniqueness, uniquenessForm,
+                                                uniquenessAbilities, stats, artifactIds, affiliation, relationships,
+                                                dossier, notes, createdAt, updatedAt)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Artifact, id, name, visualDescription, pathwayId, sequenceLevel,
                                                 ability, drawback, notes, createdAt, updatedAt)

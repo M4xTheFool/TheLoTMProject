@@ -4,6 +4,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "model.hpp"
@@ -31,6 +32,10 @@ struct Block {
 struct Section {
     std::string heading;
     std::vector<Block> blocks;
+    std::string style;  // HTML only: "dossier" draws the section as an official file
+
+    explicit Section(std::string headingText, std::string styleName = "")
+        : heading(std::move(headingText)), style(std::move(styleName)) {}
 
     void field(const std::string& label, const std::string& text);  // skipped when text is empty
     void paragraph(const std::string& text);                         // skipped when text is empty

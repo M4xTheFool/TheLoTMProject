@@ -22,7 +22,7 @@ int statIndex(const std::string& code);
 struct SequenceInfo {
     int sequence = 9;  // 9 = weakest, 0 = god
     std::string name;
-    std::vector<std::string> abilities;
+    std::vector<std::string> abilities;  // "Name: what it does"
 };
 
 struct MovementUnlock {
@@ -48,8 +48,13 @@ struct Pathway {
 // ---------- Characters (data/characters.json) ----------
 
 struct Appearance {
-    std::string hair;
+    std::string hair;  // colour
+    std::string hairLength;
+    std::string hairStyle;
     std::string eyes;
+    std::string skin;
+    std::string face;
+    std::string voice;
     std::string build;
     std::string height;
     std::string clothing;
@@ -67,6 +72,19 @@ struct Relationship {
     std::string name;     // who they are; for a saved character, their name when the link was made
     std::string type;     // Ally, Rival, Mentor ...
     std::string note;
+};
+
+// An official file on the character, as a church or agency would keep it.
+struct Dossier {
+    std::string filedBy;        // "Nighthawks (Church of the Evernight Goddess)"
+    std::string recentActions;  // one of kRecentActions in rules.hpp, or empty
+    std::string recentActionsNote;
+    std::string threatLevel;    // set by hand; empty = worked out automatically (see assessThreat)
+    std::string status;         // Active, At large, In custody ...
+    std::string lastSeen;
+    std::string remarks;
+
+    bool empty() const;
 };
 
 struct StatBlock {
@@ -91,12 +109,15 @@ struct Character {
     std::vector<std::string> titles;
     std::vector<std::string> aliases;
     std::vector<std::string> honorificName;  // three lines, Sequence 3 and stronger only
-    bool hasUniqueness = false;
+    int beyonderCharacteristics = 1;  // Sequence 1 only: 1 or 2
+    bool hasUniqueness = false;       // Sequence 1 only
     std::string uniquenessForm;
+    std::vector<std::string> uniquenessAbilities;  // Sequence 0 abilities the Uniqueness grants
     StatBlock stats;
     std::vector<int> artifactIds;
     Affiliation affiliation;
     std::vector<Relationship> relationships;
+    Dossier dossier;
     std::string notes;
     std::string createdAt;
     std::string updatedAt;

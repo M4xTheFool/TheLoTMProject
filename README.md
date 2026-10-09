@@ -5,10 +5,12 @@ A small program <3
 A Lord of the Mysteries creator suite in C++. Make characters and Sealed Artifacts, browse them in a
 catalogue, and export them as good-looking sheets.
 
-- **Character Creator:** name, looks and bio, one of the 22 pathways, Sequence 9 to 0 with its abilities
-  filled in, alignment, titles, aliases, honorific name (Sequence 3 and up), Uniqueness, affiliation,
-  relationships, a D&D-style stat block (roll, re-roll, type or point-buy), Speed, optional HP,
-  Spirituality, and the Sealed Artifacts the character holds.
+- **Character Creator:** name, looks (hair colour, length and style, eyes, skin, face, build, height,
+  voice, clothing) and bio, one of the 22 pathways, Sequence 9 to 0 with every ability described,
+  alignment, titles, aliases, honorific name (Sequence 3 and up), Beyonder characteristics and Uniqueness
+  (Sequence 1), affiliation, two-way relationships, a D&D-style stat block (roll, re-roll, type or
+  point-buy), Speed, optional HP, Spirituality, the Sealed Artifacts the character holds, and a dossier
+  with an automatic threat level.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
 - **Catalogue:** browse, search, filter by pathway, sort, edit, duplicate, delete.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
@@ -51,7 +53,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - When a value is shown in `[brackets]`, pressing Enter keeps it. Typing `-` clears an optional text.
 - Longer texts (descriptions, backstory, abilities) end with an empty line.
 - Relationships take any name, like `Fors Wall`. If the name matches a character you've already saved,
-  the two are linked and the sheet shows their ID. Press Enter when you're done adding people.
+  the two are linked and the other character gets the relationship back when you save (Mentor and
+  Student, Parent and Child, Superior and Subordinate flip; the rest stay the same). Removing it removes
+  both sides. If you list someone by name first and create them later, they link up when you save them.
 - Every creator finishes on a review screen where you can change any step before saving.
 - In the stat block, `R` rolls 4d6 and drops the lowest die; roll again as often as you like or type a value.
 
@@ -72,9 +76,10 @@ your computer. Copy the `data` folder to back them up or move them to another PC
 ### Editing or adding pathways
 
 Open `data/pathways.json` in VS Code. Each pathway is one `{ ... }` block with its id, name, god, the two
-stats it boosts, its speed grade, the movement it unlocks, and Sequences 9 to 0 with their abilities.
-Entries that say **"Edit me"** are waiting for you to fill in. To add a custom pathway, copy a whole block,
-give it a new unique `id`, and change the rest. The program picks up changes the next time it starts.
+stats it boosts, its speed grade, and Sequences 9 to 0 with their abilities. Write each ability as
+`"Name: what it does"`; the exports show the name in bold. Movement powers are ordinary abilities of the
+Sequence that unlocks them. To add a custom pathway, copy a whole block, give it a new unique `id`, and
+change the rest. The program picks up changes the next time it starts.
 
 ## How the rules work
 
@@ -86,6 +91,13 @@ give it a new unique `id`, and change the rest. The program picks up changes the
 - **HP and Spirituality:** the program suggests a value from the tier and Constitution (HP) or Wisdom
   (Spirituality); you can always type your own. HP can be asked per character, always on, or always off
   in Settings.
+- **Sequence 1 and the Uniqueness:** only a Sequence 1 chooses whether they hold 1 or 2 Beyonder
+  characteristics and whether they hold the pathway's Uniqueness. A Uniqueness grants the Sequence 0
+  abilities you pick for it. A Sequence 0 has already absorbed it.
+- **Threat level:** three numbers added up. Sequence: mortal 0, Sequence 9-8 1, 7-5 3, 4-3 5, 2-1 7,
+  Sequence 0 10. Recent actions: peaceful -1, minor incidents 0, violent +1, mass casualties +2. Sealed
+  Artifacts held: one or two +1, three or more +2. A total up to 2 is Low, 3-4 Moderate, 5-6 High, 7-8
+  Extreme, 9 or more Catastrophic. It updates by itself unless you set a level by hand in the dossier.
 
 ## Project layout
 

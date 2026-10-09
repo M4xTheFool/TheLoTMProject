@@ -55,6 +55,17 @@ std::string markdownLines(const std::string& text) {
     return out;
 }
 
+// "Spirit Vision: sees auras" -> {"Spirit Vision", "sees auras"}, so the name can be shown in bold.
+// Only a short name before the first ": " counts; anything else stays one piece of text.
+bool splitNamed(const std::string& text, std::string& name, std::string& rest) {
+    const size_t colon = text.find(": ");
+    if (colon == std::string::npos || colon == 0 || colon > 48) return false;
+    if (text.find(". ") < colon) return false;
+    name = text.substr(0, colon);
+    rest = text.substr(colon + 2);
+    return true;
+}
+
 std::string htmlLines(const std::string& text) {
     std::string escaped = escapeHtml(text);
     std::string out;
@@ -146,7 +157,15 @@ std::string renderMarkdown(const Sheet& sheet) {
                         << "\n";
                     break;
                 case BlockKind::Paragraph: out << markdownLines(escapeMarkdown(block.text)) << "\n\n"; break;
-                case BlockKind::Bullet: out << "- " << escapeMarkdown(block.text) << "\n"; break;
+                case BlockKind::Bullet: {
+                    std::string name, rest;
+                    if (splitNamed(block.text, name, rest)) {
+                        out << "- **" << escapeMarkdown(name) << ":** " << escapeMarkdown(rest) << "\n";
+                    } else {
+                        out << "- " << escapeMarkdown(block.text) << "\n";
+                    }
+                    break;
+                }
                 case BlockKind::Subheading: out << "### " << escapeMarkdown(block.text) << "\n\n"; break;
                 case BlockKind::Quote: {
                     std::string text = escapeMarkdown(block.text);
@@ -223,6 +242,14 @@ blockquote { margin: 8px 0; padding: 8px 16px; border-left: 3px solid var(--gold
 .stat .total { font-size: 28px; font-weight: bold; line-height: 1.2; }
 .stat .mod { font-size: 15px; color: var(--accent); }
 .stat .parts { font-size: 12px; color: var(--muted); }
+.sheet li strong { color: var(--ink); }
+.dossier { position: relative; margin-top: 28px; padding: 6px 22px 14px; background: var(--card);
+  border: 1px dashed var(--muted); border-radius: 4px; font-family: "Courier New", Courier, monospace; font-size: 15px; }
+.dossier h2 { color: var(--ink); font-size: 17px; letter-spacing: 0.18em; text-transform: uppercase;
+  border-bottom: 1px solid var(--rule); margin-top: 14px; }
+.dossier .stamp { position: absolute; top: 18px; right: 18px; transform: rotate(-7deg); border: 2px solid var(--accent);
+  border-radius: 4px; color: var(--accent); padding: 1px 10px; font-weight: bold; letter-spacing: 0.15em;
+  text-transform: uppercase; font-size: 13px; opacity: 0.85; }
 .footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
 @media (max-width: 600px) {
   .stats { grid-template-columns: repeat(3, 1fr); }
@@ -262,7 +289,12 @@ void renderHtmlSheet(std::ostringstream& out, const Sheet& sheet) {
     out << "<h1>" << escapeHtml(sheet.title) << "</h1>\n";
     if (!sheet.subtitle.empty()) out << "<p class=\"subtitle\">" << escapeHtml(sheet.subtitle) << "</p>\n";
     for (const auto& section : sheet.sections) {
-        out << "<section>\n<h2>" << escapeHtml(section.heading) << "</h2>\n";
+        if (section.style == "dossier") {
+            out << "<section class=\"dossier\">\n<div class=\"stamp\">Confidential</div>\n<h2>"
+                << escapeHtml(section.heading) << "</h2>\n";
+        } else {
+            out << "<section>\n<h2>" << escapeHtml(section.heading) << "</h2>\n";
+        }
         bool inList = false;
         bool inFields = false;
         for (const auto& block : section.blocks) {
@@ -276,7 +308,11 @@ void renderHtmlSheet(std::ostringstream& out, const Sheet& sheet) {
                 case BlockKind::Paragraph: out << "<p>" << htmlLines(block.text) << "</p>\n"; break;
                 case BlockKind::Bullet:
                     if (!inList) { out << "<ul>\n"; inList = true; }
-                    out << "<li>" << escapeHtml(block.text) << "</li>\n";
+                    if (std::string name, rest; splitNamed(block.text, name, rest)) {
+                        out << "<li><strong>" << escapeHtml(name) << ":</strong> " << escapeHtml(rest) << "</li>\n";
+                    } else {
+                        out << "<li>" << escapeHtml(block.text) << "</li>\n";
+                    }
                     break;
                 case BlockKind::Subheading: out << "<h3>" << escapeHtml(block.text) << "</h3>\n"; break;
                 case BlockKind::Quote: out << "<blockquote>" << htmlLines(block.text) << "</blockquote>\n"; break;

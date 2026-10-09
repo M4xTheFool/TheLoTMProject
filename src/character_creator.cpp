@@ -3,8 +3,10 @@
 #include <cctype>
 #include <cstddef>
 #include <iostream>
+#include <optional>
 
 #include "app.hpp"
+#include "relations.hpp"
 #include "render.hpp"
 #include "rules.hpp"
 #include "sheet.hpp"
@@ -15,7 +17,16 @@ namespace lotm {
 namespace {
 
 const std::vector<std::string> kHair = {"Black", "Brown", "Blond", "Red", "Grey", "White", "Silver", "Bald"};
+const std::vector<std::string> kHairLength = {"Shaved", "Cropped", "Short", "Chin-length", "Shoulder-length",
+                                              "Long", "Very long"};
+const std::vector<std::string> kHairStyle = {"Straight", "Wavy", "Curly", "Coiled", "Slicked back", "Neatly parted",
+                                             "Tied back", "Braided", "In a bun", "Messy"};
 const std::vector<std::string> kEyes = {"Brown", "Blue", "Green", "Grey", "Hazel", "Black", "Amber", "Red"};
+const std::vector<std::string> kSkin = {"Pale", "Fair", "Olive", "Tanned", "Brown", "Dark", "Weathered", "Freckled"};
+const std::vector<std::string> kFace = {"Sharp features", "Soft features", "Round face", "Gaunt", "Square jaw",
+                                        "Full beard", "Moustache", "Clean-shaven", "Youthful", "Lined with age"};
+const std::vector<std::string> kVoice = {"Deep", "Soft", "Raspy", "Melodic", "Booming", "Quiet", "Accented",
+                                         "Flat and calm"};
 const std::vector<std::string> kBuild = {"Slim", "Average", "Athletic", "Muscular", "Stocky", "Heavy", "Frail"};
 const std::vector<std::string> kHeight = {"Short", "Below average", "Average", "Tall", "Very tall"};
 const std::vector<std::string> kClothing = {"Gentleman's suit and top hat", "Worker's clothes", "Church robes",
@@ -37,8 +48,12 @@ const std::vector<std::string> kOrganizations = {
     "Moses Ascetic Order",
     "Twilight Hermit Order",
     "Independent"};
-const std::vector<std::string> kRelationshipTypes = {"Ally", "Friend", "Rival", "Enemy",
-                                                     "Mentor", "Student", "Family", "Partner"};
+// Mentor/Student, Parent/Child and Superior/Subordinate flip on the other character's sheet (relations.cpp).
+const std::vector<std::string> kRelationshipTypes = {
+    "Lover",  "Spouse", "Close friend", "Friend",  "Acquaintance", "Ally",      "Colleague",   "Rival", "Enemy",
+    "Mentor", "Student", "Parent",      "Child",   "Sibling",      "Relative",  "Superior",    "Subordinate"};
+const std::vector<std::string> kStatuses = {"Active", "At large", "Under watch", "Cooperating", "In custody",
+                                            "Missing", "Deceased", "Unknown"};
 
 const Pathway* pathwayOf(const App& app, const Character& c) { return app.db.findPathway(c.pathwayId); }
 
@@ -52,10 +67,15 @@ void stepName(Character& c) {
 void stepLooks(Character& c) {
     ui::header("2. Looks and bio");
     ui::info("Pick from the lists or type your own. Enter keeps the current value, 0 skips.");
-    c.appearance.hair = ui::choosePreset("Hair", kHair, c.appearance.hair);
-    c.appearance.eyes = ui::choosePreset("Eyes", kEyes, c.appearance.eyes);
+    c.appearance.hair = ui::choosePreset("Hair colour", kHair, c.appearance.hair);
+    c.appearance.hairLength = ui::choosePreset("Hair length", kHairLength, c.appearance.hairLength);
+    c.appearance.hairStyle = ui::choosePreset("Hair style", kHairStyle, c.appearance.hairStyle);
+    c.appearance.eyes = ui::choosePreset("Eye colour", kEyes, c.appearance.eyes);
+    c.appearance.skin = ui::choosePreset("Skin", kSkin, c.appearance.skin);
+    c.appearance.face = ui::choosePreset("Face", kFace, c.appearance.face);
     c.appearance.build = ui::choosePreset("Build", kBuild, c.appearance.build);
     c.appearance.height = ui::choosePreset("Height", kHeight, c.appearance.height);
+    c.appearance.voice = ui::choosePreset("Voice", kVoice, c.appearance.voice);
     c.appearance.clothing = ui::choosePreset("Clothing", kClothing, c.appearance.clothing);
     c.appearance.distinguishingMark = ui::choosePreset("Distinguishing mark", kMarks, c.appearance.distinguishingMark);
     c.appearance.description = ui::readMultiline("Describe their look in your own words (optional)", c.appearance.description);
@@ -101,14 +121,56 @@ void stepSequence(const App& app, Character& c) {
     if (const SequenceInfo* s = p->findSequence(c.sequence)) {
         ui::info(s->name + " adds:");
         for (const auto& a : s->abilities) ui::info("  - " + a);
+        for (const auto& mode : movementUnlockedAt(*p, c.sequence)) ui::info("  - Movement: " + mode);
     }
+    if (c.sequence == 1) ui::info("Sequence 1: set Beyonder characteristics and the Uniqueness in Customization.");
     ui::info("The sheet lists " + std::to_string(count) + " abilities from Sequence 9 down to " +
              std::to_string(c.sequence) + ".");
 }
 
 // ---------------------------------------------------------------- step 5
 
-void stepCustomization(Character& c) {
+// Toggles which Sequence 0 abilities the Uniqueness grants; typed text adds one of your own.
+void chooseUniquenessAbilities(const Pathway* p, Character& c) {
+    std::vector<std::string> options;
+    if (const SequenceInfo* zero = p ? p->findSequence(0) : nullptr) {
+        for (const auto& a : zero->abilities) {
+            if (a.rfind("Edit me", 0) != 0) options.push_back(a);
+        }
+    }
+    for (const auto& a : c.uniquenessAbilities) {
+        if (std::find(options.begin(), options.end(), a) == options.end()) options.push_back(a);
+    }
+    while (true) {
+        std::cout << "Sequence 0 abilities the Uniqueness grants:\n";
+        if (options.empty()) std::cout << "  (the pathway lists none yet; type your own)\n";
+        for (size_t i = 0; i < options.size(); ++i) {
+            auto& held = c.uniquenessAbilities;
+            const bool on = std::find(held.begin(), held.end(), options[i]) != held.end();
+            std::cout << "  [" << (on ? "x" : " ") << "] " << (i + 1) << ") " << options[i] << "\n";
+        }
+        std::string value = ui::readLine("  Type a number to give or take it, your own text to add one, or Enter when done: ");
+        if (value.empty()) return;
+        const bool isNumber =
+            std::all_of(value.begin(), value.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)); });
+        if (!isNumber) {
+            options.push_back(value);
+            c.uniquenessAbilities.push_back(value);
+            continue;
+        }
+        size_t index = value.size() <= 4 ? std::stoul(value) : 0;
+        if (index < 1 || index > options.size()) {
+            ui::info("There is no entry " + value + ".");
+            continue;
+        }
+        auto& held = c.uniquenessAbilities;
+        auto it = std::find(held.begin(), held.end(), options[index - 1]);
+        if (it == held.end()) held.push_back(options[index - 1]);
+        else held.erase(it);
+    }
+}
+
+void stepCustomization(const App& app, Character& c) {
     ui::header("5. Customization");
     int pick = ui::choose("Alignment" + (c.alignment.empty() ? std::string() : " [current: " + c.alignment + "]"),
                           kAlignments, "Unaligned / skip", true);
@@ -136,9 +198,19 @@ void stepCustomization(Character& c) {
     }
 
     ui::blank();
-    c.hasUniqueness = ui::yesNo("Does this character hold a Uniqueness?", c.hasUniqueness);
-    if (c.hasUniqueness) {
-        c.uniquenessForm = ui::readMultiline("What shape does the Uniqueness take?", c.uniquenessForm);
+    if (sequenceOneChoices(c)) {
+        c.beyonderCharacteristics =
+            ui::readInt("Beyonder characteristics they hold (1 or 2)", 1, 2, c.beyonderCharacteristics);
+        c.hasUniqueness = ui::yesNo("Does this character hold the pathway's Uniqueness?", c.hasUniqueness);
+        if (c.hasUniqueness) {
+            c.uniquenessForm = ui::readMultiline("What shape does the Uniqueness take?", c.uniquenessForm);
+            ui::info("The Uniqueness grants a couple of the Sequence 0 powers. Pick them:");
+            chooseUniquenessAbilities(pathwayOf(app, c), c);
+        }
+    } else if (absorbedUniqueness(c)) {
+        ui::info("Uniqueness: at Sequence 0 it has already been absorbed.");
+    } else {
+        ui::info("Uniqueness and a second Beyonder characteristic: Sequence 1 only.");
     }
 }
 
@@ -373,14 +445,47 @@ void stepArtifacts(App& app, Character& c) {
     }
 }
 
+// ---------------------------------------------------------------- step 9
+
+void stepDossier(Character& c) {
+    ui::header("9. Dossier");
+    ui::info("An official file on the character, as the Nighthawks or another agency would keep it. All optional.");
+    Dossier& d = c.dossier;
+    std::vector<std::string> keepers = kOrganizations;
+    keepers.erase(std::remove(keepers.begin(), keepers.end(), "Independent"), keepers.end());
+    d.filedBy = ui::choosePreset("Filed by", keepers, d.filedBy);
+
+    std::string current = d.recentActions.empty() ? "" : " [current: " + d.recentActions + "]";
+    int pick = ui::choose("Recent actions" + current, kRecentActions, "Nothing on file", true);
+    if (pick == ui::Choice::kZero) d.recentActions.clear();
+    else if (pick >= 0) d.recentActions = kRecentActions[pick];
+    d.recentActionsNote = ui::readText("What did they do (optional)", d.recentActionsNote);
+
+    const ThreatAssessment threat = assessThreat(c);
+    ui::blank();
+    ui::info("Threat level from the rules: " + threat.level + " (" + threat.explanation + ").");
+    ui::info("Automatic keeps it in step when the Sequence, recent actions or Sealed Artifacts change.");
+    current = d.threatLevel.empty() ? " [current: automatic]" : " [current: " + d.threatLevel + ", set by hand]";
+    pick = ui::choose("Threat level" + current, kThreatLevels, "Automatic", true);
+    if (pick == ui::Choice::kZero) d.threatLevel.clear();
+    else if (pick >= 0) d.threatLevel = kThreatLevels[pick];
+
+    d.status = ui::choosePreset("Status", kStatuses, d.status);
+    d.lastSeen = ui::readText("Last seen", d.lastSeen);
+    d.remarks = ui::readMultiline("Remarks", d.remarks);
+}
+
 void stepNotes(Character& c) {
-    ui::header("9. Notes");
+    ui::header("10. Notes");
     c.notes = ui::readMultiline("Anything else worth remembering (optional)", c.notes);
 }
 
 bool save(App& app, Character& c, bool isNew) {
     for (const auto& note : normalizeCharacter(c)) ui::info(note);
     const auto backup = app.db.characters;
+    std::optional<Character> before;
+    if (const Character* saved = isNew ? nullptr : app.db.findCharacter(c.id)) before = *saved;
+    const auto changes = syncRelationships(app.db, c, before ? &*before : nullptr);
     c.updatedAt = nowTimestamp();
     if (isNew) {
         c.createdAt = c.updatedAt;
@@ -396,6 +501,7 @@ bool save(App& app, Character& c, bool isNew) {
         return false;
     }
     ui::info("Saved " + c.name + " as " + characterCode(c.id) + ".");
+    for (const auto& change : changes) ui::info(change);
     return true;
 }
 
@@ -414,16 +520,17 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
     if (isNew) {
         c.id = app.db.nextCharacterId();
         ui::header("Create a character");
-        ui::info("Nine short steps. Enter keeps a value or skips an optional one; \"-\" clears text.");
+        ui::info("Ten short steps. Enter keeps a value or skips an optional one; \"-\" clears text.");
         ui::info("Everything can be changed on the review screen at the end.");
         stepName(c);
         stepLooks(c);
         stepPathway(app, c, false);
         if (!c.pathwayId.empty()) stepSequence(app, c);
-        stepCustomization(c);
+        stepCustomization(app, c);
         stepAffiliation(app, c);
         stepStats(app, c);
         stepArtifacts(app, c);
+        stepDossier(c);
         stepNotes(c);
     }
 
@@ -434,19 +541,20 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
                               {"Name", "Looks and bio", "Pathway", "Sequence",
                                "Customization (alignment, titles, aliases, honorific, Uniqueness)",
                                "Affiliation and relationships", "Stat block, HP and Spirituality",
-                               "Sealed Artifacts", "Notes", "Save"},
+                               "Sealed Artifacts", "Dossier (threat level, status, remarks)", "Notes", "Save"},
                               "Cancel without saving");
         switch (pick) {
             case 0: stepName(c); break;
             case 1: stepLooks(c); break;
             case 2: stepPathway(app, c, true); break;
             case 3: stepSequence(app, c); break;
-            case 4: stepCustomization(c); break;
+            case 4: stepCustomization(app, c); break;
             case 5: stepAffiliation(app, c); break;
             case 6: stepStats(app, c); break;
             case 7: stepArtifacts(app, c); break;
-            case 8: stepNotes(c); break;
-            case 9:
+            case 8: stepDossier(c); break;
+            case 9: stepNotes(c); break;
+            case 10:
                 if (save(app, c, isNew)) return c.id;
                 break;
             default:

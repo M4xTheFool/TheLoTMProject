@@ -17,6 +17,7 @@ FetchContent_MakeAvailable(json)
 add_library(lotm_core STATIC
     src/model.cpp
     src/rules.cpp
+    src/relations.cpp
     src/dice.cpp
     src/storage.cpp
     src/ui.cpp
