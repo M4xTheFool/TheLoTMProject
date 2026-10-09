@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <cstddef>
 #include <iostream>
 
 #include "app.hpp"
@@ -142,50 +144,53 @@ void stepCustomization(Character& c) {
 
 // ---------------------------------------------------------------- step 6
 
+// Anyone can be named. If the name matches a saved character, the two are linked.
+void addRelationship(const App& app, Character& c, const std::string& typed) {
+    Relationship r;
+    r.name = typed;
+    const auto matches = app.db.findCharactersByName(typed, c.id);
+    if (matches.size() == 1 && ui::toLower(matches[0]->name) == ui::toLower(typed)) {
+        r.characterId = matches[0]->id;
+        ui::info("Linked to the saved character " + relationshipName(app.db, r) + ".");
+    } else if (!matches.empty()) {
+        std::vector<std::string> names;
+        for (const Character* m : matches) names.push_back(m->name + " (" + characterCode(m->id) + ")");
+        int pick = ui::choose("Is this one of your saved characters?", names, "No, just add \"" + typed + "\"");
+        if (pick >= 0) r.characterId = matches[pick]->id;
+    }
+    if (const Character* other = app.db.findCharacter(r.characterId)) r.name = other->name;
+    r.type = ui::choosePreset("Relationship to " + r.name, kRelationshipTypes, "");
+    if (r.type.empty()) r.type = "Other";
+    r.note = ui::readText("Note (optional)", "");
+    c.relationships.push_back(r);
+}
+
 void editRelationships(const App& app, Character& c) {
     while (true) {
         std::cout << "Relationships:\n";
         if (c.relationships.empty()) std::cout << "  (none yet)\n";
         for (size_t i = 0; i < c.relationships.size(); ++i) {
             const auto& r = c.relationships[i];
-            const Character* other = app.db.findCharacter(r.characterId);
-            std::cout << "  " << (i + 1) << ") " << r.type << ": " << (other ? other->name : "(deleted)");
+            std::cout << "  " << (i + 1) << ") " << r.type << ": " << relationshipName(app.db, r);
             if (!r.note.empty()) std::cout << ", " << r.note;
             std::cout << "\n";
         }
-        std::string value = ui::readLine("  A to add, a number to remove, Enter when done: ");
+        std::string value = ui::readLine("  Type a name to add someone, a number to remove one, or Enter when done: ");
         if (value.empty()) return;
-        if (value == "a" || value == "A") {
-            std::vector<const Character*> others;
-            std::vector<std::string> names;
-            for (const auto& other : app.db.characters) {
-                if (other.id == c.id) continue;
-                others.push_back(&other);
-                names.push_back(other.name + " (" + characterCode(other.id) + ")");
-            }
-            if (others.empty()) {
-                ui::info("There are no other saved characters to link to yet.");
-                continue;
-            }
-            int pick = ui::choose("Who?", names, "Cancel");
-            if (pick < 0) continue;
-            Relationship r;
-            r.characterId = others[pick]->id;
-            r.type = ui::choosePreset("Relationship", kRelationshipTypes, "");
-            if (r.type.empty()) r.type = "Other";
-            r.note = ui::readText("Note (optional)", "");
-            c.relationships.push_back(r);
+        const bool isNumber =
+            std::all_of(value.begin(), value.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)); });
+        if (!isNumber) {
+            addRelationship(app, c, value);
             continue;
         }
-        try {
-            int index = std::stoi(value);
-            if (index >= 1 && index <= static_cast<int>(c.relationships.size())) {
-                c.relationships.erase(c.relationships.begin() + (index - 1));
-                continue;
-            }
-        } catch (const std::exception&) {
+        size_t index = value.size() <= 4 ? std::stoul(value) : 0;
+        if (index >= 1 && index <= c.relationships.size()) {
+            const Relationship& r = c.relationships[index - 1];
+            ui::info("Removed " + r.type + ": " + relationshipName(app.db, r) + ".");
+            c.relationships.erase(c.relationships.begin() + static_cast<std::ptrdiff_t>(index - 1));
+            continue;
         }
-        ui::info("Type A, a number from the list, or press Enter.");
+        ui::info("There is no entry " + value + ".");
     }
 }
 

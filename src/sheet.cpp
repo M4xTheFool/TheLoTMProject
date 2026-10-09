@@ -158,9 +158,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
 
     Section relations{"Relationships", {}};
     for (const auto& r : c.relationships) {
-        const Character* other = db.findCharacter(r.characterId);
-        if (!other) continue;
-        std::string line = r.type + ": " + other->name + " (" + characterCode(other->id) + ")";
+        std::string line = r.type + ": " + relationshipName(db, r);
         if (!r.note.empty()) line += ", " + r.note;
         relations.bullet(line);
     }
