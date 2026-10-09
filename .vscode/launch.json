@@ -1,0 +1,27 @@
+{
+  // F5 builds the program with CMake and runs it in the Terminal panel, where you can type.
+  // If VS Code asks which program to run, pick lotm_creator.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run LoTM Creator (Windows)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run LoTM Creator (macOS / Linux)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "externalConsole": false,
+      "osx": { "MIMode": "lldb" },
+      "linux": { "MIMode": "gdb" }
+    }
+  ]
+}
