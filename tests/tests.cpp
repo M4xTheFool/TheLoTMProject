@@ -8,6 +8,7 @@
 #include "dice.hpp"
 #include "model_json.hpp"
 #include "render.hpp"
+#include "relations.hpp"
 #include "rules.hpp"
 #include "sheet.hpp"
 #include "storage.hpp"
@@ -109,6 +110,89 @@ static void testSpeed() {
     CHECK(movementModes(c, &p).size() == 1);
     c.sequence = 1;
     CHECK(movementModes(c, &p).size() == 2);
+    CHECK(movementUnlockedAt(p, 6).size() == 1 && movementUnlockedAt(p, 6)[0] == "Leaping");
+    CHECK(movementUnlockedAt(p, 5).empty());
+}
+
+static void testThreatLevel() {
+    Character c;
+    ThreatAssessment t = assessThreat(c);  // mortal, nothing on file
+    CHECK(t.total == 0 && t.level == "Low" && t.explanation == "Mortal (0) = 0");
+
+    c.pathwayId = "warrior";
+    c.sequence = 9;
+    CHECK(assessThreat(c).level == "Low");
+
+    c.sequence = 7;
+    c.dossier.recentActions = "Violent incidents";
+    c.artifactIds = {1, 2};
+    t = assessThreat(c);
+    CHECK(t.total == 5 && t.level == "High");
+    CHECK(t.explanation == "Sequence 7 (3) + violent incidents (+1) + 2 Sealed Artifacts (+1) = 5");
+
+    c.artifactIds = {1, 2, 3, 4};
+    CHECK(assessThreat(c).total == 6);  // three or more artifacts count +2
+
+    c.sequence = 0;
+    c.artifactIds.clear();
+    c.dossier.recentActions = "Peaceful, no known incidents";
+    t = assessThreat(c);
+    CHECK(t.total == 9 && t.level == "Catastrophic");
+    CHECK(t.explanation == "Sequence 0 (10) + peaceful (-1) = 9");
+
+    c.sequence = 4;
+    c.dossier.recentActions = "Mass casualties or disaster";
+    CHECK(assessThreat(c).level == "Extreme");  // 5 + 2
+
+    // A level set by hand wins; empty means automatic.
+    CHECK(threatLevelOf(c) == "Extreme");
+    c.dossier.threatLevel = "Low";
+    CHECK(threatLevelOf(c) == "Low");
+}
+
+static void testTwoWayRelationships() {
+    CHECK(reciprocalType("Mentor") == "Student");
+    CHECK(reciprocalType("student") == "Mentor");
+    CHECK(reciprocalType("Parent") == "Child");
+    CHECK(reciprocalType("Superior") == "Subordinate");
+    CHECK(reciprocalType("Close friend") == "Close friend");
+
+    Database db;
+    Character fors;
+    fors.id = 1;
+    fors.name = "Fors Wall";
+    Character audrey;
+    audrey.id = 2;
+    audrey.name = "Audrey Hall";
+    audrey.relationships = {{0, "klein moretti", "Friend", ""}};  // listed by name before Klein existed
+    db.characters = {fors, audrey};
+
+    // A new character linking to Fors as Mentor: Fors gets Student back, and Audrey's name-only entry links up.
+    Character klein;
+    klein.id = 3;
+    klein.name = "Klein Moretti";
+    klein.relationships = {{1, "Fors Wall", "Mentor", "Taught her divination"}};
+    auto changes = syncRelationships(db, klein, nullptr);
+    const Character* f = db.findCharacter(1);
+    CHECK(f->relationships.size() == 1 && f->relationships[0].characterId == 3 && f->relationships[0].type == "Student");
+    const Character* a = db.findCharacter(2);
+    CHECK(a->relationships[0].characterId == 3);
+    CHECK(klein.relationships.size() == 2 && klein.relationships[1].characterId == 2 &&
+          klein.relationships[1].type == "Friend");
+    CHECK(changes.size() == 2);
+    db.characters.push_back(klein);
+
+    // Saving again changes nothing.
+    Character again = klein;
+    CHECK(syncRelationships(db, again, &klein).empty());
+
+    // Removing the Mentor link removes Fors's Student link too; Audrey's stays.
+    Character edited = klein;
+    edited.relationships.erase(edited.relationships.begin());
+    changes = syncRelationships(db, edited, &klein);
+    CHECK(changes.size() == 1);
+    CHECK(db.findCharacter(1)->relationships.empty());
+    CHECK(db.findCharacter(2)->relationships.size() == 1);
 }
 
 static void testAbilitiesAndEligibility() {
@@ -128,11 +212,32 @@ static void testAbilitiesAndEligibility() {
     c.sequence = 5;
     c.honorificName = {"a", "b", "c"};
     c.uniquenessForm = "something";
-    c.hasUniqueness = false;
+    c.uniquenessAbilities = {"Fooling: deceives reality"};
+    c.hasUniqueness = true;
+    c.beyonderCharacteristics = 2;
     auto notes = normalizeCharacter(c);
     CHECK(c.honorificName.empty());
-    CHECK(c.uniquenessForm.empty());
-    CHECK(notes.size() == 2);
+    CHECK(!c.hasUniqueness && c.uniquenessForm.empty() && c.uniquenessAbilities.empty());
+    CHECK(c.beyonderCharacteristics == 1);
+    CHECK(notes.size() == 3);
+
+    // Only Sequence 1 chooses Beyonder characteristics and a Uniqueness; Sequence 0 has absorbed it.
+    c.sequence = 1;
+    CHECK(sequenceOneChoices(c) && !absorbedUniqueness(c));
+    c.sequence = 0;
+    CHECK(!sequenceOneChoices(c) && absorbedUniqueness(c));
+    c.sequence = 1;
+    c.hasUniqueness = true;
+    c.beyonderCharacteristics = 2;
+    c.uniquenessAbilities = {"Fooling: deceives reality"};
+    CHECK(normalizeCharacter(c).empty());
+    CHECK(c.hasUniqueness && c.beyonderCharacteristics == 2 && c.uniquenessAbilities.size() == 1);
+    c.hasUniqueness = false;  // turning it off drops its details
+    normalizeCharacter(c);
+    CHECK(c.uniquenessAbilities.empty());
+    Character mortal;
+    mortal.sequence = 1;  // no pathway: no Sequence 1 choices
+    CHECK(!sequenceOneChoices(mortal));
 }
 
 static void testPointBuy() {
@@ -180,6 +285,14 @@ static void testJsonRoundTrip() {
     CHECK(back.relationships.size() == 2 && back.relationships[0].type == "Rival");
     CHECK(back.relationships[1].characterId == 0 && back.relationships[1].name == "Azik Eggers");
 
+    c.appearance.hairStyle = "Wavy";
+    c.dossier.recentActions = "Violent incidents";
+    c.uniquenessAbilities = {"Fooling: deceives reality"};
+    c.beyonderCharacteristics = 2;
+    back = nlohmann::json(c).get<Character>();
+    CHECK(back.appearance.hairStyle == "Wavy" && back.dossier.recentActions == "Violent incidents");
+    CHECK(back.uniquenessAbilities.size() == 1 && back.beyonderCharacteristics == 2);
+
     // Relationships saved before names existed still load.
     Relationship oldLink = nlohmann::json::parse(R"({"characterId": 4, "type": "Ally"})").get<Relationship>();
     CHECK(oldLink.characterId == 4 && oldLink.name.empty() && oldLink.type == "Ally");
@@ -189,6 +302,7 @@ static void testJsonRoundTrip() {
     CHECK(partial.name == "Old Save");
     CHECK(partial.sequence == 9);
     CHECK(partial.stats.base[0] == 10);
+    CHECK(partial.beyonderCharacteristics == 1 && partial.dossier.empty());
 }
 
 static void testRelationships() {
@@ -237,6 +351,15 @@ static void testPathwayDatabase() {
         CHECK(p.speedGrade == "Slow" || p.speedGrade == "Average" || p.speedGrade == "Fast" ||
               p.speedGrade == "Very fast");
         for (int s = 0; s <= 9; ++s) CHECK(p.findSequence(s) != nullptr);
+        // Every Sequence is filled in, and every ability reads "Name: what it does".
+        for (const auto& seq : p.sequences) {
+            CHECK(!seq.abilities.empty());
+            for (const auto& a : seq.abilities) {
+                const size_t colon = a.find(": ");
+                CHECK(colon != std::string::npos && colon > 0 && colon <= 48);
+                CHECK(a.rfind("Edit me", 0) != 0);
+            }
+        }
     }
 }
 
@@ -289,7 +412,13 @@ static void testRendering() {
     c.artifactIds = {1};
     c.stats.hpIncluded = true;
     c.stats.hp = 40;
+    c.appearance.hair = "Black";
+    c.appearance.hairLength = "Shoulder-length";
+    c.appearance.hairStyle = "Wavy";
+    c.dossier.filedBy = "Nighthawks";
+    c.dossier.status = "Under watch";
     db.characters.push_back(c);
+    db.pathways[0].sequences[3].abilities = {"Dawn Armour: Covers the body in light."};  // Sequence 6
 
     const Sheet sheet = buildCharacterSheet(c, db);
     const std::string text = renderText(sheet);
@@ -297,6 +426,17 @@ static void testRendering() {
     CHECK(text.find("Sword <of> Dawn") != std::string::npos);
     CHECK(text.find("HP: 40") != std::string::npos);
     CHECK(text.find("Sequence 3: Seq3") != std::string::npos);
+    CHECK(text.find("Hair: Black, shoulder-length, wavy") != std::string::npos);
+    // Movement sits with the abilities of the Sequence that unlocks it, not in the stat block.
+    CHECK(text.find("Movement: Leaping") != std::string::npos);
+    CHECK(text.find("Movement: Leaping") > text.find("[Sequence 6: Seq6]"));
+    CHECK(text.find("Movement: Leaping") < text.find("[Sequence 5: Seq5]"));
+    CHECK(text.find("  Movement:") == std::string::npos);
+    // The dossier: file number, who filed it, and the automatic threat level with its sum.
+    CHECK(text.find("File: C-001") != std::string::npos);
+    CHECK(text.find("Filed by: Nighthawks") != std::string::npos);
+    CHECK(text.find("Threat level: High\n") != std::string::npos);
+    CHECK(text.find("Assessment: Sequence 3 (5) + 1 Sealed Artifact (+1) = 6") != std::string::npos);
 
     const std::string html = renderHtmlPage("Test", {sheet, buildArtifactSheet(a, db)}, "dark");
     CHECK(html.find("Leonard &amp; Co") != std::string::npos);
@@ -304,10 +444,28 @@ static void testRendering() {
     CHECK(html.find("<of>") == std::string::npos);
     CHECK(html.find("data-theme=\"dark\"") != std::string::npos);
     CHECK(html.find("class=\"contents\"") != std::string::npos);  // table of contents for 2 sheets
+    CHECK(html.find("<li><strong>Dawn Armour:</strong> Covers the body in light.</li>") != std::string::npos);
+    CHECK(html.find("<section class=\"dossier\">") != std::string::npos);
 
     const std::string md = renderMarkdown(sheet);
     CHECK(md.find("# Leonard & Co") != std::string::npos);
     CHECK(md.find("| Strength |") != std::string::npos);
+    CHECK(md.find("- **Dawn Armour:** Covers the body in light.") != std::string::npos);
+
+    // Sequence 1 with a Uniqueness lists the Sequence 0 abilities it grants; Sequence 0 has absorbed it.
+    Character angel = c;
+    angel.sequence = 1;
+    angel.beyonderCharacteristics = 2;
+    angel.hasUniqueness = true;
+    angel.uniquenessAbilities = {"Twilight: Ages whatever it touches."};
+    const std::string angelText = renderText(buildCharacterSheet(angel, db));
+    CHECK(angelText.find("Beyonder characteristics: 2") != std::string::npos);
+    CHECK(angelText.find("[From the Uniqueness: Sequence 0: Seq0]") != std::string::npos);
+    CHECK(angelText.find("- Twilight: Ages whatever it touches.") != std::string::npos);
+    Character god = c;
+    god.sequence = 0;
+    CHECK(renderText(buildCharacterSheet(god, db)).find("Has absorbed the Uniqueness of the Warrior pathway.") !=
+          std::string::npos);
 
     // Held By shows on the artifact sheet.
     const std::string artifactText = renderText(buildArtifactSheet(a, db));
@@ -322,6 +480,8 @@ int main() {
     testAbilitiesAndEligibility();
     testPointBuy();
     testDice();
+    testThreatLevel();
+    testTwoWayRelationships();
     testJsonRoundTrip();
     testRelationships();
     testPathwayDatabase();

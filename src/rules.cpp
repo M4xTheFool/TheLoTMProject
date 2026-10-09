@@ -1,6 +1,7 @@
 #include "rules.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 
 namespace lotm {
@@ -80,6 +81,14 @@ std::vector<std::string> movementModes(const Character& c, const Pathway* pathwa
     return modes;
 }
 
+std::vector<std::string> movementUnlockedAt(const Pathway& pathway, int sequence) {
+    std::vector<std::string> modes;
+    for (const auto& m : pathway.movement) {
+        if (m.sequence == sequence) modes.push_back(m.mode);
+    }
+    return modes;
+}
+
 std::vector<const SequenceInfo*> abilitiesUpTo(const Pathway& pathway, int sequence) {
     std::vector<const SequenceInfo*> result;
     for (const auto& s : pathway.sequences) {
@@ -92,6 +101,50 @@ std::vector<const SequenceInfo*> abilitiesUpTo(const Pathway& pathway, int seque
 
 bool honorificEligible(const Character& c) {
     return !c.pathwayId.empty() && c.sequence <= 3;
+}
+
+bool sequenceOneChoices(const Character& c) {
+    return !c.pathwayId.empty() && c.sequence == 1;
+}
+
+bool absorbedUniqueness(const Character& c) {
+    return !c.pathwayId.empty() && c.sequence == 0;
+}
+
+ThreatAssessment assessThreat(const Character& c) {
+    static constexpr std::array<int, 6> kSequencePoints = {0, 1, 3, 5, 7, 10};  // by speed tier
+    const int tier = speedTierOf(c).tier;
+    const int sequencePoints = kSequencePoints[static_cast<size_t>(tier)];
+
+    int actionPoints = 0;
+    const auto action = std::find(kRecentActions.begin(), kRecentActions.end(), c.dossier.recentActions);
+    if (action != kRecentActions.end()) actionPoints = static_cast<int>(action - kRecentActions.begin()) - 1;
+
+    const int artifacts = static_cast<int>(c.artifactIds.size());
+    const int artifactPoints = artifacts >= 3 ? 2 : (artifacts >= 1 ? 1 : 0);
+
+    ThreatAssessment result;
+    result.total = sequencePoints + actionPoints + artifactPoints;
+    const int t = result.total;
+    result.level = kThreatLevels[t <= 2 ? 0 : t <= 4 ? 1 : t <= 6 ? 2 : t <= 8 ? 3 : 4];
+
+    result.explanation = tier == 0 ? "Mortal (0)" : "Sequence " + std::to_string(c.sequence) + " (" +
+                                                        std::to_string(sequencePoints) + ")";
+    if (action != kRecentActions.end() && actionPoints != 0) {
+        std::string label = *action;
+        label[0] = static_cast<char>(std::tolower(static_cast<unsigned char>(label[0])));
+        result.explanation += " + " + label.substr(0, label.find(',')) + " (" + signedNumber(actionPoints) + ")";
+    }
+    if (artifactPoints > 0) {
+        result.explanation += " + " + std::to_string(artifacts) + " Sealed Artifact" + (artifacts == 1 ? "" : "s") +
+                              " (+" + std::to_string(artifactPoints) + ")";
+    }
+    result.explanation += " = " + std::to_string(result.total);
+    return result;
+}
+
+std::string threatLevelOf(const Character& c) {
+    return c.dossier.threatLevel.empty() ? assessThreat(c).level : c.dossier.threatLevel;
 }
 
 static int sequencesAdvanced(const Character& c) {
@@ -127,9 +180,19 @@ std::vector<std::string> normalizeCharacter(Character& c) {
         c.honorificName.clear();
         notes.push_back("Honorific name removed: it needs Sequence 3 or stronger.");
     }
-    if (!c.hasUniqueness && !c.uniquenessForm.empty()) {
+    if (!sequenceOneChoices(c)) {
+        if (c.hasUniqueness) notes.push_back("Uniqueness removed: only Sequence 1 can hold one.");
+        if (c.beyonderCharacteristics != 1) {
+            notes.push_back("Beyonder characteristics set back to 1: only Sequence 1 chooses between 1 and 2.");
+        }
+        c.hasUniqueness = false;
+        c.beyonderCharacteristics = 1;
+    }
+    c.beyonderCharacteristics = std::clamp(c.beyonderCharacteristics, 1, 2);
+    if (!c.hasUniqueness && (!c.uniquenessForm.empty() || !c.uniquenessAbilities.empty())) {
         c.uniquenessForm.clear();
-        notes.push_back("Uniqueness description removed: the character no longer holds one.");
+        c.uniquenessAbilities.clear();
+        if (sequenceOneChoices(c)) notes.push_back("Uniqueness details removed: the character no longer holds one.");
     }
     if (!c.stats.hpIncluded) c.stats.hp = 0;
     return notes;

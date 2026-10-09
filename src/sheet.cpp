@@ -1,5 +1,7 @@
 #include "sheet.hpp"
 
+#include <cctype>
+
 #include "rules.hpp"
 
 namespace lotm {
@@ -35,6 +37,23 @@ void addSection(Sheet& sheet, Section section) {
     if (!section.blocks.empty()) sheet.sections.push_back(std::move(section));
 }
 
+// "Black, shoulder-length, wavy": later parts start lower case unless they look like a name or acronym.
+std::string describeHair(const Appearance& look) {
+    std::string out;
+    for (const std::string* part : {&look.hair, &look.hairLength, &look.hairStyle}) {
+        if (part->empty()) continue;
+        std::string text = *part;
+        if (!out.empty()) {
+            out += ", ";
+            if (text.size() > 1 && std::islower(static_cast<unsigned char>(text[1]))) {
+                text[0] = static_cast<char>(std::tolower(static_cast<unsigned char>(text[0])));
+            }
+        }
+        out += text;
+    }
+    return out;
+}
+
 std::string artifactLine(const Artifact& a, const Database& db) {
     std::string line = artifactCode(a.id);
     if (!a.pathwayId.empty()) line += ", " + pathwayLabel(db, a.pathwayId) + " pathway";
@@ -59,13 +78,14 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         if (pathway && !pathway->god.empty()) sheet.subtitle += " (" + pathway->god + ")";
     }
 
-    Section identity{"Identity", {}};
+    Section identity{"Identity"};
     identity.field("ID", characterCode(c.id));
     identity.field("Aliases", join(c.aliases));
     identity.field("Titles", join(c.titles));
     identity.field("Alignment", c.alignment);
     identity.field("Age", c.age);
     identity.field("Gender", c.gender);
+    if (sequenceOneChoices(c)) identity.field("Beyonder characteristics", std::to_string(c.beyonderCharacteristics));
     if (!c.affiliation.organization.empty()) {
         std::string org = c.affiliation.organization;
         if (!c.affiliation.rank.empty()) org += " (" + c.affiliation.rank + ")";
@@ -73,17 +93,20 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     }
     addSection(sheet, identity);
 
-    Section looks{"Appearance", {}};
-    looks.field("Hair", c.appearance.hair);
+    Section looks{"Appearance"};
+    looks.field("Hair", describeHair(c.appearance));
     looks.field("Eyes", c.appearance.eyes);
+    looks.field("Skin", c.appearance.skin);
+    looks.field("Face", c.appearance.face);
     looks.field("Build", c.appearance.build);
     looks.field("Height", c.appearance.height);
+    looks.field("Voice", c.appearance.voice);
     looks.field("Clothing", c.appearance.clothing);
     looks.field("Distinguishing mark", c.appearance.distinguishingMark);
     looks.paragraph(c.appearance.description);
     addSection(sheet, looks);
 
-    Section about{"About", {}};
+    Section about{"About"};
     about.paragraph(c.shortDescription);
     if (!c.backstory.empty()) {
         about.subheading("Backstory");
@@ -92,19 +115,24 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     addSection(sheet, about);
 
     if (!c.honorificName.empty()) {
-        Section honorific{"Honorific Name", {}};
+        Section honorific{"Honorific Name"};
         honorific.quote(join(c.honorificName, "\n"));
         addSection(sheet, honorific);
     }
 
     if (c.hasUniqueness) {
-        Section uniqueness{"Uniqueness", {}};
+        Section uniqueness{"Uniqueness"};
         uniqueness.paragraph(c.uniquenessForm.empty() ? "Holds a Uniqueness." : c.uniquenessForm);
+        addSection(sheet, uniqueness);
+    } else if (absorbedUniqueness(c)) {
+        Section uniqueness{"Uniqueness"};
+        uniqueness.paragraph("Has absorbed the Uniqueness of the " +
+                             (pathway ? pathway->name : pathwayLabel(db, c.pathwayId)) + " pathway.");
         addSection(sheet, uniqueness);
     }
 
     // Stat block
-    Section stats{"Stat Block", {}};
+    Section stats{"Stat Block"};
     Block table{BlockKind::Stats, "", "", {}};
     const auto bonus = statBonuses(c, pathway);
     const auto totals = statTotals(c, pathway);
@@ -129,22 +157,25 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     stats.field("Speed", speed);
     stats.field("Speed tier means", tier.description);
     if (pathway) stats.field("Speed note", pathway->speedNote);
-    const auto modes = movementModes(c, pathway);
-    stats.field("Movement", join(modes, "; "));
     if (c.stats.hpIncluded) stats.field("HP", std::to_string(c.stats.hp));
     stats.field("Spirituality", std::to_string(c.stats.spirituality));
     addSection(sheet, stats);
 
     if (pathway) {
-        Section abilities{"Abilities", {}};
+        Section abilities{"Abilities"};
         for (const SequenceInfo* s : abilitiesUpTo(*pathway, c.sequence)) {
             abilities.subheading("Sequence " + std::to_string(s->sequence) + ": " + s->name);
             for (const auto& a : s->abilities) abilities.bullet(a);
+            for (const auto& mode : movementUnlockedAt(*pathway, s->sequence)) abilities.bullet("Movement: " + mode);
+        }
+        if (c.hasUniqueness && !c.uniquenessAbilities.empty()) {
+            abilities.subheading("From the Uniqueness: " + sequenceLabel(pathway, 0));
+            for (const auto& a : c.uniquenessAbilities) abilities.bullet(a);
         }
         addSection(sheet, abilities);
     }
 
-    Section artifacts{"Sealed Artifacts", {}};
+    Section artifacts{"Sealed Artifacts"};
     for (int id : c.artifactIds) {
         const Artifact* a = db.findArtifact(id);
         if (!a) continue;
@@ -156,7 +187,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     }
     addSection(sheet, artifacts);
 
-    Section relations{"Relationships", {}};
+    Section relations{"Relationships"};
     for (const auto& r : c.relationships) {
         std::string line = r.type + ": " + relationshipName(db, r);
         if (!r.note.empty()) line += ", " + r.note;
@@ -164,7 +195,26 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     }
     addSection(sheet, relations);
 
-    Section notes{"Notes", {}};
+    const Dossier& file = c.dossier;
+    Section dossier{"Dossier", "dossier"};
+    dossier.field("File", characterCode(c.id));
+    dossier.field("Filed by", file.filedBy);
+    const ThreatAssessment threat = assessThreat(c);
+    if (file.threatLevel.empty()) {
+        dossier.field("Threat level", threat.level);
+        dossier.field("Assessment", threat.explanation);
+    } else {
+        dossier.field("Threat level", file.threatLevel + " (set by hand)");
+        dossier.field("Assessment", threat.explanation + ", which the rules call " + threat.level);
+    }
+    dossier.field("Recent actions", file.recentActions);
+    dossier.field("What they did", file.recentActionsNote);
+    dossier.field("Status", file.status);
+    dossier.field("Last seen", file.lastSeen);
+    dossier.field("Remarks", file.remarks);
+    addSection(sheet, dossier);
+
+    Section notes{"Notes"};
     notes.paragraph(c.notes);
     addSection(sheet, notes);
 
@@ -184,23 +234,23 @@ Sheet buildArtifactSheet(const Artifact& a, const Database& db) {
     sheet.subtitle += a.pathwayId.empty() ? ", unknown pathway" : ", " + pathwayLabel(db, a.pathwayId) + " pathway";
     if (a.sequenceLevel != kUnknownSequence) sheet.subtitle += ", Sequence " + std::to_string(a.sequenceLevel) + " level";
 
-    Section look{"Appearance", {}};
+    Section look{"Appearance"};
     look.paragraph(a.visualDescription);
     addSection(sheet, look);
 
-    Section ability{"Ability", {}};
+    Section ability{"Ability"};
     ability.paragraph(a.ability);
     addSection(sheet, ability);
 
-    Section drawback{"Drawback", {}};
+    Section drawback{"Drawback"};
     drawback.paragraph(a.drawback);
     addSection(sheet, drawback);
 
-    Section notes{"Notes", {}};
+    Section notes{"Notes"};
     notes.paragraph(a.notes);
     addSection(sheet, notes);
 
-    Section holders{"Held By", {}};
+    Section holders{"Held By"};
     for (const auto& c : db.characters) {
         for (int id : c.artifactIds) {
             if (id == a.id) holders.bullet(c.name + " (" + characterCode(c.id) + ")");

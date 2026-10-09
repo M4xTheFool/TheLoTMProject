@@ -1,11 +1,11 @@
 {
   "about": [
     "The pathway database. Edit it freely in any text editor; the program reads it on start.",
-    "Ability text is a short summary in our own words. Entries starting with 'Edit me' still need filling in,",
-    "and higher-sequence names and powers are best-effort: correct anything you know better.",
+    "Write each ability as \"Name: what it does\". Movement powers are ordinary abilities of the Sequence that unlocks them.",
+    "Descriptions are short summaries in our own words. Higher-Sequence powers are pieced together from fan sources",
+    "and are best-effort: correct anything you know better.",
     "To add a pathway, copy a whole { ... } block below, give it a new unique id, and change its fields.",
-    "primaryStat / secondaryStat: STR, DEX, CON, INT, WIS or CHA. speedGrade: Slow, Average, Fast or Very fast.",
-    "movement: each mode is gained at that sequence and every stronger (lower-numbered) one."
+    "primaryStat / secondaryStat: STR, DEX, CON, INT, WIS or CHA. speedGrade: Slow, Average, Fast or Very fast."
   ],
   "version": 1,
   "pathways": [
@@ -18,95 +18,105 @@
       "secondaryStat": "DEX",
       "speedGrade": "Average",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 5,
-          "mode": "Swapping places with a marionette"
-        },
-        {
-          "sequence": 4,
-          "mode": "Short trips through the Spirit World"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Seer",
           "abilities": [
-            "Spirit Vision",
-            "Divination (dowsing, pendulum, dreams, mirrors)",
-            "Sense of approaching danger"
+            "Spirit Vision: Sees auras, emotions, health and spirits that ordinary eyes miss.",
+            "Divination: Answers questions through dowsing rods, pendulums, dreams, mirrors, cards and similar methods.",
+            "Danger Intuition: Feels a vague warning when threats or bad omens are drawing near.",
+            "Mystic Aptitude: Gains a sharper memory, stronger spirituality and a natural knack for rituals."
           ]
         },
         {
           "sequence": 8,
           "name": "Clown",
           "abilities": [
-            "Superb balance and body control",
-            "Calm, unreadable expressions",
-            "Paper cards thrown as blades"
+            "Acrobatics: Gains superb balance, agility and body control for leaps, flips and dodges.",
+            "Poker Face: Keeps expressions and bodily reactions calm and unreadable, even under pressure.",
+            "Combat Intuition: Senses an incoming attack a split second before it lands.",
+            "Paper Blades: Hardens playing cards or paper so they can be thrown or swung like knives."
           ]
         },
         {
           "sequence": 7,
           "name": "Magician",
           "abilities": [
-            "Paper Figure Substitute to escape a lethal blow",
-            "Flame jumping, air bullets and small illusions",
-            "Escape artistry"
+            "Paper Figurine Substitute: Swaps places with a paper figure to escape a lethal blow or blunt a curse.",
+            "Flaming Jump: Steps into one fire and out of another flame nearby.",
+            "Air Bullet: Snaps a finger to fire a compressed burst of air with gun-like force.",
+            "Illusions: Creates convincing false sights and sounds to mislead onlookers.",
+            "Escape Artistry: Softens bones and joints to slip out of ropes, cuffs and tight spots.",
+            "Damage Transfer: Shifts an injury away from vital organs to a less dangerous place."
           ]
         },
         {
           "sequence": 6,
           "name": "Faceless",
           "abilities": [
-            "Reshaping face, body and voice to become someone else"
+            "Shapeshifting: Reshapes face, body, voice and scent to become someone else, within limits of size.",
+            "Perfect Mimicry: Copies a person's looks, mannerisms and habits convincingly after studying them.",
+            "Face Memory: Remembers faces precisely and recognizes familiar people through their disguises."
           ]
         },
         {
           "sequence": 5,
           "name": "Marionettist",
           "abilities": [
-            "Seeing and grabbing Spirit Body Threads",
-            "Turning victims into marionettes",
-            "Swapping places with a marionette"
+            "Spirit Body Threads: Sees and grasps the invisible threads linking every being to its spirit body.",
+            "Marionette Control: Slows a victim through their threads until they become an obedient marionette that keeps its powers.",
+            "Marionette Swap: Instantly trades places with one of its marionettes within range.",
+            "Remote Bodies: Acts, speaks and fights through its marionettes as if they were extra bodies."
           ]
         },
         {
           "sequence": 4,
           "name": "Bizarro Sorcerer",
           "abilities": [
-            "Grotesque, very hard to kill body",
-            "Moving through the Spirit World"
+            "Bizarro Body: Becomes a demigod with an eerie, partly inhuman body of spirit worms that is very hard to kill.",
+            "Spirit World Shortcut: Briefly passes through the Spirit World to cover distance, and flame jumps reach much farther.",
+            "Marionette Legion: Commands dozens of marionettes and can use its own powers through worms planted in them.",
+            "Information Concealment: Hides facts about itself from divination and prying senses.",
+            "Beast Forms: Transforms into animals.",
+            "Wound Transfer: Moves its injuries or illnesses onto paper figures."
           ]
         },
         {
           "sequence": 3,
           "name": "Scholar of Yore",
           "abilities": [
-            "Summoning projections of the past and of past selves from history"
+            "Historical Projection: Summons temporary projections of people or objects it knows out of history.",
+            "Past Self: Borrows the state or strength of an earlier version of itself.",
+            "Historical Void: Enters the fog of history and hides inside gaps in the past."
           ]
         },
         {
           "sequence": 2,
           "name": "Miracle Invoker",
           "abilities": [
-            "Making wishes come true within limits"
+            "Wish Granting: Makes wishes come true within limits, with bigger miracles needing many gathered wishes.",
+            "Miracle Feats: Restores what was lost, moves things, reshapes an area, extends life or briefly suppresses powers.",
+            "Angelic Form: Completes its mythical creature form and becomes an angel."
           ]
         },
         {
           "sequence": 1,
           "name": "Attendant of Mysteries",
           "abilities": [
-            "Grafting concepts onto one another",
-            "Deep control over the hidden and the Spirit World"
+            "Grafting: Links things that have no real connection, joining places, effects, definitions or concepts.",
+            "Realm of Mysteries: Wraps an area in mystery, hiding it and cutting it off from the outside.",
+            "Thread Restoration: Gives spirit body threads back to things that once had them, and makes marionettes rapidly.",
+            "Direct Miracles: Performs miracles directly instead of waiting on accumulated wishes."
           ]
         },
         {
           "sequence": 0,
           "name": "Fool",
           "abilities": [
-            "Authority over mysteries, deception and the unknown"
+            "Fooling: Deceives senses, thought, history, fate and even reality, so a false condition can become true.",
+            "Lord of Mysteries: Holds authority over mysteries, the hidden and the unknown.",
+            "Perfected Powers: Grafting, miracles, history, marionettes and divination all reach full divine strength."
           ]
         }
       ]
@@ -120,94 +130,111 @@
       "secondaryStat": "DEX",
       "speedGrade": "Very fast",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 9,
-          "mode": "Passing through walls and doors"
-        },
-        {
-          "sequence": 5,
-          "mode": "Teleportation"
-        },
-        {
-          "sequence": 2,
-          "mode": "Opening gates to other worlds"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Apprentice",
           "abilities": [
-            "Opening any door or lock",
-            "Passing through walls",
-            "Slipping out of restraints"
+            "Door Opening: Draws a symbolic door on a wall or thin barrier and walks through it.",
+            "Unlocking: Opens ordinary locks and doors with ease.",
+            "Slip Restraints: Opens cuffs, ropes and other bindings to slip free.",
+            "Ritual Basics: Learns basic mysticism and simple ritual magic."
           ]
         },
         {
           "sequence": 8,
           "name": "Trickmaster",
           "abilities": [
-            "Small tricks: flashes of light, gusts of wind, sparks, slippery ground"
+            "Minor Tricks: Casts many small spells such as flashes, fog, darkness, freezing, sparks, shocks, gusts and loud bangs.",
+            "Slippery Ground: Makes a patch of floor slick so enemies stumble.",
+            "Small Telekinesis: Roughly nudges or moves light objects from a distance.",
+            "Escape Trick: Chains tricks together to dart over ten meters away almost instantly."
           ]
         },
         {
           "sequence": 7,
           "name": "Astrologer",
           "abilities": [
-            "Divination by the stars",
-            "Reading fate and danger from astrology"
+            "Astrology: Divines through star charts, celestial symbols and crystal balls.",
+            "Fate Reading: Reads looming fate and danger, with sharper spiritual intuition.",
+            "Memory Recall: Recovers blurred or forgotten memories.",
+            "Disguise Insight: Recognizes the same person beneath different disguises.",
+            "Divination Interference: Disrupts others' divination and intuition aimed at it.",
+            "Shared Door: Brings companions through walls and opens tiny peepholes to spy through."
           ]
         },
         {
           "sequence": 6,
           "name": "Scribe",
           "abilities": [
-            "Recording other Beyonder powers to use them later"
+            "Recording: Records an active Beyonder power it witnesses and saves it for one later use, weaker if the source is stronger.",
+            "Recorded Library: Stores several recorded powers at once, with room growing as the potion digests."
           ]
         },
         {
           "sequence": 5,
           "name": "Traveler",
           "abilities": [
-            "Long-range teleportation",
-            "Travel through the Spirit World"
+            "Traveler's Door: Opens a door into the Spirit World and steps out far away, carrying anyone it touches.",
+            "Blink: Teleports a short distance in an instant.",
+            "Spirit World Bearings: Always knows its position and finds its way within the Spirit World.",
+            "Invisible Hand: Grabs objects from a distance with an unseen hand.",
+            "Spirit Veil: Partly hides itself by drawing close to the Spirit World."
           ]
         },
         {
           "sequence": 4,
           "name": "Secrets Sorcerer",
           "abilities": [
-            "Creating hidden spaces and secret doors",
-            "Folding and hiding space"
+            "Concealed Space: Creates hidden pocket spaces behind secret doors, used as prisons, vaults, safe rooms or arenas.",
+            "Secret Keeping: Hides secrets and conversations from divination, intuition and eavesdroppers.",
+            "Door Body: Turns into layers of illusory doors to slip past attacks.",
+            "Exile: Temporarily banishes a target into turbulent space.",
+            "Star Worm Form: Becomes a demigod with an incomplete Worm of Star mythical form."
           ]
         },
         {
           "sequence": 3,
           "name": "Wanderer",
           "abilities": [
-            "Wandering between distant places and realms"
+            "Astral Wandering: Travels through the Astral World to distant planets and other dimensions.",
+            "Space Integration: Blends into surrounding space to hide and survive hostile environments.",
+            "Space Tearing: Rips space on contact, collapsing matter and the area into a spatial storm.",
+            "Spatial Cage: Turns concealed spaces into prisons that hold powerful enemies.",
+            "Barrier Breaking: Door Opening can now force through most barriers."
           ]
         },
         {
           "sequence": 2,
           "name": "Planeswalker",
           "abilities": [
-            "Crossing between planes and worlds"
+            "Planar Travel: Teleports to far planets, dreams, the Mirror World, the Underworld and hidden spaces.",
+            "Symbol Form: Turns into symbols to cross the Astral World efficiently.",
+            "Dimension Sight: Views distant scenes across space.",
+            "Miniaturization: Shrinks people, objects or whole areas into toy-sized spaces.",
+            "Replication: Reproduces Beyonder powers it has seen without recording them first.",
+            "Sealing: Seals beings, powers and even concepts, including inside prisons of starlight."
           ]
         },
         {
           "sequence": 1,
           "name": "Key of Stars",
           "abilities": [
-            "Gateways across the starry sky"
+            "Starry Gateway: Opens doors from almost anywhere into the Astral World and the starry sky.",
+            "Stellar Positioning: Pinpoints nearly any place or being while keeping its own location hidden.",
+            "Stellar Gravity: Uses star-like gravity to bend, crack and crush space.",
+            "Starry Banishment: Casts enemies into the remote starry sky, far from any easy return."
           ]
         },
         {
           "sequence": 0,
           "name": "Door",
           "abilities": [
-            "Authority over space, travel and gateways"
+            "Supreme Positioning: Finds almost anything while making its own position impossible to locate.",
+            "Authority of Doors: Governs space, sealing, entrances, exits, boundaries and alternate worlds.",
+            "Instant Passage: Moves instantly between the physical, spirit and astral worlds.",
+            "Star Gravity: Bends and shatters space, distorts time and redirects light.",
+            "Absolute Sealing: Seals, or breaks seals on, beings, abilities, connections and even rules."
           ]
         }
       ]
@@ -221,86 +248,94 @@
       "secondaryStat": "INT",
       "speedGrade": "Fast",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 4,
-          "mode": "Parasitizing a host"
-        },
-        {
-          "sequence": 1,
-          "mode": "Stealing time to act first"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Marauder",
           "abilities": [
-            "Stealing objects unnoticed",
-            "Quick hands and sharp eyes"
+            "Theft: Lifts items from pockets, bags and bodies without the owner noticing.",
+            "Nimble Hands: Gains fast, precise hands and quick reflexes.",
+            "Keen Eye: Spots valuables, hiding places and openings for a theft."
           ]
         },
         {
           "sequence": 8,
           "name": "Swindler",
           "abilities": [
-            "Persuasive lies that briefly bend a target's thinking"
+            "Deceit: Tells persuasive lies that briefly bend a target's thinking toward believing them.",
+            "Silver Tongue: Gains eloquence and charm that make people listen and trust.",
+            "Misdirection: Draws attention away from its hands and its real goals."
           ]
         },
         {
           "sequence": 7,
           "name": "Cryptologist",
           "abilities": [
-            "Breaking codes and spotting hidden patterns and flaws"
+            "Decryption: Breaks codes, ciphers and secret writing with ease.",
+            "Pattern Sight: Spots hidden patterns, contradictions and clues that others overlook.",
+            "Flaw Finding: Perceives weak points in people, defenses, rituals and seals."
           ]
         },
         {
           "sequence": 6,
           "name": "Prometheus",
           "abilities": [
-            "Stealing another Beyonder's power for a short time"
+            "Power Theft: Steals a Beyonder ability from a nearby target and can use it for a short time.",
+            "Borrowed Fire: Turns a stolen power against its owner or others while the theft lasts."
           ]
         },
         {
           "sequence": 5,
           "name": "Dream Stealer",
           "abilities": [
-            "Stealing thoughts, intentions and memories"
+            "Intent Theft: Steals a target's thought or intention, so they forget what they meant to do.",
+            "Memory Theft: Takes memories from a target, learning what they knew.",
+            "Dream Theft: Steals into dreams to take secrets and ideas."
           ]
         },
         {
           "sequence": 4,
           "name": "Parasite",
           "abilities": [
-            "Living inside other beings and controlling them from within"
+            "Parasitism: Lodges inside another being to hide, watch through them or control them from within.",
+            "Worm Avatars: Splits off small worm-like bodies that parasitize others and act as its avatars.",
+            "Time Worm Form: Becomes a demigod with an incomplete Worm of Time form that is very hard to wipe out."
           ]
         },
         {
           "sequence": 3,
           "name": "Mentor of Deceit",
           "abilities": [
-            "Exploiting loopholes in rules and in the world itself"
+            "Loophole Exploit: Finds and abuses gaps in rules, contracts, seals and even natural laws.",
+            "Deceive the Rules: Tricks the world's rules into accepting a false situation as valid.",
+            "Induced Errors: Nudges enemies and their powers into small but costly mistakes."
           ]
         },
         {
           "sequence": 2,
           "name": "Trojan Horse of Destiny",
           "abilities": [
-            "Stealing and swapping fates"
+            "Fate Theft: Steals parts of another's fate, taking their luck, role or future for itself.",
+            "Fate Parasitism: Hides inside a target's destiny, waiting to seize it at the right moment.",
+            "Fate Swap: Exchanges destinies between two people, or between itself and another."
           ]
         },
         {
           "sequence": 1,
           "name": "Worm of Time",
           "abilities": [
-            "Stealing time itself"
+            "Time Theft: Steals moments of time from others, skipping or erasing what they would have done.",
+            "Time Parasitism: Lodges itself within time and others' timelines, making it extremely hard to kill.",
+            "Countless Avatars: Splits into many Worms of Time, each a capable avatar."
           ]
         },
         {
           "sequence": 0,
           "name": "Error",
           "abilities": [
-            "Authority over theft, loopholes and deception"
+            "Authority of Error: Rules over loopholes, mistakes and deceit, making rules and powers fail.",
+            "Absolute Theft: Can steal almost anything, from objects and powers to fate, time and concepts.",
+            "Deceiving the World: Fools reality itself into treating false or impossible situations as real."
           ]
         }
       ]
@@ -314,83 +349,107 @@
       "secondaryStat": "CHA",
       "speedGrade": "Average",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 5,
-          "mode": "Travelling through dreams"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Spectator",
           "abilities": [
-            "Reading body language and emotions",
-            "Going unnoticed while observing"
+            "Keen Observation: Reads body language, expressions and habits to infer emotions and intentions.",
+            "Quiet Observer: Watches from the sidelines while drawing little attention to itself.",
+            "Sharp Mind: Gains better memory, deduction, eyesight and emotional control."
           ]
         },
         {
           "sequence": 8,
           "name": "Telepathist",
           "abilities": [
-            "Sensing surface thoughts and feelings"
+            "Surface Thoughts: Senses a person's current thoughts and feelings.",
+            "Thought Prediction: Simulates how a person is likely to think and react next.",
+            "Lie Sense: Notices lies and hidden reactions through spiritual perception.",
+            "Natural Rapport: Knows which words and expressions will feel natural to a given audience."
           ]
         },
         {
           "sequence": 7,
           "name": "Psychiatrist",
           "abilities": [
-            "Calming or unsettling minds",
-            "Treating and causing madness"
+            "Placate: Calms fear, madness and the early signs of losing control.",
+            "Frenzy: Inflames emotions into rage or madness, harming mind and spirit.",
+            "Awe: Fills a target with dread or submission.",
+            "Psychological Cue: Plants a suggestion that the target believes is their own decision.",
+            "Mind Contact: Reaches into a mind that is partly open to it."
           ]
         },
         {
           "sequence": 6,
           "name": "Hypnotist",
           "abilities": [
-            "Hypnotizing individuals, groups or oneself"
+            "Hypnosis: Hypnotizes a person, a group or itself, leaving instructions that act later unnoticed.",
+            "Battle Hypnosis: Makes foes hesitate, retreat, grow confused or attack their allies.",
+            "Psychological Invisibility: Becomes a blind spot that observers' minds simply ignore.",
+            "Dragon Scales: Grows tough scales that defend against physical harm."
           ]
         },
         {
           "sequence": 5,
           "name": "Dreamwalker",
           "abilities": [
-            "Entering and shaping other people's dreams"
+            "Dream Entry: Enters, watches and reshapes other people's dreams.",
+            "Dream Travel: Moves between nearby sleepers' dreams and hides inside them.",
+            "Dream Influence: Slowly shifts a dreamer's feelings, loyalties, fears or habits.",
+            "Secret Digging: Guides dream imagery to reveal what a dreamer is hiding."
           ]
         },
         {
           "sequence": 4,
           "name": "Manipulator",
           "abilities": [
-            "Planting ideas and steering thoughts without being noticed"
+            "Subconscious Sea: Enters the sea of collective subconscious to invade minds and read deep thoughts.",
+            "Hidden Commands: Buries ideas and orders in minds, leaving almost no trace.",
+            "Mind Plague: Spreads mental illness through a whole community.",
+            "Mind Storm: Batters mental defenses with hostile, corrupting thoughts.",
+            "Virtual Personas: Splits off separate personas that guard its mind or infiltrate others.",
+            "Mind Dragon Form: Becomes a demigod with an incomplete Mind Dragon mythical form."
           ]
         },
         {
           "sequence": 3,
           "name": "Dream Weaver",
           "abilities": [
-            "Bringing dreams and imagined things into reality"
+            "Lifelike Dreams: Weaves dreams so real that fear or wounds inside them can break or kill.",
+            "Plague Storm: Spreads desire, unstable emotion and corruption across an area.",
+            "Consciousness Stroll: Carries its physical body through the collective subconscious to travel.",
+            "Living Personas: Its virtual personas become independent beings that act and grow on their own."
           ]
         },
         {
           "sequence": 2,
           "name": "Discerner",
           "abilities": [
-            "Reaching into the collective subconscious"
+            "Dream Maze: Links minds through the collective subconscious into a maze that drags victims through their secrets and fears.",
+            "Discernment: Sees weaknesses, hidden fears, motives and causes, even past ordinary anti-divination.",
+            "Envisioned Form: Temporarily takes on a form or state it truly understands and believes in.",
+            "Angelic Form: Completes the Mind Dragon form and becomes an angel."
           ]
         },
         {
           "sequence": 1,
           "name": "Author",
           "abilities": [
-            "Writing events into reality"
+            "Narrative Writing: Writes stories that come true when their events unfold logically.",
+            "Arranged Coincidence: Sets up chance meetings and coincidences that steer events.",
+            "Name Sense: Notices when its name or title is spoken, and can draw those who know it into its stories.",
+            "Living Concepts: Blends dreams with reality and creates mental concepts that act on their own."
           ]
         },
         {
           "sequence": 0,
           "name": "Visionary",
           "abilities": [
-            "Authority over the mind and imagination"
+            "Envisioning: Whatever it truly imagines can become real, from beings and objects to a divine kingdom.",
+            "Ruler of Minds: Creates or erases personality, memory, emotion and sanity.",
+            "Declared Future: Speaks a future that unfolds when backed by enough coherent development.",
+            "Loss of Control: Can shatter another Beyonder's mental balance."
           ]
         }
       ]
@@ -404,85 +463,110 @@
       "secondaryStat": "CON",
       "speedGrade": "Average",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 2,
-          "mode": "Moving as light"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Bard",
           "abilities": [
-            "Songs that raise allies' courage and strength",
-            "Resistance to fear"
+            "Inspiring Song: Sings hymns that boost allies' courage, strength and recovery.",
+            "Fearless: Resists fear and helps drive it out of others.",
+            "Hardy Body: Gains a healthier, sturdier body."
           ]
         },
         {
           "sequence": 8,
           "name": "Light Suppliant",
           "abilities": [
-            "Calling down sunlight",
-            "Light that harms undead and evil"
+            "Sunshine: Calls down scorching sunlight that burns undead and spirits and dazzles foes.",
+            "Daytime: Floods an area with light as if it were noon.",
+            "Blessing: Shields allies against fear, cold, darkness and deathly influence.",
+            "Sun Eyes: Sees in the dark and senses undead and evil beings nearby.",
+            "Holy Water: Prepares holy water and performs rituals that call stronger light."
           ]
         },
         {
           "sequence": 7,
           "name": "Solar High Priest",
           "abilities": [
-            "Holy light attacks and purification",
-            "Blessings of sunlight"
+            "Holy Light Summoning: Calls down a column of purifying light on evil.",
+            "Fire of Light: Conjures dense golden flames that burn away corruption.",
+            "Cleave of Purification: Blesses weapons and bullets with purifying force.",
+            "Sun Halo: Radiates a halo that steadies courage and cleanses evil influence.",
+            "Holy Oath: Swears an oath that boosts its body and holy damage.",
+            "Horror Immunity: Shrugs off supernatural fear."
           ]
         },
         {
           "sequence": 6,
           "name": "Notary",
           "abilities": [
-            "Notarizing to strengthen or weaken effects",
-            "Making agreements binding"
+            "Amplification: Notarizes a power or effect as valid, making it stronger.",
+            "Nullification: Declares an effect invalid, weakening or dispersing it.",
+            "Authentication: Judges whether a statement, identity, formula or contract is genuine.",
+            "Binding Contract: Witnesses agreements so that breaking them brings holy punishment."
           ]
         },
         {
           "sequence": 5,
           "name": "Priest of Light",
           "abilities": [
-            "Large-scale holy light and fire"
+            "Light of Holiness: Calls down a blazing pillar of light that can vaporize targets.",
+            "Purification Halo: Fills an area with golden radiance that strengthens allies and destroys impure creatures.",
+            "Bane of the Unclean: Its light and flame hit undead and corrupted beings especially hard."
           ]
         },
         {
           "sequence": 4,
           "name": "Unshadowed",
           "abilities": [
-            "A body of light that burns away evil"
+            "Sunbird Body: Becomes a demigod with an incomplete Sunbird form, far stronger, faster and tougher.",
+            "Unshadowed Domain: Fills an area with blazing light that reveals hidden things and suppresses darkness.",
+            "Direct Purification: Removes corruption, parasites, illness and mental influence, and in time can cleanse Beyonder characteristics.",
+            "Unshadowed Spear: Hurls a spear of concentrated holy light.",
+            "Flaring Sun: Ignites a fierce miniature sun of searing light.",
+            "Holy Armor: Wraps itself in protective armor and weapons of light."
           ]
         },
         {
           "sequence": 3,
           "name": "Justice Mentor",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Personal Justice: Turns its own standard of justice into an order binding it, the divine and the world.",
+            "Justice Halo: Covers a vast region, empowering acts that fit its justice and weakening those that break it.",
+            "Judgment of Justice: Focuses that suppression onto a single target.",
+            "Holy Contract: Forms sacred contracts strong enough to restrain angels.",
+            "Distant Armor: Extends protective holy armor to allies far away."
           ]
         },
         {
           "sequence": 2,
           "name": "Lightseeker",
           "abilities": [
-            "Seeking and channelling all light"
+            "Miniature Sun: Becomes a small sun, pouring out immense heat, light and purification.",
+            "Light Body: Turns into massless light to move at light speed, scatter to avoid harm and reform.",
+            "Praise the Sun: Produces absolute purification while strengthening itself.",
+            "Spear of Light: Seals the surrounding space so enemies cannot escape.",
+            "Justice Trial: Brutally punishes anyone who violates its core justice."
           ]
         },
         {
           "sequence": 1,
           "name": "White Angel",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Holy Kingdom: Creates a vast radiant domain where darkness, undead and corruption can barely exist.",
+            "Pure White Light: Purifies by breaking down anything out of harmony with its holiness.",
+            "Order and Faith: Draws strength from social order and turns people's awe into faith.",
+            "Regional Sun: Shines as the sun of a whole region, inspiring and reinforcing followers."
           ]
         },
         {
           "sequence": 0,
           "name": "Sun",
           "abilities": [
-            "Authority over the sun and light"
+            "Sun Incarnate: Can act, see and strike wherever light shines.",
+            "Eternal Day: Brings endless daylight that exposes concealment and suppresses death and darkness.",
+            "Divine Contracts: Binds even gods with contracts they cannot easily resist.",
+            "Inextinguishable Light: Extremely hard to destroy, able to return after seeming annihilation."
           ]
         }
       ]
@@ -496,91 +580,108 @@
       "secondaryStat": "CON",
       "speedGrade": "Fast",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 9,
-          "mode": "Strong swimmer, breathes underwater for long stretches"
-        },
-        {
-          "sequence": 6,
-          "mode": "Flight on the wind"
-        },
-        {
-          "sequence": 3,
-          "mode": "Travelling as lightning"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Sailor",
           "abilities": [
-            "Great strength and balance",
-            "Long breath-holding and fast swimming"
+            "Sea Strength: Gains great strength and balance, staying steady on rolling decks and rigging.",
+            "Swimmer: Holds breath for a long time, swims fast and resists water pressure.",
+            "Slippery Scales: Grows faint illusory scales that make the body slick and hard to grab."
           ]
         },
         {
           "sequence": 8,
           "name": "Folk of Rage",
           "abilities": [
-            "Strength that surges with anger"
+            "Rage Surge: Anger fuels big boosts to strength, speed and toughness.",
+            "Raging Blow: Releases built-up fury in one devastating strike.",
+            "Drunken Fury: Drinking speeds up the build-up of rage, at the cost of judgment."
           ]
         },
         {
           "sequence": 7,
           "name": "Seafarer",
           "abilities": [
-            "Sensing storms and the sea",
-            "Calling down lightning"
+            "Navigation: Masters stars, currents, winds and charts, so ships it guides rarely get lost.",
+            "Weather Sense: Senses coming storms and changes in the sea.",
+            "Water Spells: Uses water to smother foes, raise waves, wash away filth or mend small wounds.",
+            "Home Waters: Its water powers grow much stronger while at sea."
           ]
         },
         {
           "sequence": 6,
           "name": "Wind-blessed",
           "abilities": [
-            "Commanding wind, wind blades and flight"
+            "Wind Control: Commands gusts, pressure waves and binding winds.",
+            "Windblades: Fires invisible blades of cutting wind.",
+            "Wind Flight: Hovers, glides and briefly flies, and cushions falls with air.",
+            "Wind Whispers: Eavesdrops on distant voices carried by moving air.",
+            "Deep Diver: Dives deep, floats with ease and sees in the dark."
           ]
         },
         {
           "sequence": 5,
           "name": "Ocean Songster",
           "abilities": [
-            "Songs that sway the sea and people's emotions"
+            "Siren Song: Sings to strike the spirit, dazing listeners or stirring awe, rage or grief.",
+            "Lightning Strike: Calls down lightning that paralyzes, burns and purifies, and runs through metal and water.",
+            "Sea Dweller: Breathes underwater, endures deep pressure and talks with sea creatures."
           ]
         },
         {
           "sequence": 4,
           "name": "Cataclysmic Interrer",
           "abilities": [
-            "Storms, tsunamis and quakes at sea"
+            "Calamity Weather: Raises hurricanes, tsunamis, floods, blizzards and earthquakes.",
+            "True Flight: Flies freely on the wind.",
+            "Chain Lightning: Unleashes thunder strikes and lightning that leaps between foes.",
+            "Storm Veil: Its storms blind sight, senses and divination.",
+            "Thunderous Roar: Lets out a roar strong enough to capsize ships.",
+            "Demigod Form: Gains an incomplete mythical form whose scales serve as armor."
           ]
         },
         {
           "sequence": 3,
           "name": "Sea King",
           "abilities": [
-            "Command over the sea and its creatures"
+            "Sea Authority: Rules a sea region, raising sea levels and huge tsunamis.",
+            "Command Sea Life: Commands marine creatures and can turn into sea beasts.",
+            "Ocean Rejection: Makes the sea itself reject chosen enemies.",
+            "Rain Sight: Sees and senses through rain, clouds and droplets.",
+            "Lightning Forest: Raises a forest of lightning bolts."
           ]
         },
         {
           "sequence": 2,
           "name": "Calamity",
           "abilities": [
-            "Natural disasters across whole regions"
+            "Disaster Authority: Summons disasters able to wipe out ports, islands or cities.",
+            "Storm Body: Manifests through vast weather systems.",
+            "Magnetic Storm: Twists magnetic fields to cut off communications.",
+            "Source of Wrath: Boosts its power for a while at the cost of reason.",
+            "Dread Voice: Spreads terror, grief and submission over huge distances."
           ]
         },
         {
           "sequence": 1,
           "name": "Thunder God",
           "abilities": [
-            "Lightning in every form"
+            "Lightning Body: Becomes pure energy to move and strike at near light speed.",
+            "Heavenly Punishment: Calls down lightning that disintegrates and purifies.",
+            "Storm Hell: Creates lasting storms over cities, islands or seas.",
+            "Sea of Lightning: Fills a whole area with a sea of lightning.",
+            "Wrath Surge: Rage briefly lifts its force close to a true god's."
           ]
         },
         {
           "sequence": 0,
           "name": "Tyrant",
           "abilities": [
-            "Authority over storms, sea and thunder"
+            "Matter and Energy: Converts matter to energy and back, driving attacks of world-ending scale.",
+            "Divine Lightning: Strikes with lightning that tears through concealment, darkness, spirits and escape.",
+            "Tyrant's Presence: Its presence forces fear, awe and submission.",
+            "Lord of Storms: Oceans, skies, storms and electromagnetic fields carry its will."
           ]
         }
       ]
@@ -594,82 +695,101 @@
       "secondaryStat": "WIS",
       "speedGrade": "Average",
       "speedNote": "Relies on copied or prepared abilities more than raw speed.",
-      "movement": [
-        {
-          "sequence": 3,
-          "mode": "Mimicking movement abilities they have analysed"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Reader",
           "abilities": [
-            "Fast reading and near-perfect recall",
-            "Learning quickly"
+            "Speed Reading: Gets through books and documents at great speed and remembers nearly everything read.",
+            "Rapid Learning: Picks up new subjects, languages and skills far faster than ordinary people.",
+            "Clear Focus: Concentrates and understands with unusual clarity, turning heavy reading into usable knowledge.",
+            "Ritual Spirituality: Gains enough spirituality to perform basic ritualistic magic."
           ]
         },
         {
           "sequence": 8,
           "name": "Student of Ratiocination",
           "abilities": [
-            "Logical deduction from small clues"
+            "Ratiocination: Builds sound chains of logical deduction from small clues to reach conclusions.",
+            "Keen Observation: Notices overlooked details, inconsistencies and contradictions in scenes, accounts and behaviour.",
+            "Ordered Memory: Sorts stored knowledge so the right facts surface quickly while reasoning."
           ]
         },
         {
           "sequence": 7,
           "name": "Detective",
           "abilities": [
-            "Finding hidden clues and seeing through lies"
+            "Clue Hunting: Finds hidden traces and evidence that others walk straight past.",
+            "Seeing Through Lies: Spots lies, disguises and false stories from small tells and contradictions.",
+            "Scene Reconstruction: Pieces together past events at a location from lingering traces, unless those were erased or falsified.",
+            "Field Training: Gains better agility, weapon skill and command of ritual magic for dangerous cases."
           ]
         },
         {
           "sequence": 6,
           "name": "Polymath",
           "abilities": [
-            "Mastering many skills and mystical knowledge"
+            "Broad Mastery: Rapidly masters many mundane skills and wide fields of mystical knowledge.",
+            "Analysis: Studies a Beyonder power it witnesses to work out its pathway, principles, strengths and weaknesses.",
+            "Imitation: Recreates a weaker version of a correctly analyzed Beyonder power; a flawed analysis can backfire."
           ]
         },
         {
           "sequence": 5,
           "name": "Mysticism Magister",
           "abilities": [
-            "Using rituals and mystical knowledge freely"
+            "Ritual Mastery: Performs rituals and applies mystical knowledge freely, reliably and with little preparation.",
+            "Mystic Arts: Casts a broad range of spells for attack, defense, healing, sealing and investigation.",
+            "Spell Invention: Designs new spells from symbolism, materials and careful experimentation.",
+            "Stronger Imitation: Copied Beyonder powers become noticeably stronger, though still weaker than the originals."
           ]
         },
         {
           "sequence": 4,
           "name": "Prophet",
           "abilities": [
-            "Glimpsing the future"
+            "Prophecy: Glimpses the futures most likely to happen, though what it shows is probability rather than fixed fate.",
+            "Demigod Body: Gains a demigod's physique and spirituality along with an incomplete mythical creature form.",
+            "Deeper Analysis: Analyzes and imitates Beyonder powers more thoroughly and accurately than before."
           ]
         },
         {
           "sequence": 3,
           "name": "Cognizer",
           "abilities": [
-            "Understanding and imitating Beyonder powers they study"
+            "Cognition: Perceives the true essence, structure, symbols and hidden workings of a target or Beyonder power.",
+            "Faithful Imitation: Reproduces the Beyonder powers it has come to understand far more closely than before.",
+            "Principle Leverage: Finds the single point where a thing's underlying principles can be exploited with minimal force.",
+            "Symbol Spells: Derives a working spell after grasping the meaning of a mystical symbol."
           ]
         },
         {
           "sequence": 2,
           "name": "Wisdom Angel",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Wisdom: When forced to choose, foresees how events will shift and picks the most correct action at the right moment.",
+            "Angelic Form: Becomes an angel with the complete White Tower mythical creature form.",
+            "Heightened Insight: Learning, analysis and prophecy sharpen until the weaknesses of foes and plans lie bare.",
+            "Near-Perfect Imitation: Imitated powers come close to the original's full strength, though authorities stay out of reach."
           ]
         },
         {
           "sequence": 1,
           "name": "Omniscient Eye",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Omniscient Eye: Watches distant targets, learning their past, present state, likely futures, secrets and weaknesses.",
+            "Equal Imitation: Imitated powers match the original's strength, though not its authority or symbolism.",
+            "Astral Tampering: Briefly alters one aspect of a concept in the astral world so an action fails, errs or intensifies."
           ]
         },
         {
           "sequence": 0,
           "name": "White Tower",
           "abilities": [
-            "Authority over knowledge"
+            "Authority of Knowledge: Holds divine authority over knowledge, wisdom and analysis.",
+            "Omniscience: Perceives knowledge about almost anything directly, without needing to consult the spirit world.",
+            "Divine Imitation: Imitates any power it understands at full strength and can refine or surpass it.",
+            "Principle Mastery: Exploits the foundations of reality and crafts spells that others can cast."
           ]
         }
       ]
@@ -683,82 +803,105 @@
       "secondaryStat": "WIS",
       "speedGrade": "Average",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 7,
-          "mode": "Shadow travel"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Secrets Supplicant",
           "abilities": [
-            "Praying to hidden beings for knowledge",
-            "Resistance to madness"
+            "Secret Prayer: Prays to hidden beings for knowledge, rituals or aid, accepting great risk in return.",
+            "Steady Mind: Resists the madness and corruption that come with forbidden knowledge.",
+            "Hidden Lore: Instinctively knows about sacrifices, secret entities and the dangerous honorific names that reach them.",
+            "Spiritual Sense: Senses nearby supernatural auras and can perform rituals and simple divination."
           ]
         },
         {
           "sequence": 8,
           "name": "Listener",
           "abilities": [
-            "Hearing the whispers of hidden existences"
+            "Listening: Hears the whispers of hidden existences, picking up strange knowledge, rituals and prophecies.",
+            "Whispered Gifts: Sometimes draws fragments of forbidden power or warnings of danger from what it hears, at risk of corruption."
           ]
         },
         {
           "sequence": 7,
           "name": "Shadow Ascetic",
           "abilities": [
-            "Merging into and travelling through shadows"
+            "Shadow Walking: Merges into shadows to hide, and travels or trails targets through them.",
+            "Shadow Shaping: Moulds shadows into weapons, beasts or black cocoons that bind victims.",
+            "Shadow Seizure: Grabs hold of a person's shadow to restrain or harm them.",
+            "Shadow Curses: Lays curses using blood, flesh or torn fragments of a target's shadow."
           ]
         },
         {
           "sequence": 6,
           "name": "Rose Bishop",
           "abilities": [
-            "Manipulating flesh and blood"
+            "Flesh Manipulation: Controls flesh and blood, both its own and other people's.",
+            "Regeneration: Commands its own cells to regrow lost limbs and survive wounds to the heart or head.",
+            "Flowing Flesh: Melts into a fluid mass of flesh to slip away or hide inside other bodies.",
+            "Flesh Constructs: Crafts servants, cloaks and bombs out of living tissue.",
+            "Blood Curses: Curses a target through its blood or tissue, or devours it from within."
           ]
         },
         {
           "sequence": 5,
           "name": "Shepherd",
           "abilities": [
-            "Herding the souls of the dead and using their powers"
+            "Grazing: Devours the souls of the dead or slain and keeps them, using the powers those souls held in life.",
+            "Soul Flock: Keeps several grazed souls at once and switches between their powers while keeping its own."
           ]
         },
         {
           "sequence": 4,
           "name": "Black Knight",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Black Armor: Encases itself in black armor and swells into a small giant.",
+            "Shadow Command: Commands the shadows of a battlefield and binds foes through their own shadows.",
+            "Black Greatsword: Wields a dark greatsword that corrodes flesh, wounds souls and cleaves through barriers.",
+            "Thought Peeling: Strips depraved thoughts or invading personalities out of a mind, casting them off as shadows.",
+            "Betrayal: Makes objects and powers turn against the very people using them."
           ]
         },
         {
           "sequence": 3,
           "name": "Trinity Templar",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Trinity: Splits personality, body and power into three coordinated aspects.",
+            "Three Heads: Grows two shadowy heads, one young and one old, each able to regrow into a full being.",
+            "Single-Cell Revival: Rebuilds from one surviving cell as long as its spirit endures and flesh is available.",
+            "Shadow Substitute: Lets its shadow take damage in place of its body.",
+            "Triple Release: Releases up to three grazed souls at the same time."
           ]
         },
         {
           "sequence": 2,
           "name": "Profane Presbyter",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Profane Language: Twists the meaning of words and gestures into curses that imprison, separate, corrupt or erase identity.",
+            "Malice Shackles: Turns a target's own malice, envy or cowardice into chains that bind it.",
+            "Self-Reference: Draws strength whenever others refer to it.",
+            "Many-Headed Grazing: Uses the powers of several grazed souls simultaneously."
           ]
         },
         {
           "sequence": 1,
           "name": "Dark Angel",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Shadow Dominion: Rules much of the shadow world and stands firm against purifying light.",
+            "Degeneration: Makes bodies, items, powers and servants betray and turn on their owners.",
+            "Sea of Darkness: Summons an ocean of darkness that swallows attacks and dulls thought.",
+            "Profane Speech: Its words drain life and drive listeners deeper into madness.",
+            "Depraved Servants: Releases grazed souls as servants that keep their powers but obey through corruption."
           ]
         },
         {
           "sequence": 0,
           "name": "Hanged Man",
           "abilities": [
-            "Authority over sacrifice and degeneration"
+            "Authority of Sacrifice: Bears others' wounds, death or punishment, or sacrifices itself to secure a desired outcome.",
+            "Authority of Degeneration: Awakens depravity in the living and corrupts bodies, powers, objects and even principles.",
+            "Lord of Shadows: Rules the shadow world and spawns monsters from darkness that return after death.",
+            "Divine Grazing: Absorbs souls, Beyonder characteristics and even higher symbols."
           ]
         }
       ]
@@ -772,83 +915,101 @@
       "secondaryStat": "DEX",
       "speedGrade": "Average",
       "speedNote": "Counts as Fast (+2) at night.",
-      "movement": [
-        {
-          "sequence": 7,
-          "mode": "Entering other people's dreams"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Sleepless",
           "abilities": [
-            "Needs little sleep",
-            "Stronger, faster and sharper at night",
-            "Sees in the dark"
+            "Little Sleep: Stays fully alert on only a few hours of sleep.",
+            "Night Empowerment: Grows stronger, faster and sharper as the night deepens.",
+            "Dark Vision: Sees clearly in darkness.",
+            "Spirit Sense: Has high spirituality, a sense for danger, and can perform simple rituals and divination."
           ]
         },
         {
           "sequence": 8,
           "name": "Midnight Poet",
           "abilities": [
-            "Poems that calm, frighten or soothe"
+            "Midnight Poems: Recites poems or songs that calm, frighten, pacify or soothe listeners.",
+            "Lulling Verse: Uses chanted verse to wear down resistance and send groups of people to sleep.",
+            "Night Fighter: Gains better combat training and a stronger boost from the night."
           ]
         },
         {
           "sequence": 7,
           "name": "Nightmare",
           "abilities": [
-            "Entering dreams and attacking through nightmares"
+            "Dream Entry: Enters, observes and reshapes the dreams of sleepers nearby.",
+            "Nightmare: Pulls targets into sleep-like dreams and attacks their minds with terrifying visions.",
+            "Dream Interrogation: Draws memories and truths out of a dreamer by steering the dream."
           ]
         },
         {
           "sequence": 6,
           "name": "Soul Assurer",
           "abilities": [
-            "Soothing and protecting souls"
+            "Requiem: Lulls a spirit into deep stillness, suppressing thought, emotion, intuition and movement.",
+            "Soul Soothing: Calms and protects the souls of companions against mental strain and attack.",
+            "Spirit Pacifying: Quiets ghosts and silences restless undead.",
+            "Spirit Perception: Directly perceives spiritual beings, with stronger ritual and divination skill."
           ]
         },
         {
           "sequence": 5,
           "name": "Spirit Warlock",
           "abilities": [
-            "Commanding spirits"
+            "Spirit Command: Commands spirits as obedient servants.",
+            "Spirit Sealing: Seals natural, evil or dead spirits inside its body, keeping them dormant until needed.",
+            "Spirit Summoning: Calls sealed spirits out to fight, scout, track, fly or shield it."
           ]
         },
         {
           "sequence": 4,
           "name": "Nightwatcher",
           "abilities": [
-            "A domain of night and concealment"
+            "Domain of Night: Spreads pure darkness that empowers it and its spirits while weakening and draining enemies.",
+            "Concealment: Hides its appearance, identity and mystical connections from sight and divination.",
+            "Curse of Misfortune: Sours a target's luck so accidents and failures follow it.",
+            "Demigod Form: Gains a demigod's body and an incomplete mythical creature form."
           ]
         },
         {
           "sequence": 3,
           "name": "Horror Bishop",
           "abilities": [
-            "Spreading fear and nightmares over large areas"
+            "Horror: Radiates an aura of terror that can paralyze, unhinge or even kill weaker beings.",
+            "Nightmare World: Drags everyone across a small city into a shared dream that it controls.",
+            "Sword of Darkness: Forms a blade of darkness whose silent waves dissolve whatever they touch."
           ]
         },
         {
           "sequence": 2,
           "name": "Servant of Concealment",
           "abilities": [
-            "Hiding people, places and truths"
+            "Concealment Authority: Hides people, places, actions and truths, even from divination and prophecy.",
+            "Unveiling: Strips away concealment that others have cast.",
+            "Concealed World: Creates a hidden realm where battles leave the outside untouched and secrets cannot be spoken.",
+            "Angelic Form: Becomes an angel with a complete mythical creature form."
           ]
         },
         {
           "sequence": 1,
           "name": "Knight of Misfortune",
           "abilities": [
-            "Bringing misfortune"
+            "Misfortune Authority: Brings bad luck, accidents and disasters on individuals, nations or whole continents.",
+            "Return from Darkness: Revives after death through the darkness, though each return risks merging with it.",
+            "Spirit Legions: Commands vast numbers of spirits at once."
           ]
         },
         {
           "sequence": 0,
           "name": "Darkness",
           "abilities": [
-            "Authority over night, sleep and concealment"
+            "Authority of Night: Rules night, darkness and sleep, granting dreams, repose or eternal slumber.",
+            "Divine Concealment: Erases traces, identities and connections, or hides entire realms from the world.",
+            "Misfortune and Horror: Spreads catastrophe and terror on a divine scale.",
+            "Eternal Night: Cannot be permanently killed while darkness remains.",
+            "Lord of Spirits: Commands the spirits of nature."
           ]
         }
       ]
@@ -862,83 +1023,105 @@
       "secondaryStat": "WIS",
       "speedGrade": "Slow",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 5,
-          "mode": "Opening gates to the underworld"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Corpse Collector",
           "abilities": [
-            "Immune to corpse poisons",
-            "Spotting the weak points of undead",
-            "Resistant to cold"
+            "Corpse Immunity: Shrugs off corpse poison, rot and the deathly aura of cadavers.",
+            "Undead Insight: Spots the weak points of undead creatures.",
+            "Cold Resistance: Barely feels cold and runs at a low body temperature.",
+            "Spirit Vision: Sees ghosts and spirits, many of which treat it as harmless.",
+            "Corpse Lore: Skilled at examining bodies and telling unnatural deaths from natural ones."
           ]
         },
         {
           "sequence": 8,
           "name": "Gravedigger",
           "abilities": [
-            "Burial rites and fighting the undead"
+            "Burial Rites: Knows the funeral rites that lay the dead to rest and keep them from rising.",
+            "Undead Fighter: Gains greater strength, agility and techniques for fighting the undead.",
+            "Spirit Talk: Speaks with nearby spirits and gives them simple orders, such as holding a target.",
+            "Eye of Death: Finds the vital spiritual nodes of unfamiliar undead and monsters with no normal anatomy."
           ]
         },
         {
           "sequence": 7,
           "name": "Spirit Medium",
           "abilities": [
-            "Seeing and speaking with spirits"
+            "Spirit Communication: Sees and speaks with the spirits of the dead and of nature.",
+            "Spirit Channeling: Borrows nearby spirits to learn information or to chill, bind and track targets.",
+            "Soul Channeling: Contacts recently departed souls, or with more risk, the spirit of a living person.",
+            "Deathly State: Mimics an undead's spiritual state to resist cold, decay and death energy."
           ]
         },
         {
           "sequence": 6,
           "name": "Spirit Guide",
           "abilities": [
-            "Guiding and commanding spirits"
+            "Language of the Dead: Speaks words that act directly on spirits, drawing souls from bodies or controlling them.",
+            "Spirit Command: Guides and commands spirits and ownerless undead in large numbers.",
+            "Raise Dead: Animates corpses as mindless zombies and skeletons."
           ]
         },
         {
           "sequence": 5,
           "name": "Gatekeeper",
           "abilities": [
-            "Opening the gates of the underworld"
+            "Underworld Gate: Senses and opens doors to the underworld that suck targets in.",
+            "Grasp of the Dead: Its gates release undead hands that seize enemies and drag them into the realm of the dead.",
+            "Inner Underworld: Stores many souls, spirits and undead inside its body as a hidden army."
           ]
         },
         {
           "sequence": 4,
           "name": "Undying",
           "abilities": [
-            "A body that shrugs off fatal wounds"
+            "Undying Body: Survives fatal wounds; only complete destruction of the body truly threatens it.",
+            "Half-Dead Existence: Exists between body and spirit and can travel through the spirit world.",
+            "Withering Wind: Unleashes a deathly wind that withers living things.",
+            "Death Spells: Casts death magic and can seal dangerous objects.",
+            "Demigod Form: Gains a demigod's power and an incomplete mythical creature form."
           ]
         },
         {
           "sequence": 3,
           "name": "Ferryman",
           "abilities": [
-            "Ferrying souls to their end"
+            "Soul Ferrying: Carries souls across the river of the dead to their final end.",
+            "Death Gaze: A look that kills ordinary beings and withers stronger ones.",
+            "Hands of Life and Death: Its left hand pulls targets toward death while its right can return life.",
+            "Already Dead: Shrugs off most attacks other than purification, since the dead cannot die again."
           ]
         },
         {
           "sequence": 2,
           "name": "Death Consul",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Angelic Form: Becomes an angel with a complete mythical creature form.",
+            "Nation of the Dead: Creates a city-sized domain where weak life dies instantly and stronger beings slowly wither.",
+            "Absolute Death: Drains vitality from an area and blocks most resurrection and substitution tricks.",
+            "Judge of the Dead: Judges and enslaves the dead, commanding vast undead armies."
           ]
         },
         {
           "sequence": 1,
           "name": "Pale Emperor",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Pale World: Drains all color from an area, rapidly weathering objects and weakening color-based powers.",
+            "Death Decree: Sentences anyone it sees or points at to death.",
+            "Soul Enslavement: Pulls out Spirit Bodies and enslaves any living being that has a soul.",
+            "Soul Suppression: Crushes souls, snuffing out thought and vitality."
           ]
         },
         {
           "sequence": 0,
           "name": "Death",
           "abilities": [
-            "Authority over death and the underworld"
+            "Authority of Death: Rules death and the underworld, the final destination of all life.",
+            "Conceptual Death: Kills not only life but memories, connections, substitutes and paths of resurrection.",
+            "Master of Undead: Source and lord of all undead, able to enslave anything with a soul.",
+            "Pallor: Silences mind, will, color and supernatural power."
           ]
         }
       ]
@@ -952,78 +1135,102 @@
       "secondaryStat": "CON",
       "speedGrade": "Fast",
       "speedNote": "Pure physical speed and leaping.",
-      "movement": [],
       "sequences": [
         {
           "sequence": 9,
           "name": "Warrior",
           "abilities": [
-            "Peak strength and endurance",
-            "Combat reflexes and weapon handling"
+            "Peak Physique: Gains strength, agility and endurance far beyond ordinary people.",
+            "Combat Reflexes: Reacts in battle with sharp instincts and quickly learns unfamiliar fighting styles.",
+            "Weapon Handling: Uses almost any ordinary weapon or armor effectively from the start."
           ]
         },
         {
           "sequence": 8,
           "name": "Pugilist",
           "abilities": [
-            "Mastery of unarmed fighting"
+            "Unarmed Mastery: Masters punching, kicking, grappling and every kind of bare-handed fighting.",
+            "Greater Strength: Grows strong enough to wrestle larger foes and break restraints while keeping balance.",
+            "Iron Vitality: Partly resists supernatural effects through sheer vitality and willpower."
           ]
         },
         {
           "sequence": 7,
           "name": "Weapon Master",
           "abilities": [
-            "Mastery of every weapon",
-            "Sensing an enemy's weak points"
+            "Weapon Mastery: Expertly wields anything used as a weapon, from unfamiliar firearms to mystical items.",
+            "Weak Point Sense: Senses where an enemy is most vulnerable.",
+            "Artifact Handling: Lessens the harmful side effects of weapon-shaped sealed artifacts it wields.",
+            "Improvised Arms: Turns ordinary objects into deadly weapons through understanding of weight, reach and timing."
           ]
         },
         {
           "sequence": 6,
           "name": "Dawn Paladin",
           "abilities": [
-            "Armour and weapons of dawn light"
+            "Dawn Armor: Clads itself in weightless silver armor of dawn light that mends by burning stamina.",
+            "Sword of Dawn: Condenses holy dawn light into purifying weapons.",
+            "Hurricane of Light: Shatters a dawn weapon into a storm of radiant blades, deadly to undead, spirits and shadows.",
+            "Light of Dawn: Sheds sacred light that dispels illusions and weakens shadows, wraiths and corruption."
           ]
         },
         {
           "sequence": 5,
           "name": "Guardian",
           "abilities": [
-            "Protecting allies and taking blows for them"
+            "Protection: Plants a weapon to raise an invisible, nearly unbreakable barrier around allies.",
+            "Shield Bearer: Takes damage meant for the allies it is protecting.",
+            "Fortress Body: Has such durability that ordinary firearms barely trouble it.",
+            "Steadfast Mind: Strongly resists illusions and mind control."
           ]
         },
         {
           "sequence": 4,
           "name": "Demon Hunter",
           "abilities": [
-            "Hunting demons and spotting their weaknesses"
+            "Insight: Instinctively reads a target's true nature, weaknesses, corruption or possession.",
+            "Demon Hunting Lore: Knows monsters deeply and crafts oils, potions and ointments that counter them.",
+            "Hidden Intent: Conceals its intentions and actions from danger sense, divination and prophecy.",
+            "Demigod Body: Gains demigod strength and an incomplete giant form."
           ]
         },
         {
           "sequence": 3,
           "name": "Silver Knight",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Silver Giant: Becomes a huge giant clad in silver armor it can sustain indefinitely.",
+            "Mercury Body: Turns into liquid silver to dodge attacks, bind or smother enemies, or armor an ally.",
+            "Silver Rapier: Launches nearly invisible blades of light that appear beside or inside targets.",
+            "Light Travel: Hides inside and moves through sources of light."
           ]
         },
         {
           "sequence": 2,
           "name": "Glory",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Twilight Decay: Its blows age and rot targets, stripping away lifespan.",
+            "Angelic Form: Becomes an angel with a complete giant form and authority over twilight and combat.",
+            "Cage: Raises a vast barrier that shields, restrains and seals while wearing foes down with decay.",
+            "Twilight Sword: Thrusts a blade through space to strike a distant target."
           ]
         },
         {
           "sequence": 1,
           "name": "Hand of God",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Proxy: Acts as the hand of a deity or great being, wielding part of that patron's power.",
+            "Lent Marks: Condenses its strength into marks it can lend to others.",
+            "Great Cage: Raises enormous protective barriers that hold even under angelic assault."
           ]
         },
         {
           "sequence": 0,
           "name": "Twilight Giant",
           "abilities": [
-            "Authority over dawn, dusk and decline"
+            "Authority of Twilight: Ages, corrodes and collapses matter, will, mystical effects and even time.",
+            "Land of Twilight: Rules a divine kingdom frozen near the end of all things that weakens intruders.",
+            "God of Combat: Has unmatched strength, size and fighting skill, and can strip foes of their learned skills.",
+            "Dawn and Holiness: Purifies corruption with dawn light and holy power."
           ]
         }
       ]
@@ -1037,83 +1244,109 @@
       "secondaryStat": "DEX",
       "speedGrade": "Fast",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 7,
-          "mode": "Flame jumping between fires"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Hunter",
           "abilities": [
-            "Tracking, traps and survival",
-            "Sharp senses"
+            "Hunter's Craft: Masters wilderness survival, tracking prey, building and placing traps, and handling explosives.",
+            "Heightened Senses: Sharper sight, hearing and smell let the Hunter follow faint trails and spot hidden prey.",
+            "Physical Enhancement: Gains greater strength, speed, reflexes and body control, plus faster natural healing.",
+            "Danger Intuition: Passively senses hostility and threats aimed at them before they strike."
           ]
         },
         {
           "sequence": 8,
           "name": "Provoker",
           "abilities": [
-            "Provoking anger to throw enemies off balance"
+            "Provocation: Taunts a target with cutting words until they lose composure, act rashly and fixate on the Provoker.",
+            "Trigger Reading: Quickly spots the sore points, pride and habits that will most easily enrage a given person.",
+            "Physical Enhancement: Strength, reflexes, speed and agility improve another step."
           ]
         },
         {
           "sequence": 7,
           "name": "Pyromaniac",
           "abilities": [
-            "Fire control: fireballs, flame spears",
-            "Flame jumping"
+            "Pyrokinesis: Conjures and shapes fire at will, from compressed fireballs to flame bombs that detonate on a delay.",
+            "Blazing Spear: Hurls a white-hot spear of flame that pins its target in place and burns it.",
+            "Fire Ravens: Releases a flock of burning ravens that lock onto several targets and explode on contact.",
+            "Wall of Fire: Raises a barrier of writhing flame serpents that blocks and scorches anything trying to pass.",
+            "Flame Armor: Wraps the body in protective fire and sets weapons or projectiles ablaze, harming even spirits.",
+            "Fire Resistance: Barely hurt by flames, though the force of explosions can still injure."
           ]
         },
         {
           "sequence": 6,
           "name": "Conspirer",
           "abilities": [
-            "Scheming and reading a situation"
+            "Conspiracy: Uses misdirection, confusion and deception to steer situations and opponents into prepared traps.",
+            "Schemer's Insight: Thinks faster and more clearly, reading people and situations to find openings for a plot.",
+            "Incitement: Plants chosen thoughts or desires in others through seemingly casual conversation.",
+            "Flame Jump: Merges into a flame or fire spell and reappears wherever that fire is, starting at about ten meters.",
+            "Crimson Flames: Fire burns hotter and can be shaped into whips and sabers solid enough to parry."
           ]
         },
         {
           "sequence": 5,
           "name": "Reaper",
           "abilities": [
-            "Finding and striking weak points"
+            "Weakness Investigation: Detects a target's vulnerable points, even in barriers and non-physical bodies.",
+            "Cull: Charges attacks with a life-reaping force that can kill outright when it lands on a weak point.",
+            "Precision: Guides fireballs, fire ravens and other flames exactly, splitting them to strike several targets at once."
           ]
         },
         {
           "sequence": 4,
           "name": "Iron-blooded Knight",
           "abilities": [
-            "A steel-hard body and command over troops"
+            "Galvanization: Turns the body, and even its flames, into steel at will for tremendous toughness.",
+            "Chain of Command: Forms a hidden link with subordinates to speak silently, pool their strength and ease their burdens.",
+            "Mind of Steel: Becomes highly resistant to fear and mental attacks without losing sound judgment.",
+            "Weapon Augmentation: Makes ordinary objects into deadly, durable weapons that can be hurled or wreathed in flame.",
+            "Calamity Giant: Can take an incomplete Mythical Creature form, a giant of calamity, at a heavy cost.",
+            "Masculine Change: The potion turns a female drinker into a man."
           ]
         },
         {
           "sequence": 3,
           "name": "War Bishop",
           "abilities": [
-            "Blessing armies in battle"
+            "War Song: A battle cry that raises allies' morale, strength and stamina while weakening nearby foes.",
+            "Fog of War: Clouds senses and mystical links within an area, making most curses and divination fail.",
+            "Ritualist of War: Once per battle, offers sacrifices to ask the essence of war for aid, such as swapping positions.",
+            "Army Unleashed: Command over troops deepens, letting soldiers move as one and fight at their full strength.",
+            "Prayer Response: Hears and answers prayers within range, growing stronger the more soldiers anchor it."
           ]
         },
         {
           "sequence": 2,
           "name": "Weather Warlock",
           "abilities": [
-            "Controlling the weather"
+            "Weather Manipulation: Calls up or calms storms, blizzards, lightning and rain over a vast area, even triggering quakes or tsunamis.",
+            "Wind Flight: Rides the wind to fly and hover freely.",
+            "Charisma: Naturally inspires loyalty and admiration without needing to charm anyone.",
+            "Meteor Flames: Rains violet-blue fire down like a meteor shower across tens of kilometers.",
+            "Calamity Giant Form: Becomes a complete giant of calamity that sets onlookers ablaze and brings storms with it."
           ]
         },
         {
           "sequence": 1,
           "name": "Conqueror",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Conquest: Radiates overwhelming supremacy that subjugates people, objects and even terrain into its soldiers.",
+            "Conqueror's Armor: The steel form becomes iron-black, blood-stained armor rivaling the toughest Angels.",
+            "Shared Rank: Soldiers under its command can borrow its rank, powers and spirituality, at a steep cost."
           ]
         },
         {
           "sequence": 0,
           "name": "Red Priest",
           "abilities": [
-            "Authority over war and hunting"
+            "Authority of War: Embodies war and the hunt, spreading conflict and destructive urges and ruling every soldier who fights.",
+            "Destruction: Destroys physical and even conceptual things, able to collapse space-time with a clenched fist.",
+            "Divine Conquest: Conquers anything, even abstract ideas, and forms a divine kingdom from conquered land.",
+            "Masculinity: Holds authority over male forces and can turn beings or objects male."
           ]
         }
       ]
@@ -1127,87 +1360,111 @@
       "secondaryStat": "CHA",
       "speedGrade": "Very fast",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 9,
-          "mode": "Light feet and slowed falls"
-        },
-        {
-          "sequence": 7,
-          "mode": "Mirror travel"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Assassin",
           "abilities": [
-            "Stealth and light feet",
-            "Slowing falls"
+            "Shadow Concealment: Melts into darkness and shadow to stay hidden, though sprinting breaks the cover.",
+            "Light Feet: Gains agile limbs, silent footwork and speed suited to stealth and evasion.",
+            "Feather Fall: Makes the body extremely light to drop safely from great heights or glide.",
+            "Mighty Blow: Gathers all the body's strength into a single devastating strike.",
+            "Heightened Senses: Sharper hearing and vision, including the ability to see in the dark."
           ]
         },
         {
           "sequence": 8,
           "name": "Instigator",
           "abilities": [
-            "Stirring up emotions and conflict"
+            "Instigation: Plants thoughts in people's minds, nudging them toward quarrels, betrayals or other chosen actions.",
+            "Emotion Sensing: Reads the emotions and desires stirring in others to find levers for manipulation.",
+            "Physical Enhancement: The body grows somewhat stronger, though combat skill barely improves."
           ]
         },
         {
           "sequence": 7,
           "name": "Witch",
           "abilities": [
-            "Black flames and ice",
-            "Mirror substitution and charm"
+            "Witch's Change: The potion turns a male drinker into a woman and greatly heightens beauty and charm.",
+            "Black Flame: Conjures black fire that burns spirituality, striking spirit bodies and burning even underwater.",
+            "Frost: Commands ice to seal locks, slick floors, freeze foes and send out chilling winds.",
+            "Mirror Substitution: Uses a mirror to make a stand-in that takes fatal harm in the Witch's place.",
+            "Curse: Harms a target from afar through a medium such as their blood, hair or a doll.",
+            "Witchcraft: Turns invisible with powder and incantation, hides briefly inside mirrors and excels at mirror divination."
           ]
         },
         {
           "sequence": 6,
           "name": "Pleasure",
           "abilities": [
-            "Charm and control through pleasure"
+            "Silk Threads: Spins near-invisible threads from hair to bind enemies, sense movement and weave cocoons.",
+            "Pleasure: Floods victims with overwhelming pleasure through threads or touch, leaving them helpless.",
+            "Addictive Charm: Allure becomes intoxicating, leaving victims craving the Demoness and easy to control.",
+            "Reflection Curse: Curses a target through their full-body reflection in a mirror."
           ]
         },
         {
           "sequence": 5,
           "name": "Affliction",
           "abilities": [
-            "Spreading curses and disease"
+            "Disease: Releases airborne pathogens that infect people nearby and make them fall ill with unnatural speed.",
+            "Mirror Curses: Traps foes in mirror illusions and burns any body part a mirror reflects.",
+            "Active Charm: Charms someone deliberately with a single glance, gesture or word.",
+            "Hair Weapon: Hair hardens into piercing strands that can inject Black Flames into a victim.",
+            "Living Threads: Threads become extensions of the body, precise enough to handle small objects."
           ]
         },
         {
           "sequence": 4,
           "name": "Despair",
           "abilities": [
-            "Spreading despair"
+            "Plague: Spreads deadly, specialized plagues up to three kilometers away, filling whole districts with sickness and despair.",
+            "Petrification: Hair or threads that touch someone stiffen that body part and turn it to stone.",
+            "Overwhelming Charm: Makes even mid-Sequence Beyonders fall in love and grow addicted within moments.",
+            "Mirror Maze: Builds mirror mazes, projects itself through mirrors across a city and locates mirrors kilometers away.",
+            "Gorgon Form: Can take an incomplete Gorgon form whose sight fills onlookers with pleasure and pain."
           ]
         },
         {
           "sequence": 3,
           "name": "Unaging",
           "abilities": [
-            "Agelessness"
+            "Mirror Self: Merges with a mirror double, freezing their age and making true death almost impossible.",
+            "Concealed Resurrection: Hides a shielded mirror double to revive in if the main body is destroyed.",
+            "Spreading Stone: Anything touching infected flesh or spider silk begins turning to stone.",
+            "Mind-Halting Charm: Charm can freeze a target's thoughts and, given time, make even Angels fall in love.",
+            "Mirror World Travel: Moves through the Mirror World via eyes and reflections, controlling mirrors across a city.",
+            "Gorgon Form: Takes a complete Gorgon form with serpent hair that petrifies whatever it looks at."
           ]
         },
         {
           "sequence": 2,
           "name": "Catastrophe",
           "abilities": [
-            "Disasters on a large scale"
+            "Catastrophe: Triggers collapse in people, places and systems, from natural disasters to the breakdown of Beyonder powers.",
+            "Feared Name: Anyone who speaks the Demoness's name is gripped by deep fear.",
+            "Curse of Destiny: Cursed objects or words bring a chain of misfortunes to anyone who touches or hears them.",
+            "Devouring Plague: Pathogens grow strong enough to eat away even complete Mythical Creatures.",
+            "Many Mirror Selves: Can split off several mirror doubles at once, starting with five."
           ]
         },
         {
           "sequence": 1,
           "name": "Apocalypse",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Apocalypse: Drives a person, place or system into total contradiction and collapse, even ending a target's destiny.",
+            "Doomsday Calamities: Unleashes disasters on a scale able to devastate whole regions."
           ]
         },
         {
           "sequence": 0,
           "name": "Primordial Demoness",
           "abilities": [
-            "Authority over calamity and ruin"
+            "Chaos and Ruin: Returns things to primordial disorder, dissolving targets into swirling, unrealized possibilities.",
+            "Universal Charm: Charms everything, even abstract concepts, until rules turn against themselves.",
+            "Mirror Dominion: Controls the entire Mirror World and can appear anywhere within it.",
+            "Femininity: Holds authority over female forces and can turn beings or objects female.",
+            "Primordial Plague: Creates countless unseen pathogens that, given time, can infect even True Gods."
           ]
         }
       ]
@@ -1221,82 +1478,113 @@
       "secondaryStat": "WIS",
       "speedGrade": "Slow",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 5,
-          "mode": "Moving through plants and forests"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Planter",
           "abilities": [
-            "Growing and tending plants",
-            "Knowledge of crops and soil"
+            "Farming Mastery: Expertly tends seeds, crops and soil and handles farm tools to bring in healthy harvests.",
+            "Physical Enhancement: Gains greatly increased strength and stamina.",
+            "Weather Reading: Predicts coming weather by reading clouds, wind and other natural signs."
           ]
         },
         {
           "sequence": 8,
           "name": "Doctor",
           "abilities": [
-            "Healing wounds and illness"
+            "Healing: Treats injuries and illnesses of both body and soul, including ailments caused by evil or corruption.",
+            "Surgical Mastery: Performs skilled surgery, from suturing severed limbs to transplanting organs.",
+            "Soul Suture: Operates directly on the soul to mend wounds, remove curses and corruption, or attack it.",
+            "Diagnostic Vision: Reads a patient's health precisely, spotting hidden illness from outward signs.",
+            "Giving Life: Gradually restores strength and vigor to the weak and exhausted."
           ]
         },
         {
           "sequence": 7,
           "name": "Harvest Priest",
           "abilities": [
-            "Blessing harvests and life"
+            "Seed Catalysis: Speeds the growth of seeds and plants, even raising thorny vines to entangle enemies.",
+            "Plant and Insect Command: Directs mindless plants and insects within about thirty meters to aid the priest.",
+            "Weather Rituals: Performs rituals that clear the skies or call down rain for the crops.",
+            "Blessing of the Land: Healing now extends to crops, fields and land, curing blights and plant diseases."
           ]
         },
         {
           "sequence": 6,
           "name": "Biologist",
           "abilities": [
-            "Understanding and altering living things"
+            "Cross-breeding: Creates chimeras and entirely new species by combining animals, plants and even objects.",
+            "Poison Creation: The body produces potent toxins that can be released through hair or other means.",
+            "Knowledge of Life: Deeply understands the traits and inner workings of living organisms."
           ]
         },
         {
           "sequence": 5,
           "name": "Druid",
           "abilities": [
-            "Commanding plants and nature"
+            "Wrath of Nature: Turns the surroundings hostile against up to fifty chosen enemies.",
+            "Swamp: Turns the ground within thirty meters into a swamp that traps or buries foes.",
+            "Underground Travel: Softens the earth to sink into it and travel underground.",
+            "Child of the Oak: Covers the body in protective bark or stone skin.",
+            "Earth Golems: Builds golems of stone and earth to fight or labor.",
+            "Animal Shape: Transforms into a giant bear or similar beast, though without the creature's special powers."
           ]
         },
         {
           "sequence": 4,
           "name": "Classical Alchemist",
           "abilities": [
-            "Creating life through alchemy"
+            "Artificial Life: Creates golems and long-lived artificial humans from soul fragments and raw materials.",
+            "Mutation: Attacks warp a target's body and mind and push them toward madness.",
+            "Creature Command: Controls low-intelligence Beyonder creatures and briefly calms their insanity.",
+            "Life Aura: Fills the surroundings with life force, making plants, animals and people grow rapidly.",
+            "Restoring Touch: Heals anyone by touch and can briefly return reason to those who lost control.",
+            "Mythical Form: Can take a partial, incomplete Mythical Creature form, at a cost."
           ]
         },
         {
           "sequence": 3,
           "name": "Pallbearer",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Evil Spirit Conversion: Turns the dead within ten kilometers into Evil Spirits that serve the Pallbearer.",
+            "Life Deprivation: Every blow puts the target through a trial of death that may kill instantly and otherwise drains life.",
+            "Death Descent: Drains the life of targets in range without touching them.",
+            "Return to Earth: Dissolves undead within ten kilometers back into the soil.",
+            "Maternal Embrace: Seals even undead Angels away within a coffin and the earth.",
+            "Clay Golems: Gives life to up to three golems of soil or clay with demigod strength."
           ]
         },
         {
           "sequence": 2,
           "name": "Desolate Matriarch",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Fertility and Barrenness: Makes land for hundreds of kilometers burst with life, or turns it barren so crops wither.",
+            "Desolation: Drains all life within thirty kilometers and poisons a wider area, pushing Beyonders toward losing control.",
+            "Legion of the Dead: Turns every dead human within fifty kilometers into an Evil Spirit, some as strong as demigods.",
+            "Great Golems: Builds dolls and golems from soil, plants, lava, ore and metal, up to nine of demigod strength.",
+            "Mythical Creature Form: Becomes a complete mythical creature, a mass of flesh, organs, wheat, mushrooms and vines.",
+            "Feminine Change: The potion turns a male drinker into a woman."
           ]
         },
         {
           "sequence": 1,
           "name": "Naturewalker",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Child of Nature: Reshapes the environment and merges with natural elements to move and fight within them.",
+            "Nature's Command: Commands natural forces such as fire, lightning and even the light of the sun and moon.",
+            "World Creation: Nurtures a realm of its own that embodies nature itself.",
+            "Authority of Nature: Holds partial authority over nature and motherhood, empowering every earlier ability."
           ]
         },
         {
           "sequence": 0,
           "name": "Mother",
           "abilities": [
-            "Authority over life and the earth"
+            "Motherhood: Gives birth to all things and can awaken life even in the inanimate.",
+            "Earth: As the origin and resting place of all things, rules the cycle of life, death and return.",
+            "Nature: Has near-indestructible vitality and raises plant barriers able to hold back True Gods.",
+            "Life and Death: Makes creatures grow and mutate uncontrollably, or drains the life even of gods.",
+            "Bountiful Earth: Rules a fertile divine kingdom, with lesser authority over harvest, healing and desolation."
           ]
         }
       ]
@@ -1310,83 +1598,98 @@
       "secondaryStat": "CON",
       "speedGrade": "Fast",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 7,
-          "mode": "Bat form and flight"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Apothecary",
           "abilities": [
-            "Brewing remedies, potions and poisons"
+            "Medicine Concoction: Brews herbal remedies and potions that cure most illnesses and injuries, short of terminal ones.",
+            "Poison Craft: Prepares poisons from herbs and has modest resistance to poisons and toxins.",
+            "Spirit Vision: Sees a person's overall health and well-being at a glance."
           ]
         },
         {
           "sequence": 8,
           "name": "Beast Tamer",
           "abilities": [
-            "Taming and commanding animals"
+            "Taming: Tames, domesticates and commands animals, even Beyonder creatures.",
+            "Animal Sense: Talks with animals, shares their senses and reads their emotions and intentions."
           ]
         },
         {
           "sequence": 7,
           "name": "Vampire",
           "abilities": [
-            "Fast regeneration",
-            "Turning into a swarm of bats",
-            "Draining life"
+            "Rapid Regeneration: Becomes a vampire whose wounds close at unnatural speed, making it very hard to kill.",
+            "Wings of Darkness: Sprouts shadowy bat wings for swift flight, or bursts them into a swarm of attacking bats.",
+            "Blood Drain: Drinks a victim's blood to sap their life and restore its own strength.",
+            "Claws of Corrosion: Extends sharp, corrosive nails that cut steel and tear through scales or hide.",
+            "Abyss Shackles: Condenses darkness into chains that bind and restrain enemies.",
+            "The Embrace: Converts humans into vampires or into obedient blood servants."
           ]
         },
         {
           "sequence": 6,
           "name": "Potions Professor",
           "abilities": [
-            "Brewing potions with Beyonder effects"
+            "Specialty Potions: Brews potions with Beyonder effects, such as invisibility, fire breathing, dreamless sleep or shadow cloaking.",
+            "Material Discernment: Instantly judges the properties of spiritual ingredients and how to combine them.",
+            "Sun Water: Prepares a holy liquid that badly harms undead and vampires.",
+            "Cure for the Incurable: Medicines can now treat even terminal illnesses.",
+            "Physical Enhancement: Gains greater speed, agility and strength."
           ]
         },
         {
           "sequence": 5,
           "name": "Scarlet Scholar",
           "abilities": [
-            "Strength drawn from the moon"
+            "Lunar Battlefield: Shapes the area with moonlight, conjuring a full-moon field or a moonless dark that favors the Scholar.",
+            "Moonlight Flash: Teleports short distances whenever moonlight is present.",
+            "Moonlight Body: Turns into condensed moonlight that reforms after shattering unless the heart is struck."
           ]
         },
         {
           "sequence": 4,
           "name": "Shaman King",
           "abilities": [
-            "Shamanic curses and summoning"
+            "Instant Rituals: Performs rituals instantly by drawing on nature, including raising corpses as undead servants.",
+            "Moon Paper Figurine: Swaps places with a paper figure made of moonlight that takes the hit instead.",
+            "Gaze of Darkness: Curses a target through a linked eyeball, restraining or gravely wounding them via the eye.",
+            "Bat Swarm Body: Splits into a swarm of bats and reforms unless every single bat is destroyed."
           ]
         },
         {
           "sequence": 3,
           "name": "High Summoner",
           "abilities": [
-            "Summoning creatures from other worlds"
+            "Door of Summoning: Opens an illusory door to call powerful creatures from the Spirit World and other realms.",
+            "Mythical Creature Form: Takes a fuller mythical form and can hear prayers offered within a certain range."
           ]
         },
         {
           "sequence": 2,
           "name": "Life-Giver",
           "abilities": [
-            "Creating life"
+            "Life Creation: Brings entirely new living beings into existence.",
+            "Proliferation: Spurs living things around it to multiply and flourish."
           ]
         },
         {
           "sequence": 1,
           "name": "Beauty Goddess",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Divine Beauty: Possesses a pure, godlike beauty that inspires admiration and a wish to protect her.",
+            "Charm of Beauty: Turns that beauty into a pull on others' spirituality, the source of her strongest powers.",
+            "Femininity: Embodies feminine yin energy."
           ]
         },
         {
           "sequence": 0,
           "name": "Moon",
           "abilities": [
-            "Authority over the moon and life"
+            "Blood Moon: Can raise a blood moon each day, letting negative energy and monsters flood into reality.",
+            "Authority of the Moon: Rules the moon, reproduction, fertility and the proliferation of life.",
+            "Supreme Beauty: Becomes the most beautiful being in existence."
           ]
         }
       ]
@@ -1400,76 +1703,103 @@
       "secondaryStat": "CON",
       "speedGrade": "Fast",
       "speedNote": "Demonic physical speed.",
-      "movement": [],
       "sequences": [
         {
           "sequence": 9,
           "name": "Criminal",
           "abilities": [
-            "A tougher body and criminal instincts"
+            "Criminal Proficiency: Knows a convict's tricks and can kill efficiently with almost any weapon at hand.",
+            "Physical Enhancement: Gains a tougher, stronger body built for violence.",
+            "Criminal Instincts: Keen instincts warn of danger and sniff out opportunities for crime."
           ]
         },
         {
           "sequence": 8,
           "name": "Unwinged Angel",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Demonic Traits: The body changes in inhuman ways, granting two or three minor devil-like spells that vary per person.",
+            "Cold Blood: Feels little guilt or empathy, staying calm and ruthless in the face of violence.",
+            "Physical Enhancement: Strength and toughness rise further."
           ]
         },
         {
           "sequence": 7,
           "name": "Serial Killer",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Devil Worship: Masters the rituals and ritual magic used to worship and please devils.",
+            "Devil's Favor: Ritual killings earn a devil's favor that can later summon a devil's projection for aid.",
+            "Cold Intellect: Gains sharper intelligence and mental focus for planning crimes."
           ]
         },
         {
           "sequence": 6,
           "name": "Devil",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Danger Premonition: Senses imminent threats and where they come from before they strike.",
+            "Sulfur Flames: Conjures poisonous flames and exploding sulfur fireballs that burn and poison targets.",
+            "Corruption: Unleashes an area attack that afflicts victims with symptoms of the Abyss's corruption.",
+            "Devil Spells: Numbs and slows nearby foes, or clots a victim's blood with a potentially lethal spell.",
+            "Demonization: Takes a true devil form with armored skin, greater strength and speed, and immunity to most poisons.",
+            "Devil Bloodline: Gains racial traits that vary by devil species, such as escaping death by leaving only a shadow behind."
           ]
         },
         {
           "sequence": 5,
           "name": "Desire Apostle",
           "abilities": [
-            "Stirring and feeding on desires"
+            "Desire Mastery: Seizes and inflames the emotions and desires of distant targets, driving them toward ruin.",
+            "Defiling Seeds: Plants seeds of corruption in an emotionally shaken target that fester into depravity or death.",
+            "Avatar of Desire: Turns into an illusory black liquid that is hard to harm or track and sways enemies' emotions."
           ]
         },
         {
           "sequence": 4,
           "name": "Demon",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Mind Fog: Slowly dulls the thinking of everyone nearby without them noticing.",
+            "Desire Illusions: Twists desires through its actions, causing illusions that shatter sanity or trigger loss of control.",
+            "Long Premonition: Danger sense sometimes warns of threats two or three days in advance.",
+            "Partial Demonization: Manifests part of its mythical form on one body part for sustained power.",
+            "Cunning Mind: Becomes cold, sharp and sly, with a demigod's intellect."
           ]
         },
         {
           "sequence": 3,
           "name": "Blatherer",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Blathering: Its words corrupt listeners' minds, causing confusion, injury, curses or loss of control.",
+            "Distant Whispers: Its murmurs can reach targets far away and bring about sudden death.",
+            "Prayer Response: Can hear and answer prayers within a certain range."
           ]
         },
         {
           "sequence": 2,
           "name": "Bloody Archduke",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Blood Form: Becomes corrosive blood that makes opponents bleed from every orifice until they die.",
+            "Fear: Wields core authority over fear.",
+            "Seed of Malice: Plants an evolved seed of corruption that erodes the mind and can be used to revive or kill.",
+            "Desire Awakening: Draws out a target's deepest desires until they show signs of losing control.",
+            "Mythical Creature Form: Has fully become a mythical creature of the Abyss."
           ]
         },
         {
           "sequence": 1,
           "name": "Filthy Monarch",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Filth: Rules filth and corruption, defiling bodies, minds and places.",
+            "Corrosion: Eats away matter, power and will alike.",
+            "Pollution: Spreads contamination that taints and degrades everything it touches."
           ]
         },
         {
           "sequence": 0,
           "name": "Abyss",
           "abilities": [
-            "Authority over depravity and desire"
+            "Authority of Depravity: Rules degeneration and desire, dragging beings down into corruption.",
+            "Curses and Mutation: Holds authority over curses and twisted mutations.",
+            "Fear and Malice: Embodies fear and malice itself.",
+            "Malice Incarnate: Becomes a black liquid that slips into bodies, minds and souls as a Seed of Malice, travelling between hosts."
           ]
         }
       ]
@@ -1483,82 +1813,100 @@
       "secondaryStat": "STR",
       "speedGrade": "Average",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 5,
-          "mode": "Passing through objects as a wraith"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Prisoner",
           "abilities": [
-            "Endurance and resistance to being controlled"
+            "Self-Restraint: Suppresses urges, hunger, pain and fear, staying composed under temptation or confinement.",
+            "Unbending Will: Resists being controlled or manipulated, holding firm against outside influence on the mind.",
+            "Physical Enhancement: Gains greater strength, endurance and pain tolerance."
           ]
         },
         {
           "sequence": 8,
           "name": "Lunatic",
           "abilities": [
-            "Frenzy that trades reason for strength"
+            "Frenzy: Lets madness take hold to gain raw strength, speed and pain tolerance at the cost of judgment.",
+            "Madman's Intuition: Unhinged thinking sharpens a sense of danger and hostility around them.",
+            "Physical Enhancement: The body grows markedly stronger."
           ]
         },
         {
           "sequence": 7,
           "name": "Werewolf",
           "abilities": [
-            "Wolf transformation and fast healing"
+            "Wolf Transformation: Turns partly or fully into a wolf-like beast with claws, fangs and great strength.",
+            "Regeneration: Heals wounds rapidly and shrugs off ordinary injuries.",
+            "Predator Senses: Gains a wolf's keen nose and hearing for tracking blood, fear and movement."
           ]
         },
         {
           "sequence": 6,
           "name": "Zombie",
           "abilities": [
-            "A tough, near-undead body"
+            "Zombie Body: Becomes cold, pale and near-undead, resisting bullets, poison and disease.",
+            "Undying Endurance: Feels little pain, barely needs air and survives wounds that would kill the living.",
+            "Command Zombies: Raises and controls zombies as servants.",
+            "Deathly Chill: Gives off a corpse-like cold that unsettles those nearby."
           ]
         },
         {
           "sequence": 5,
           "name": "Wraith",
           "abilities": [
-            "An incorporeal form that passes through objects",
-            "Fear-based attacks"
+            "Incorporeal Form: Becomes a ghostly body that passes through walls and objects, flies and turns invisible.",
+            "Possession: Enters and takes over another person's body, using it as its own.",
+            "Wraith Scream: Lets out a shriek that strikes the spirit, causing terror, confusion or unconsciousness.",
+            "Mirror Travel: Hides in and passes through mirrors and other reflective surfaces.",
+            "Ghost Command: Controls lesser ghosts and spirits."
           ]
         },
         {
           "sequence": 4,
           "name": "Puppet",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Object Control: Animates and commands inanimate objects within a radius, like a poltergeist.",
+            "Puppetry: Turns possessed or captured victims into puppets whose bodies it moves at will.",
+            "Puppet Body: Gains a doll-like, resilient body that is very hard to destroy.",
+            "Mythical Form: Can take an incomplete Mythical Creature form as a demigod."
           ]
         },
         {
           "sequence": 3,
           "name": "Disciple of Silence",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Source of Curses: Curses people through any link to them, such as belongings, blood or a name.",
+            "Cursed Artifact: Can become like a living cursed object that afflicts whoever touches or uses it.",
+            "Silence: Smothers sound, speech and spellcasting within an area."
           ]
         },
         {
           "sequence": 2,
           "name": "Ancient Bane",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Ancient Curses: Lays lasting curses that can spread through bloodlines, groups or whole regions.",
+            "Mythical Creature Form: Becomes a complete mythical creature built around an ancient evil relic that anchors its curses.",
+            "Corrupting Presence: Its influence warps the bodies and minds of those nearby toward monstrous forms."
           ]
         },
         {
           "sequence": 1,
           "name": "Abomination",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Abomination Form: Transforms into a monstrous, ever-shifting abomination of tremendous power.",
+            "Mad Curse: Inflicts curses of madness strong enough to afflict even gods.",
+            "Mutation: Twists bodies, spirits and surroundings into monstrous shapes."
           ]
         },
         {
           "sequence": 0,
           "name": "Chained",
           "abilities": [
-            "Authority over restraint and transformation"
+            "Restraint: Binds and seals bodies, souls and powers, even the freedom of gods.",
+            "Transformation: Rules mutation and monstrous change, turning beings into creatures of its pathway.",
+            "Curses: Holds authority over curses that bind and torment.",
+            "Indulgence: Releases suppressed desires, letting targets mutate according to their deepest urges."
           ]
         }
       ]
@@ -1572,77 +1920,100 @@
       "secondaryStat": "INT",
       "speedGrade": "Average",
       "speedNote": "Repositions by exploiting rules and loopholes.",
-      "movement": [],
       "sequences": [
         {
           "sequence": 9,
           "name": "Lawyer",
           "abilities": [
-            "Eloquence",
-            "Finding loopholes in rules and contracts"
+            "Eloquence: Argues with persuasive force and sharp logic, quietly steering how listeners judge a case.",
+            "Exploit Loopholes: Spots gaps in rules, contracts and procedures, and weak points in an opponent's position, then turns them to advantage.",
+            "Subtle Influence: Their reasoning sways people almost unnoticed, slipping past spiritual intuition and even working when they do not intend it."
           ]
         },
         {
           "sequence": 8,
           "name": "Barbarian",
           "abilities": [
-            "A tough, ferocious body"
+            "Barbarian Body: Strength, toughness and stamina rise far beyond human limits, making them a ferocious close-quarters fighter.",
+            "Iron Will: Shrugs off persuasion, intimidation and other mental influence that would sway ordinary people."
           ]
         },
         {
           "sequence": 7,
           "name": "Briber",
           "abilities": [
-            "Gifts that weaken, charm or bind the receiver"
+            "Bribery: Handing over any real or symbolic payment, even a tossed coin the target refuses, opens a channel for supernatural influence.",
+            "Weaken: A bribe saps the target's strength, lowering their attack, defense and resistance.",
+            "Charm: A bribe fills the target with goodwill toward the Briber and softens their hostility.",
+            "Arrogance: A bribe inflates the target's pride so they underestimate danger and misjudge the fight.",
+            "Bond: A bribe ties a mystical thread between Briber and target that later powers can build on."
           ]
         },
         {
           "sequence": 6,
           "name": "Baron of Corruption",
           "abilities": [
-            "Corrupting desires and morals"
+            "Corruption: Stirs greed and dark desires in everyone within about ten meters, pushing them toward reckless, immoral choices.",
+            "Distortion: Twists the meaning of words, actions and intentions, so a strike becomes a miss or shutting a door seals a room.",
+            "Redirection: Bends an attack's path or a supernatural effect's target toward a harmless or favorable result.",
+            "Corrupt Strength: Physical power surges again, with blows that hit like cannon shells."
           ]
         },
         {
           "sequence": 5,
           "name": "Mentor of Disorder",
           "abilities": [
-            "Twisting the rules of an area into disorder"
+            "Disorder: Throws a target or area into chaos, so rules fail, attacks miss, distances mislead and foes choose badly.",
+            "Imperious Presence: Radiates a majesty that makes weaker people want to bow and carry out their orders.",
+            "Shared Harm: Distortion now spreads curses, illnesses and injuries along mystical links, forcing connected targets to share the damage.",
+            "Slip Free: Combines disorder and distortion to escape another's control or a losing position."
           ]
         },
         {
           "sequence": 4,
           "name": "Earl of the Fallen",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Exploit: Stretches or cuts short an existing state, such as prolonging a jump into flight or keeping an opening from closing.",
+            "Magnify: Hugely amplifies one action, wound or effect, turning a scratch fatal or a gust into a gale.",
+            "Bestowment: Curses a target with money obsession, greedy impatience, lost fighting spirit or sluggish limpness.",
+            "Rule Bending: Uses Exploit, Magnify and Distortion together to claim an area and rewrite its rules in their favor."
           ]
         },
         {
           "sequence": 3,
           "name": "Frenzied Mage",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Superiority: Converts legitimate rank, wealth and command into crushing pressure; the voice cows lesser beings and the body can grow giant.",
+            "Frenzy: Makes powers mutate unpredictably, usually improving the Mage's own while warping enemies' abilities into weak or absurd forms.",
+            "Frenzied Distortion: Bends projectiles mid-flight and hijacks a target's intent to move so they cannot stop themselves."
           ]
         },
         {
           "sequence": 2,
           "name": "Duke of Entropy",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Entropy: The longer a fight lasts, the more random a foe's powers, thoughts and surroundings become, until they collapse entirely.",
+            "Angelic Exploit: Pushes states, loopholes and distances to impossible extremes, such as one leap carrying them to the crimson moon.",
+            "Rule Distortion: Twists rules set by other authorities and bends them to the Duke's will."
           ]
         },
         {
           "sequence": 1,
           "name": "Prince of Abolition",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Redefinition: Redefines what counts as a bribe, an identity, an authority or the original body, then bends order around that definition.",
+            "Abolition: Overturns or voids chosen laws and orders, replacing them through prepared definitions and superior standing.",
+            "Regional Isolation: Seals off a prepared region by redefining what counts as inside, outside, law and protection."
           ]
         },
         {
           "sequence": 0,
           "name": "Black Emperor",
           "abilities": [
-            "Authority over corruption and twisted order"
+            "Authority of Distortion: Twists underlying rules, causality and mystical links, turning entrances into exits or turning hostile power aside.",
+            "Corruption and Disorder: Spreads corruption and escalating chaos through minds, societies, powers and laws.",
+            "Autocracy: Makes every hierarchy and rule within their order serve the Emperor alone.",
+            "Undying Order: Can return from death so long as the order they built and their apotheosis arrangements survive."
           ]
         }
       ]
@@ -1656,77 +2027,105 @@
       "secondaryStat": "STR",
       "speedGrade": "Average",
       "speedNote": "Area authority rather than movement.",
-      "movement": [],
       "sequences": [
         {
           "sequence": 9,
           "name": "Arbiter",
           "abilities": [
-            "A commanding presence",
-            "Solid physical combat"
+            "Authority: Carries a commanding weight that makes people inclined to believe their words and follow their instructions.",
+            "Combat Training: Gains a sturdier body and solid fighting skills for handling sudden violence.",
+            "Composure of Order: Stays calm under pressure and instinctively works to uphold the existing order."
           ]
         },
         {
           "sequence": 8,
           "name": "Sheriff",
           "abilities": [
-            "Sensing crime and anything unusual in their area"
+            "Jurisdiction: Claims an area as their territory and senses crime and anything unusual happening inside it.",
+            "Recognition: After seeing someone in person or in a picture, can mystically sense that person, making fugitives hard to lose.",
+            "Investigative Instinct: Sharpened intuition and spiritual perception help track suspects and notice clues.",
+            "Weapon Mastery: Handles revolvers, shotguns and melee weapons with practiced confidence."
           ]
         },
         {
           "sequence": 7,
           "name": "Interrogator",
           "abilities": [
-            "Drawing out the truth"
+            "Psychic Piercing: Fires spiritual lightning from the eyes that bypasses flesh and wounds the soul within a few meters.",
+            "Whip of Pain: A thorny current lashes the target's consciousness, wearing down resistance and drawing out the truth.",
+            "Psychic Lashing: Wraps a weapon in spectral lightning so it can harm spirits and incorporeal beings.",
+            "Spectral Torture Tools: Summons ghostly instruments that injure the spirit body on contact.",
+            "Weapons and Demolition: Gains expertise with a wide range of weapons and with explosives."
           ]
         },
         {
           "sequence": 6,
           "name": "Judge",
           "abilities": [
-            "Verdicts that become rules in an area"
+            "Verdict: Speaks rules in Ancient Hermes that everything in the surrounding area must obey.",
+            "Prohibition: Forbids chosen actions or powers in an area, such as flight, invisibility, teleportation or entering the spirit world.",
+            "Imprisonment and Exile: Verdicts that pin a target in place, seal off an area, or banish a foe from it.",
+            "Flogging and Death: Verdicts of direct punishment, from painful spiritual lashes to an outright death sentence against weaker foes.",
+            "Judicial Presence: An unsettling aura makes people avoid their gaze, and their jurisdiction can grow toward city size."
           ]
         },
         {
           "sequence": 5,
           "name": "Disciplinary Paladin",
           "abilities": [
-            "Enforcing order by force"
+            "Punishment: Marks a person or thing as an offender, gaining strength and precise, hard-to-dodge strikes against it.",
+            "Overawing Authority: An aura of dread slows nearby foes and pressures them to bow their heads and obey.",
+            "Layered Prohibitions: Stacks several prohibitions on one area or target at the same time.",
+            "Paladin's Discipline: Body, intuition and self-control all strengthen, resisting attempts to pry into their mind."
           ]
         },
         {
           "sequence": 4,
           "name": "Imperative Mage",
           "abilities": [
-            "Commands that others must obey"
+            "Imperatives: Issues commands that become binding rules on a target's existence and cannot simply be disobeyed.",
+            "Weaken Mysticism, Strengthen Reality: Suppresses supernatural effects in an area while boosting the mundane, or does the reverse.",
+            "Contracts: Binds a target's body and spirit body to agreements that follow the world's rules.",
+            "Deprivation: Strips a target of one chosen power for a time."
           ]
         },
         {
           "sequence": 3,
           "name": "Chaos Hunter",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Chaos Detection: Senses, tracks and corrects disorder such as curses, possessions, disguises and restless undead.",
+            "Sword of Judgment: Delivers a near-unavoidable judgment that hits harder the more disorder a target carries.",
+            "Early Balance: Partitions a battlefield and imposes order on it, though that order can slide back into chaos.",
+            "Answer Prayers: Can hear and respond to prayers from within a certain range."
           ]
         },
         {
           "sequence": 2,
           "name": "Balancer",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Balance: Equalizes a conflict by excluding excessive power and outside help, splitting battles into roughly fair fights.",
+            "Laws: Enacts several decrees at once, applying multiple prohibitions or enhancements instantly.",
+            "Imbalance Sight: Detects hidden people and tricks through the imbalance they create.",
+            "Brass Pillar Form: Gains a complete angelic form, a colossal brass pillar inscribed with rules."
           ]
         },
         {
           "sequence": 1,
           "name": "Hand of Order",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Order Authority: Establishes, alters or removes non-fundamental rules across a battlefield, a city or a small nation.",
+            "Order Proxy: Borrows authorization from a deity or greater order to enforce rules beyond their own strength, at serious risk.",
+            "Order Perception: Senses every change in law and supernatural order within their domain and suppresses anomalies."
           ]
         },
         {
           "sequence": 0,
           "name": "Justiciar",
           "abilities": [
-            "Authority over order and law"
+            "Divine Order: Lays down rules, removes lesser ones and adjusts how parts of reality operate.",
+            "Divine Judgment: Decides who has broken the law and imposes the consequences.",
+            "Absolute Prohibition: Suppresses powers, identities, connections, movement or entire phenomena.",
+            "Balance and Disorder: Equalizes any conflict and can restore, extinguish or deliberately create disorder."
           ]
         }
       ]
@@ -1740,76 +2139,101 @@
       "secondaryStat": "DEX",
       "speedGrade": "Slow",
       "speedNote": "Moves faster through devices and constructs than on foot.",
-      "movement": [],
       "sequences": [
         {
           "sequence": 9,
           "name": "Savant",
           "abilities": [
-            "Engineering, crafting and quick learning"
+            "Perfect Recall: Remembers everything they have read, seen or experienced.",
+            "Engineering Mastery: Quickly grasps machines, firearms and lab equipment, repairing and improving them beyond normal standards.",
+            "Rapid Learning: Absorbs mathematics, physics, chemistry and technical crafts at remarkable speed."
           ]
         },
         {
           "sequence": 8,
           "name": "Archaeologist",
           "abilities": [
-            "Identifying ancient things and ruins"
+            "Historical Insight: Reads an object's age, origin, purpose and dangers from its construction, wear, symbols and spiritual traces.",
+            "Ruin Lore: Knows ancient languages, lost cultures and the taboos and traps hidden in ruins.",
+            "Field Hardiness: Gains a sturdy body and survival skills for long expeditions in the wild."
           ]
         },
         {
           "sequence": 7,
           "name": "Appraiser",
           "abilities": [
-            "Appraising items and their mysterious properties"
+            "Appraisal: Quickly works out the properties, activation and drawbacks of most mystical items without divination.",
+            "Authentication: Spots forgeries, hidden damage, contamination and an item's true worth.",
+            "Safe Handling: Uses unfamiliar sealed artifacts while sidestepping much of their negative side effects."
           ]
         },
         {
           "sequence": 6,
           "name": "Artisan",
           "abilities": [
-            "Crafting mystical items"
+            "Crafting: Builds mystical items and Beyonder weapons from characteristics, spiritual materials, symbols and machinery.",
+            "Artifact Repair: Mends damaged mystical items, changes how they activate and reduces some of their drawbacks.",
+            "Advanced Machinery: Designs mechanical devices well beyond the technology of the era."
           ]
         },
         {
           "sequence": 5,
           "name": "Astronomer",
           "abilities": [
-            "Reading and using the stars"
+            "Astronomy: Understands celestial phenomena well enough to draw power and guidance from the stars.",
+            "False Starry Sky: Projects a fake sky of constellations that misleads astrology and other divination.",
+            "Star of Curses: Condenses starlight into rays that weaken, mutate or injure a target.",
+            "Star Blessing: Uses absorbed starlight to change gravity for a chosen target or area.",
+            "Celestial Calculation: Precisely computes trajectories, distances and timing for navigation and targeting."
           ]
         },
         {
           "sequence": 4,
           "name": "Alchemist",
           "abilities": [
-            "Transmuting materials"
+            "Transmutation: Reshapes and converts materials, alloys and energy with extreme precision.",
+            "Life Alchemy: Creates artificial life such as golems, mechanical creatures and altered plants, and can give objects limited intelligence.",
+            "Elixirs: Brews alchemical concoctions that strengthen allies or weaken enemies."
           ]
         },
         {
           "sequence": 3,
           "name": "Arcane Scholar",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Body of Knowledge: Transforms into a form made of knowledge for anywhere from minutes to days.",
+            "Environment Analysis: Extracts precise information from the surroundings to reconstruct what happened there.",
+            "Life Absorption: Drains vitality from living things across a vast radius.",
+            "Disassembly Ray: Fires a beam of light that breaks down the structure of most objects.",
+            "Arcane Technology: Translates observed powers into reproducible machines, rituals and artifacts."
           ]
         },
         {
           "sequence": 2,
           "name": "Knowledge Magister",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Teaching: Pours knowledge and skills into others, or strips learned skills away from them.",
+            "Analysis: Breaks any power, object or phenomenon down to its working principles and designs counters to it.",
+            "Enlightenment: Sparks sudden understanding in a target, granting temporary mastery of a field.",
+            "Rapid Creation: Turns complex designs into working creations far faster and awakens intelligence in machines."
           ]
         },
         {
           "sequence": 1,
           "name": "Illuminator",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Civilization: Holds authority over civilization, seeing a society's potential and the inventions it needs next.",
+            "Illumination: Inspires discoveries and speeds education so communities leap centuries ahead.",
+            "Collective Mastery: Temporarily grants whole communities the knowledge and coordination for immense projects."
           ]
         },
         {
           "sequence": 0,
           "name": "Paragon",
           "abilities": [
-            "Authority over knowledge and creation"
+            "Divine Creation: Creates artifacts, machines, cities and artificial beings that would otherwise take whole civilizations.",
+            "Authority of Knowledge: Commands practical knowledge and learning, teaching or dissecting anything down to its principles.",
+            "Technology Command: Awakens, suppresses, repairs, transforms or absorbs machinery and crafted objects.",
+            "Progress: Accelerates invention and turns industry, transport and institutions into extensions of their will."
           ]
         }
       ]
@@ -1823,82 +2247,103 @@
       "secondaryStat": "WIS",
       "speedGrade": "Average",
       "speedNote": "",
-      "movement": [
-        {
-          "sequence": 6,
-          "mode": "Teleporting with prepared scrolls"
-        }
-      ],
       "sequences": [
         {
           "sequence": 9,
           "name": "Mystery Pryer",
           "abilities": [
-            "Seeing spirituality",
-            "Ritual magic and mystical knowledge"
+            "Eyes of Mystery Prying: Sees spirituality, auras and normally invisible things, and spots the flaws in illusions and dreams.",
+            "Mystical Knowledge: Holds broad occult knowledge, with new insights sometimes arriving unbidden.",
+            "Quick Rituals: Performs ritual magic, charms and divination quickly and with few materials.",
+            "Heightened Spirituality: Spirituality rises sharply, fuelling rituals and sharpening intuition."
           ]
         },
         {
           "sequence": 8,
           "name": "Melee Scholar",
           "abilities": [
-            "Combat that draws on mystical knowledge"
+            "Combat Prying: Studies the principles behind fighting styles and weapons to master them quickly and read opponents.",
+            "Strengthened Body: Body becomes sturdier, with faster reactions for close combat."
           ]
         },
         {
           "sequence": 7,
           "name": "Warlock",
           "abilities": [
-            "Casting spells: fire, ice, lightning"
+            "Spellcraft: Designs their own spells, such as fire, ice, lightning, wind, barriers or curses, from phenomena they understand.",
+            "Witchcraft: Brews potions and makes mystical items more effectively than before.",
+            "Analytical Eyes: Studies blood, remnants and artifacts to extract symbols for new spells.",
+            "Danger Sense: Greater spirituality gives sharp warnings of approaching danger."
           ]
         },
         {
           "sequence": 6,
           "name": "Scrolls Professor",
           "abilities": [
-            "Scrolls that store spells for one use"
+            "Scroll Making: Stores spells in prepared scrolls, released instantly by reading a word and burning them.",
+            "Shared Scrolls: Hands scrolls to allies so even non-casters can use spells.",
+            "Ready Casting: Scrolls let them cast when short on time or spirituality, skipping ritual delays.",
+            "Scroll Teleport: Reads a prepared scroll to flash a short distance away in an instant."
           ]
         },
         {
           "sequence": 5,
           "name": "Constellations Master",
           "abilities": [
-            "Power drawn from the stars"
+            "Starlight Cage: Brings streams of starlight down on a target to imprison it.",
+            "Star Pillar: Merges conjured stars into a pillar of radiance that blasts an area.",
+            "Stellar Self: Dissolves the body into starlight particles to avoid harm and reform through gaps.",
+            "Star Concealment: Covers an area with stars that block outside sight and interference.",
+            "Starlight Works: Forms walkable bridges of starlight, lifts ships into the air or lights up darkness."
           ]
         },
         {
           "sequence": 4,
           "name": "Mysticologist",
           "abilities": [
-            "Analysing and recreating mystical phenomena"
+            "Mystical Re-enactment: Recreates effects from myths, legends and secret history; the less known the secret, the stronger the result.",
+            "Mystical Analysis: Dissects rituals and strange phenomena piece by piece to learn how they work.",
+            "Deep Prying: Eyes of Mystery Prying now uncover far more hidden objects and properties.",
+            "Whisper Resistance: Better withstands the maddening knowledge and voices that press on Hermit Beyonders."
           ]
         },
         {
           "sequence": 3,
           "name": "Clairvoyant",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Prying Authority: Mystery Prying becomes a true authority, reaching secrets far beyond normal limits.",
+            "Prophecy: Glimpses likely consequences, favorable choices and scenes from the past.",
+            "Answer Prayers: Can hear and respond to prayers from within a certain range."
           ]
         },
         {
           "sequence": 2,
           "name": "Sage",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Information Form: Becomes flowing knowledge and symbols, passing through obstacles and rebuilding after partial destruction.",
+            "Removal and Revision: Deletes or rewrites knowledge, deciding what others are able to know.",
+            "Teaching: Forces knowledge into a mind; an overload can stun, corrupt or kill.",
+            "Secret Prophecy: Prying into secrets sharpens prophecy, revealing future fragments as enemies make their moves."
           ]
         },
         {
           "sequence": 1,
           "name": "Knowledge Emperor",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Knowledge as Power: Folds fully understood Beyonder powers into their informational body to produce matching effects.",
+            "Information Control: Gathers, removes, forges or hides information through the spirit world and mystical links.",
+            "Overwhelming Teaching: Floods a mind with crushing or useless knowledge.",
+            "Forbidden Prying: Can probe secrets of gods and Great Old Ones, though at great risk."
           ]
         },
         {
           "sequence": 0,
           "name": "Hermit",
           "abilities": [
-            "Authority over mysteries of knowledge"
+            "Authority of Mysteries: Exposes almost any secret and treats the spirit world as a vast information network.",
+            "Information Transformation: Turns beings, objects and worlds into information to copy, alter, delete or restore.",
+            "Divine Hiding: Erases traces so thoroughly that even gods struggle to find them.",
+            "Divine Teaching: Instantly injects knowledge or change into connected Hermit Beyonders."
           ]
         }
       ]
@@ -1912,77 +2357,100 @@
       "secondaryStat": "DEX",
       "speedGrade": "Average",
       "speedNote": "Luck-driven dodging rather than raw speed.",
-      "movement": [],
       "sequences": [
         {
           "sequence": 9,
           "name": "Monster",
           "abilities": [
-            "Sensing danger and shifts of luck",
-            "Strong intuition"
+            "Fate Perception: Senses danger, malice and shifts in luck, sometimes catching a glimpse of what is coming.",
+            "Strong Intuition: Receives warnings as visions, feelings or sudden urges to avoid a place or action.",
+            "Spirit Sensitivity: Extremely keen spiritual perception lets them hear and see what others miss."
           ]
         },
         {
           "sequence": 8,
           "name": "Robot",
           "abilities": [
-            "Cold, precise calculation without emotion"
+            "Precise Calculation: Computes probabilities, trajectories and patterns with machine-like accuracy.",
+            "Emotional Control: Suppresses panic and hides reactions, staying coldly rational under pressure.",
+            "Divination Mastery: Becomes skilled at divination and at shielding themselves from others' divination.",
+            "Physical Boost: All physical abilities noticeably improve."
           ]
         },
         {
           "sequence": 7,
           "name": "Lucky One",
           "abilities": [
-            "Good luck in daily life"
+            "Passive Luck: Good fortune arrives on its own, from finding money to enemy attacks going astray.",
+            "Lucky Breaks: Useful coincidences, timely discoveries and narrow escapes happen far more often than chance allows."
           ]
         },
         {
           "sequence": 6,
           "name": "Calamity Priest",
           "abilities": [
-            "Sensing and nudging small disasters"
+            "Calamity Sense: Detects approaching disasters and misfortune building around people or places.",
+            "Calamity Attraction: Draws disasters toward their body and unleashes them on enemies, though they can strike the Priest too.",
+            "Mind Storm: Strikes an enemy's spirit body directly, leaving them sick and disoriented.",
+            "Calamity Transfer: Ritually shifts part of a coming disaster onto another person, object or place."
           ]
         },
         {
           "sequence": 5,
           "name": "Winner",
           "abilities": [
-            "Turning the odds into victories"
+            "Luck Control: Starts actively steering their own fortune, building it up before battles, gambles or escapes.",
+            "Misfortune Curse: Places limited bad luck on an enemy, from missed shots to stumbling into danger.",
+            "Winning Foresight: Senses the best timing and choice, and excels at divination and counter-divination."
           ]
         },
         {
           "sequence": 4,
           "name": "Misfortune Mage",
           "abilities": [
-            "Granting fortune or misfortune to others"
+            "Misfortune Field: Curses everyone within a circle of roughly 100 to 300 meters with bad luck.",
+            "Deadly Misfortune: A stronger curse of ill fortune that can endanger a target's life.",
+            "Blessing: Grants good luck to one or more targets, paid from their own luck or borrowed from the target's future.",
+            "Mercury Body: Their body naturally resists divination and prophecy aimed at them.",
+            "Fate Sense: Reliably feels shifts in fate and the presence of beings of higher rank."
           ]
         },
         {
           "sequence": 3,
           "name": "Chaoswalker",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Tangled Fate: Perceives the chaotic strands of fate and can steer clear of them or seal them away.",
+            "Probability Turbulence: Throws plans, attacks and divinations into chaos so outcomes become unpredictable.",
+            "Spirit Baptism: Purifies a target's spirit, calming its disorder and making it stable."
           ]
         },
         {
           "sequence": 2,
           "name": "Soothsayer",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Prophecy: Sees branching futures and pivotal choices, delivering high-level prophecies.",
+            "Fate Authority: Grants fortune, imposes angel-level misfortune or places an opportunity at an exact moment.",
+            "Fate Links: Senses and uses the connections between things and a person's fate.",
+            "Dreams and Mirrors: Reaches through the spirit world to influence dreams and mirrors."
           ]
         },
         {
           "sequence": 1,
           "name": "Snake of Mercury",
           "abilities": [
-            "Edit me: add this sequence's powers"
+            "Reboot: Resets a target or area to an earlier state, healing wounds or undoing recent events.",
+            "Reincarnation: Escapes death by restarting their own life cycle through a prepared rebirth.",
+            "River of Fate: Perceives and manipulates the currents of fate linking people, events and eras."
           ]
         },
         {
           "sequence": 0,
           "name": "Wheel of Fortune",
           "abilities": [
-            "Authority over fate and luck"
+            "Authority of Fate: Rewrites how causes, choices and outcomes connect, granting great fortune or cascading failure.",
+            "Divine Reboot: Resets vast regions, events or states to an earlier point in a cycle.",
+            "Eternal Cycle: Persists through repeating eras, prepared vessels and descendants.",
+            "Chosen Future: Favors one branch of the future until it becomes reality."
           ]
         }
       ]

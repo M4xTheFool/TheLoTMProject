@@ -24,6 +24,11 @@ int statIndex(const std::string& code) {
     return -1;
 }
 
+bool Dossier::empty() const {
+    return filedBy.empty() && recentActions.empty() && recentActionsNote.empty() && threatLevel.empty() &&
+           status.empty() && lastSeen.empty() && remarks.empty();
+}
+
 const SequenceInfo* Pathway::findSequence(int sequence) const {
     for (const auto& s : sequences) {
         if (s.sequence == sequence) return &s;
