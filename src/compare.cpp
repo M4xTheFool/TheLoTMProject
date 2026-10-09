@@ -54,6 +54,13 @@ CompareRow rankedRow(const std::string& label, std::vector<std::string> values, 
     return row;
 }
 
+// A row where none of them has anything filled in, such as Spirituality when nobody uses it.
+bool saysNothing(const CompareRow& row) {
+    if (row.ranked) return std::all_of(row.numbers.begin(), row.numbers.end(), [](int n) { return n == kMissing; });
+    return std::all_of(row.values.begin(), row.values.end(),
+                       [](const std::string& value) { return value.empty() || value == "-"; });
+}
+
 // The relationships between the compared characters, each pair described once.
 std::vector<std::string> relationshipsBetween(const std::vector<const Character*>& characters) {
     std::vector<std::string> lines;
@@ -238,6 +245,9 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
                                                   [&](int id) { return db.findArtifact(id) != nullptr; }));
         })));
     out.sections.push_back(powers);
+    for (CompareSection& section : out.sections) {
+        section.rows.erase(std::remove_if(section.rows.begin(), section.rows.end(), saysNothing), section.rows.end());
+    }
 
     out.between = relationshipsBetween(characters);
     return out;

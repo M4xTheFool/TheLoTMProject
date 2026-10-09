@@ -836,6 +836,8 @@ static void testComparison() {
     b.id = 2;
     b.name = "Leonard Mitchell";
     b.stats.base = {10, 10, 10, 10, 10, 10};
+    b.stats.hpIncluded = true;
+    b.stats.hp = 30;
     b.relationships.push_back({1, "Dunn Smith", "Subordinate", ""});
     b.relationships.push_back({1, "Dunn Smith", "Friend", ""});
     db.characters = {a, b};
@@ -849,7 +851,11 @@ static void testComparison() {
     const CompareRow& wisdom = result.sections[1].rows[4];
     CHECK(wisdom.label == "Wisdom" && wisdom.highest == std::vector<bool>({false, false}));  // equal: nobody marked
     const CompareRow& hp = result.sections[1].rows[7];
-    CHECK(hp.label == "HP" && hp.values[0] == "not used");
+    CHECK(hp.label == "HP" && hp.values[0] == "not used" && hp.highest == std::vector<bool>({false, false}));
+    // Rows neither of them has filled in are left out.
+    for (const CompareSection& section : result.sections) {
+        for (const CompareRow& row : section.rows) CHECK(row.label != "Spirituality" && row.label != "Age");
+    }
     const CompareRow& held = result.sections[2].rows[1];
     CHECK(held.values == std::vector<std::string>({"Creeping Hunger", "none"}));
     // Superior on one side and Subordinate on the other is said once; Friend appears too.

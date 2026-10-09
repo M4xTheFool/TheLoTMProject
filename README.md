@@ -91,7 +91,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - **Compare** puts two to four characters side by side: tick them in the list. It shows their pathway,
   Sequence, tier and threat level, every stat with a bar (and the six stats on one chart), Speed, HP,
   Spirituality, abilities, Sealed Artifacts and how they're related to each other. The highest value in
-  each row is in bold, in that character's colour. **Open** jumps to that character's editor.
+  each row is in bold, in that character's colour. Rows none of them has filled in are left out.
+  **Open** jumps to that character's editor.
 - **Export...** saves the open sheet as HTML, Markdown or plain text in the `exports` folder; HTML opens in
   your browser. Settings has a button that exports everything at once.
 - In Settings, **Text size** makes everything in the window bigger or smaller.
