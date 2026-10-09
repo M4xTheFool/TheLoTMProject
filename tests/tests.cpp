@@ -765,6 +765,7 @@ static void testShippedSamples() {
             if (!known(kAlignments, c.alignment)) fail(c.name + ": unknown alignment " + c.alignment);
             if (!known(kRecentActions, c.dossier.recentActions)) fail(c.name + ": unknown recent actions");
             if (!known(kStatuses, c.dossier.status)) fail(c.name + ": unknown status " + c.dossier.status);
+            if (!known(kThreatLevels, c.dossier.threatLevel)) fail(c.name + ": unknown threat level " + c.dossier.threatLevel);
             for (int score : c.stats.base) {
                 if (score < 3 || score > 18) fail(c.name + ": a base stat outside 3-18");
             }
