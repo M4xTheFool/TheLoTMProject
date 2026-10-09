@@ -482,6 +482,13 @@ void dossierTab(Character& c) {
 
 bool saveCharacterDraft(WindowState& w) { return saveImpl(w); }
 
+void openCharacter(WindowState& w, int id) {
+    whenSaved(w, w.characters.draft.dirty(), [&w] { return saveImpl(w); }, [&w, id] {
+        if (const Character* found = w.app.db.findCharacter(id)) open(w, *found, false);
+        w.switchTo = Tab::Characters;
+    });
+}
+
 void reloadCharacterDraft(WindowState& w) {
     const auto& draft = w.characters.draft;
     if (!draft.open || draft.isNew || draft.dirty()) return;

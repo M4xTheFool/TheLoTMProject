@@ -26,6 +26,7 @@ add_library(lotm_core STATIC
     src/pathway_picker.cpp
     src/pathway_menu.cpp
     src/records.cpp
+    src/compare.cpp
     src/exporter.cpp
     src/artifact_creator.cpp
     src/character_creator.cpp
@@ -92,7 +93,8 @@ if(LOTM_BUILD_WINDOW)
         src/window/characters_screen.cpp
         src/window/artifacts_screen.cpp
         src/window/pathways_screen.cpp
-        src/window/settings_screen.cpp)
+        src/window/settings_screen.cpp
+        src/window/compare_screen.cpp)
     target_link_libraries(lotm_window PRIVATE lotm_core imgui)
     if(WIN32)
         # A normal Windows program: no black console window behind it.

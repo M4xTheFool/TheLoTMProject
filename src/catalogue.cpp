@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "app.hpp"
+#include "compare.hpp"
 #include "records.hpp"
 #include "render.hpp"
 #include "sheet.hpp"
@@ -216,16 +217,50 @@ void browseArtifacts(App& app) {
     }
 }
 
+// Pick two to four characters and show them side by side.
+void compareCharacters(App& app) {
+    if (app.db.characters.size() < 2) {
+        ui::info("Save at least two characters to compare them.");
+        ui::pause();
+        return;
+    }
+    std::vector<const Character*> picked;
+    while (picked.size() < 4) {
+        std::vector<std::string> options;
+        std::vector<const Character*> offered;
+        for (const auto& c : app.db.characters) {
+            if (std::find(picked.begin(), picked.end(), &c) != picked.end()) continue;
+            options.push_back(c.name + " (" + characterCode(c.id) + ")");
+            offered.push_back(&c);
+        }
+        if (offered.empty()) break;
+        const std::string title = picked.empty() ? "Compare who? Pick the first character:"
+                                                 : "Add character " + std::to_string(picked.size() + 1) + ":";
+        const std::string zero = picked.size() < 2 ? "Cancel" : "That's everyone, compare them";
+        const int pick = ui::choose(title, options, zero);
+        if (pick < 0) {
+            if (picked.size() < 2) return;
+            break;
+        }
+        picked.push_back(offered[static_cast<size_t>(pick)]);
+    }
+    ui::blank();
+    std::cout << renderComparisonText(buildComparison(picked, app.db));
+    ui::pause();
+}
+
 }  // namespace
 
 void runCatalogue(App& app) {
     while (true) {
         ui::header("Catalogue");
         int pick = ui::choose("", {"Characters (" + std::to_string(app.db.characters.size()) + ")",
-                                   "Sealed Artifacts (" + std::to_string(app.db.artifacts.size()) + ")"},
+                                   "Sealed Artifacts (" + std::to_string(app.db.artifacts.size()) + ")",
+                                   "Compare characters side by side"},
                               "Back to the main menu");
         if (pick == 0) browseCharacters(app);
         else if (pick == 1) browseArtifacts(app);
+        else if (pick == 2) compareCharacters(app);
         else return;
     }
 }
