@@ -463,13 +463,16 @@ static void testCustomPathways() {
     CHECK(reloaded.pathwayUsers("seer").empty());
 
     // The shipped custom file loads and saves back byte for byte, so the program keeps its layout.
+    // Git on Windows checks files out with CRLF line endings, so those are ignored here.
     fs::copy_file(source / "custom_pathways.json", temp / "custom_pathways.json", fs::copy_options::overwrite_existing);
     Database shipped;
     storage.loadAll(shipped);
     storage.saveCustomPathways(shipped);
     auto readAll = [](const fs::path& file) {
         std::ifstream in(file, std::ios::binary);
-        return std::string(std::istreambuf_iterator<char>(in), {});
+        std::string text(std::istreambuf_iterator<char>(in), {});
+        std::erase(text, '\r');
+        return text;
     };
     CHECK(readAll(temp / "custom_pathways.json") == readAll(source / "custom_pathways.json"));
 
