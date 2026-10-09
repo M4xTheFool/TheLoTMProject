@@ -95,7 +95,10 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   **Open** jumps to that character's editor.
 - **Export...** saves the open sheet as HTML, Markdown or plain text in the `exports` folder; HTML opens in
   your browser. Settings has a button that exports everything at once.
-- In Settings, **Text size** makes everything in the window bigger or smaller.
+- In Settings, **Text size** makes everything in the window bigger or smaller, and the window comes in
+  two themes: **Night** (dark ink with gold) and **Parchment** (light paper with brown ink).
+- Every pathway group has its own colour. A character's medallion in the list shows their Sequence in
+  that colour; the top of the editor shows their initials, tier, threat level and affiliation.
 - **Sample sets** in Settings adds ready-made characters and Sealed Artifacts to your saves (see below).
 
 ## Using the console version
@@ -120,7 +123,7 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 | Your own pathways (the Maestro and any you create) | `data/custom_pathways.json` |
 | Your characters | `data/characters.json` |
 | Your Sealed Artifacts | `data/artifacts.json` |
-| Settings (HP mode, export theme, backups, window text size) | `data/settings.json` |
+| Settings (HP mode, export theme, backups, window text size and theme) | `data/settings.json` |
 | Backups (last 5 of each file) | `data/backups/` |
 | Exports | `exports/` |
 
@@ -192,7 +195,8 @@ program picks up changes the next time it starts.
 
 ```
 CMakeLists.txt        build instructions
-src/window/           the app window: one file per tab, plus widgets.cpp and window_main.cpp
+src/window/           the app window: one file per tab, plus widgets.cpp, theme.cpp and window_main.cpp
+assets/fonts/         the window's heading fonts (Cinzel, Cormorant Garamond) and their licences
 src/main.cpp          the console version's main menu
 src/model.*           the data structures (characters, artifacts, pathways)
 src/rules.*           modifiers, tiers, bonuses, suggestions
