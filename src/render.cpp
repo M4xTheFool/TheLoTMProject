@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <sstream>
+#include <tuple>
 #include <utility>
 
 #include "rules.hpp"
@@ -59,12 +60,8 @@ std::string markdownLines(const std::string& text) {
 // "Spirit Vision: sees auras" -> {"Spirit Vision", "sees auras"}, so the name can be shown in bold.
 // Only a short name before the first ": " counts; anything else stays one piece of text.
 bool splitNamed(const std::string& text, std::string& name, std::string& rest) {
-    const size_t colon = text.find(": ");
-    if (colon == std::string::npos || colon == 0 || colon > 48) return false;
-    if (text.find(". ") < colon) return false;
-    name = text.substr(0, colon);
-    rest = text.substr(colon + 2);
-    return true;
+    std::tie(name, rest) = splitAbility(text);
+    return !name.empty();
 }
 
 std::string htmlLines(const std::string& text) {

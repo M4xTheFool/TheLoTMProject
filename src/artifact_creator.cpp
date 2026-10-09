@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "app.hpp"
+#include "records.hpp"
 #include "render.hpp"
 #include "sheet.hpp"
 #include "ui.hpp"
@@ -45,18 +46,9 @@ void stepDrawback(Artifact& a) { a.drawback = ui::readMultiline("Its drawback", 
 void stepNotes(Artifact& a) { a.notes = ui::readMultiline("Notes (optional: containment, history ...)", a.notes); }
 
 bool save(App& app, Artifact& a, bool isNew) {
-    const auto backup = app.db.artifacts;
-    a.updatedAt = nowTimestamp();
-    if (isNew) {
-        a.createdAt = a.updatedAt;
-        app.db.artifacts.push_back(a);
-    } else if (Artifact* existing = app.db.findArtifact(a.id)) {
-        *existing = a;
-    }
     try {
-        app.storage.saveArtifacts(app.db);
+        saveArtifact(app, a, isNew);
     } catch (const StorageError& e) {
-        app.db.artifacts = backup;
         ui::info(std::string("Saving failed: ") + e.what());
         return false;
     }

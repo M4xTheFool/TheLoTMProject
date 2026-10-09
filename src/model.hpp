@@ -4,6 +4,7 @@
 
 #include <array>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace lotm {
@@ -152,6 +153,7 @@ struct Settings {
     std::string hpMode = "ask";        // ask, always, never
     std::string exportTheme = "auto";  // auto, light, dark
     int backupsToKeep = 5;
+    int windowTextSize = 100;  // app window only: text size in percent
 };
 
 // Everything loaded in memory while the program runs.
@@ -184,5 +186,10 @@ std::string artifactCode(int id);   // "A-001"
 std::string pathwayLabel(const Database& db, const std::string& pathwayId);  // "Seer (The Fool)"
 std::string sequenceLabel(const Pathway* pathway, int sequence);             // "Sequence 7: Magician"
 std::string relationshipName(const Database& db, const Relationship& r);     // "Fors Wall (C-002)" or "Fors Wall"
+
+// Abilities are stored as "Name: what it does". splitAbility gives {"Name", "what it does"}; only a
+// short name before the first ": " counts, so text without one comes back whole as the description.
+std::pair<std::string, std::string> splitAbility(const std::string& ability);
+std::string joinAbility(const std::string& name, const std::string& description);
 
 }  // namespace lotm

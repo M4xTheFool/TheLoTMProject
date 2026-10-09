@@ -8,6 +8,8 @@
 #include <utility>
 
 #include "app.hpp"
+#include "presets.hpp"
+#include "records.hpp"
 #include "render.hpp"
 #include "rules.hpp"
 #include "sheet.hpp"
@@ -17,26 +19,9 @@ namespace lotm {
 
 namespace {
 
-const std::vector<std::string> kSpeedGrades = {"Slow", "Average", "Fast", "Very fast"};
-
 bool isNumber(const std::string& text) {
     return !text.empty() &&
            std::all_of(text.begin(), text.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)); });
-}
-
-// "Name: what it does" -> {"Name", "what it does"}. Text without a name comes back as the description.
-std::pair<std::string, std::string> splitAbility(const std::string& ability) {
-    const size_t colon = ability.find(": ");
-    if (colon == std::string::npos || colon == 0 || colon > 48 || ability.substr(0, colon).find(". ") != std::string::npos) {
-        return {"", ability};
-    }
-    return {ability.substr(0, colon), ability.substr(colon + 2)};
-}
-
-std::string joinAbility(const std::string& name, const std::string& description) {
-    if (name.empty()) return description;
-    if (description.empty()) return name;
-    return name + ": " + description;
 }
 
 // Several typed lines become one ability text.
@@ -214,20 +199,11 @@ std::string sequenceMenuLine(const Pathway& p, int sequence) {
 }
 
 bool savePathway(App& app, Pathway& p, bool isNew) {
-    const auto backup = app.db.pathways;
-    p.custom = true;
-    if (isNew) {
-        p.id = app.db.newPathwayId(p.name);
-        app.db.pathways.push_back(p);
-    } else if (Pathway* stored = app.db.findPathway(p.id)) {
-        *stored = p;
-    }
     try {
-        app.storage.saveCustomPathways(app.db);
+        saveCustomPathway(app, p, isNew);
         ui::info("Saved the " + p.name + " pathway (id \"" + p.id + "\"). It's in the pathway list everywhere now.");
         return true;
     } catch (const StorageError& e) {
-        app.db.pathways = backup;
         ui::info(std::string("Saving failed: ") + e.what());
         return false;
     }
@@ -290,14 +266,10 @@ void deletePathway(App& app, const std::string& id) {
         return;
     }
     if (!ui::yesNo("Delete the " + p->name + " pathway for good?", false)) return;
-    const auto backup = app.db.pathways;
-    auto& list = app.db.pathways;
-    list.erase(std::remove_if(list.begin(), list.end(), [&](const Pathway& x) { return x.id == id; }), list.end());
     try {
-        app.storage.saveCustomPathways(app.db);
+        deleteCustomPathway(app, id);
         ui::info("Deleted. A copy is in the backups folder in case you change your mind.");
     } catch (const StorageError& e) {
-        app.db.pathways = backup;
         ui::info(std::string("Deleting failed: ") + e.what());
     }
 }

@@ -14,8 +14,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - name: Install the app window's libraries (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgl-dev libx11-dev libxext-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Show downloaded archive hashes (temporary)
+        if: runner.os == 'Linux'
+        run: find build/_deps -name '*.tar.gz' -o -name '*.zip' -o -name '*.tar.xz' | xargs -r sha256sum
       - name: Build
         run: cmake --build build --config Release
       - name: Test

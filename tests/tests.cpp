@@ -7,8 +7,11 @@
 #include <iterator>
 #include <string>
 
+#include "app.hpp"
 #include "dice.hpp"
+#include "exporter.hpp"
 #include "model_json.hpp"
+#include "records.hpp"
 #include "render.hpp"
 #include "relations.hpp"
 #include "rules.hpp"
@@ -577,6 +580,88 @@ static void testRendering() {
     CHECK(artifactText.find("Leonard & Co (C-001)") != std::string::npos);
 }
 
+// The save, delete and export helpers that both the console screens and the app window use.
+static void testSharedRecords() {
+    const fs::path root = fs::temp_directory_path() / "lotm_tests_records";
+    fs::remove_all(root);
+    fs::create_directories(root / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+    App app{Database{}, Storage(root / "data"), Dice{}};
+    app.storage.loadAll(app.db);
+
+    // Ability text splits into a name and a description, and goes back together.
+    CHECK(splitAbility("Spirit Vision: sees auras") == std::make_pair(std::string("Spirit Vision"), std::string("sees auras")));
+    CHECK(splitAbility("Sees auras. Also: more") == std::make_pair(std::string(), std::string("Sees auras. Also: more")));
+    CHECK(joinAbility("Spirit Vision", "sees auras") == "Spirit Vision: sees auras");
+    CHECK(joinAbility("Spirit Vision", "") == "Spirit Vision");
+    CHECK(joinAbility("", "sees auras") == "sees auras");
+
+    Character klein;
+    klein.id = app.db.nextCharacterId();
+    klein.name = "Klein Moretti";
+    klein.pathwayId = "seer";
+    klein.sequence = 7;
+    saveCharacter(app, klein, true);
+
+    // A name typed in the window links to the saved character, and the link comes back the other way.
+    Character audrey;
+    audrey.id = app.db.nextCharacterId();
+    audrey.name = "Audrey Hall";
+    audrey.relationships.push_back({0, "klein moretti", "Friend", ""});
+    linkRelationshipsByName(app.db, audrey);
+    CHECK(audrey.relationships[0].characterId == klein.id);
+    const CharacterSaveReport report = saveCharacter(app, audrey, true);
+    CHECK(!report.linked.empty());
+    const Character* savedKlein = app.db.findCharacter(klein.id);
+    CHECK(savedKlein && savedKlein->relationships.size() == 1 && savedKlein->relationships[0].characterId == audrey.id);
+
+    // Renaming the row to someone else unlinks it.
+    audrey.relationships[0].name = "Dunn Smith";
+    linkRelationshipsByName(app.db, audrey);
+    CHECK(audrey.relationships[0].characterId == 0);
+
+    const int copyId = duplicateCharacter(app, klein.id);
+    CHECK(copyId != klein.id && app.db.findCharacter(copyId)->name == "Klein Moretti (copy)");
+    deleteCharacter(app, klein.id);
+    CHECK(app.db.findCharacter(klein.id) == nullptr);
+    CHECK(app.db.findCharacter(audrey.id)->relationships[0].characterId == 0);
+    CHECK(app.db.findCharacter(audrey.id)->relationships[0].name == "Klein Moretti");
+
+    // Deleting a Sealed Artifact takes it away from whoever held it.
+    Artifact glove;
+    glove.id = app.db.nextArtifactId();
+    glove.name = "Creeping Hunger";
+    saveArtifact(app, glove, true);
+    app.db.findCharacter(audrey.id)->artifactIds.push_back(glove.id);
+    deleteArtifact(app, glove.id);
+    CHECK(app.db.artifacts.empty());
+    CHECK(app.db.findCharacter(audrey.id)->artifactIds.empty());
+
+    // A new pathway of your own gets an id from its name and lands in custom_pathways.json.
+    Pathway weaver;
+    weaver.name = "Night Weaver";
+    weaver.custom = true;
+    saveCustomPathway(app, weaver, true);
+    CHECK(weaver.id == "night_weaver");
+    Database reloaded;
+    app.storage.loadAll(reloaded);
+    CHECK(reloaded.findPathway("night_weaver") != nullptr);
+    CHECK(reloaded.characters.size() == 2);
+    deleteCustomPathway(app, "night_weaver");
+    CHECK(app.db.findPathway("night_weaver") == nullptr);
+
+    // Exports go to the exports folder next to the data folder.
+    CHECK(fileSlug("Klein Moretti") == "klein-moretti");
+    const Character* kept = app.db.findCharacter(audrey.id);
+    const fs::path file = writeExport(app, exportName(*kept), ExportFormat::Markdown,
+                                      {buildCharacterSheet(*kept, app.db)}, kept->name);
+    CHECK(file == root / "exports" / (exportName(*kept) + ".md"));
+    std::ifstream in(file);
+    const std::string text((std::istreambuf_iterator<char>(in)), {});
+    CHECK(text.find("Audrey Hall") != std::string::npos);
+    fs::remove_all(root);
+}
+
 int main() {
     testModifiers();
     testTiers();
@@ -592,6 +677,7 @@ int main() {
     testPathwayDatabase();
     testSaveLoadAndBackups();
     testCustomPathways();
+    testSharedRecords();
     testRendering();
     if (failures == 0) {
         std::cout << "All checks passed.\n";
