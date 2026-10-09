@@ -27,6 +27,17 @@ void saveArtifact(App& app, Artifact& a, bool isNew);
 // Also takes it away from every character who held it.
 void deleteArtifact(App& app, int id);
 
+struct SampleImportReport {
+    std::vector<std::string> addedCharacters;
+    std::vector<std::string> addedArtifacts;
+    std::vector<std::string> skipped;  // already saved under the same name
+};
+
+// Adds a sample set's characters and Sealed Artifacts as new records, keeping who holds what and
+// who knows whom. Anything with the same name as a saved record (ignoring case) is skipped and keeps
+// its details; the new characters link to it instead, so importing the same set twice adds nothing.
+SampleImportReport importSampleSet(App& app, const SampleSet& set);
+
 // Saves one of your own pathways. A new one gets an id made from its name.
 void saveCustomPathway(App& app, Pathway& p, bool isNew);
 // Only your own pathways that no character or Sealed Artifact belongs to (check pathwayUsers first).

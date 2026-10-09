@@ -1,12 +1,24 @@
 #include "records.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <map>
 #include <optional>
 
 #include "relations.hpp"
 #include "rules.hpp"
 
 namespace lotm {
+
+namespace {
+
+bool sameName(const std::string& a, const std::string& b) {
+    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [](unsigned char x, unsigned char y) {
+               return std::tolower(x) == std::tolower(y);
+           });
+}
+
+}  // namespace
 
 CharacterSaveReport saveCharacter(App& app, Character& c, bool isNew) {
     CharacterSaveReport report;
@@ -102,6 +114,79 @@ void deleteArtifact(App& app, int id) {
         app.db.characters = charactersBackup;
         throw;
     }
+}
+
+SampleImportReport importSampleSet(App& app, const SampleSet& set) {
+    SampleImportReport report;
+    const auto charactersBackup = app.db.characters;
+    const auto artifactsBackup = app.db.artifacts;
+    const std::string now = nowTimestamp();
+
+    // The sample's own ids, mapped to the ids they get here.
+    std::map<int, int> artifactIds;
+    for (Artifact a : set.artifacts) {
+        const auto saved = std::find_if(app.db.artifacts.begin(), app.db.artifacts.end(),
+                                        [&](const Artifact& x) { return sameName(x.name, a.name); });
+        if (saved != app.db.artifacts.end()) {
+            artifactIds[a.id] = saved->id;
+            report.skipped.push_back(a.name);
+            continue;
+        }
+        const int sampleId = a.id;
+        a.id = app.db.nextArtifactId();
+        a.createdAt = a.updatedAt = now;
+        artifactIds[sampleId] = a.id;
+        app.db.artifacts.push_back(a);
+        report.addedArtifacts.push_back(a.name);
+    }
+
+    std::map<int, int> characterIds;
+    std::vector<Character> added;
+    int nextId = app.db.nextCharacterId();
+    for (const Character& c : set.characters) {
+        const auto saved = std::find_if(app.db.characters.begin(), app.db.characters.end(),
+                                        [&](const Character& x) { return sameName(x.name, c.name); });
+        if (saved != app.db.characters.end()) {
+            characterIds[c.id] = saved->id;
+            report.skipped.push_back(c.name);
+            continue;
+        }
+        characterIds[c.id] = nextId;
+        added.push_back(c);
+        added.back().id = nextId++;
+    }
+
+    for (Character& c : added) {
+        std::vector<int> held;
+        for (int id : c.artifactIds) {
+            if (auto it = artifactIds.find(id); it != artifactIds.end()) held.push_back(it->second);
+        }
+        c.artifactIds = held;
+        for (Relationship& r : c.relationships) {
+            const auto it = characterIds.find(r.characterId);
+            r.characterId = it != characterIds.end() ? it->second : 0;
+        }
+        normalizeCharacter(c);
+        c.createdAt = c.updatedAt = now;
+        app.db.characters.push_back(c);
+        report.addedCharacters.push_back(c.name);
+    }
+    // Links to characters saved before the import go both ways, like a normal save.
+    for (const Character& c : added) {
+        Character* stored = app.db.findCharacter(c.id);
+        linkRelationshipsByName(app.db, *stored);
+        syncRelationships(app.db, *stored, nullptr);
+    }
+
+    try {
+        if (!report.addedArtifacts.empty()) app.storage.saveArtifacts(app.db);
+        if (!report.addedCharacters.empty()) app.storage.saveCharacters(app.db);
+    } catch (const StorageError&) {
+        app.db.characters = charactersBackup;
+        app.db.artifacts = artifactsBackup;
+        throw;
+    }
+    return report;
 }
 
 void saveCustomPathway(App& app, Pathway& p, bool isNew) {

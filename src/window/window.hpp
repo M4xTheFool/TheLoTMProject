@@ -92,6 +92,10 @@ struct WindowState {
     ArtifactScreen artifacts;
     PathwayScreen pathways;
 
+    // Sample sets in data/samples, read the first time the Settings tab shows them.
+    std::optional<std::vector<SampleSet>> sampleSets;
+    std::string sampleSetsProblem;
+
     // The line at the bottom of the window: the result of the last save, export or error.
     std::string status;
     bool statusIsError = false;
@@ -114,6 +118,10 @@ void drawSettingsScreen(WindowState& w);
 bool saveCharacterDraft(WindowState& w);
 bool saveArtifactDraft(WindowState& w);
 bool savePathwayDraft(WindowState& w);
+
+// Shows the saved version of the open character again, after something else changed it on disk
+// (adding a sample set can add relationships to it). Does nothing while it has unsaved changes.
+void reloadCharacterDraft(WindowState& w);
 
 // True when any screen has changes that are not saved yet.
 bool hasUnsavedChanges(const WindowState& w);
