@@ -186,6 +186,9 @@ data/custom_pathways.json  your own pathways
 
 ## Troubleshooting
 
+- **F5 says "program 'enter program name ...' does not exist"**: VS Code made a blank `launch.json` for you.
+  Press **Cancel** and use **Shift+F5**, or delete `.vscode/launch.json` and pull the latest version from
+  GitHub, which includes a working one. After that, F5 builds and runs the program too.
 - **No CMake triangle icon in VS Code**: press **Ctrl+Shift+X**, search for **CMake Tools**, and install it
   (and **C/C++** from Microsoft).
 - **`cmake` is not recognized**: you are in a normal PowerShell. Use **Developer PowerShell for VS 2022**
