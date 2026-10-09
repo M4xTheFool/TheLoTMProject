@@ -32,11 +32,12 @@ void addSampleSet(WindowState& w, const SampleSet& set) {
 
 // Ready-made characters and Sealed Artifacts from data/samples, such as the Tarot Club.
 void sampleSetsSection(WindowState& w) {
-    ImGui::SeparatorText("Sample sets");
+    ImGui::Spacing();
     if (w.showSampleSets) {
         ImGui::SetScrollHereY(0.0f);
         w.showSampleSets = false;
     }
+    heading(w, "Sample sets");
     if (!w.sampleSets) {
         try {
             w.sampleSets = w.app.storage.loadSampleSets();
@@ -89,10 +90,10 @@ void drawSettingsScreen(WindowState& w) {
     bool changed = false;
 
     ImGui::BeginChild("settings", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding);
-    heading(w, "Settings");
     ImGui::TextDisabled("Changes are saved straight away.");
 
-    ImGui::SeparatorText("HP");
+    ImGui::Spacing();
+    heading(w, "HP");
     const char* hpLabels[] = {"Ask for each character", "Always include HP", "Never include HP"};
     for (size_t i = 0; i < kHpModes.size(); ++i) {
         if (ImGui::RadioButton(hpLabels[i], s.hpMode == kHpModes[i])) {
@@ -101,7 +102,8 @@ void drawSettingsScreen(WindowState& w) {
         }
     }
 
-    ImGui::SeparatorText("Exported HTML sheets");
+    ImGui::Spacing();
+    heading(w, "Exported HTML sheets");
     const char* themeLabels[] = {"Follow the computer's light or dark mode", "Always light", "Always dark"};
     for (size_t i = 0; i < kExportThemes.size(); ++i) {
         if (ImGui::RadioButton(themeLabels[i], s.exportTheme == kExportThemes[i])) {
@@ -110,13 +112,15 @@ void drawSettingsScreen(WindowState& w) {
         }
     }
 
-    ImGui::SeparatorText("Backups");
+    ImGui::Spacing();
+    heading(w, "Backups");
     ImGui::SetNextItemWidth(ImGui::GetFontSize() * 16.0f);
     ImGui::SliderInt("Backups kept per file", &s.backupsToKeep, 0, 50, s.backupsToKeep == 0 ? "off" : "%d");
     changed |= ImGui::IsItemDeactivatedAfterEdit();  // save once the slider is let go
     ImGui::TextDisabled("Every save keeps a copy of the previous file in data/backups.");
 
-    ImGui::SeparatorText("This window");
+    ImGui::Spacing();
+    heading(w, "This window");
     const char* windowThemeLabels[] = {"Night (dark ink, gold accents)", "Parchment (light paper, brown ink)"};
     for (size_t i = 0; i < kWindowThemes.size(); ++i) {
         if (ImGui::RadioButton(windowThemeLabels[i], s.windowTheme == kWindowThemes[i])) {
@@ -138,7 +142,8 @@ void drawSettingsScreen(WindowState& w) {
 
     sampleSetsSection(w);
 
-    ImGui::SeparatorText("Files");
+    ImGui::Spacing();
+    heading(w, "Files");
     ImGui::TextWrapped("Data folder: %s", w.app.storage.dataDir().string().c_str());
     if (ImGui::Button("Open the data folder")) openWithDefaultApp(w.app.storage.dataDir());
     ImGui::SameLine();
