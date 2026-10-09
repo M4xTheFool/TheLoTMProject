@@ -45,7 +45,7 @@ void sampleSetsSection(WindowState& w) {
             w.sampleSetsProblem = e.what();
         }
     }
-    if (!w.sampleSetsProblem.empty()) ImGui::TextColored(kDanger, "%s", w.sampleSetsProblem.c_str());
+    if (!w.sampleSetsProblem.empty()) ImGui::TextColored(palette().danger, "%s", w.sampleSetsProblem.c_str());
     if (w.sampleSets->empty() && w.sampleSetsProblem.empty()) {
         ImGui::TextDisabled("No sample sets found in %s.", w.app.storage.samplesDir().string().c_str());
     }
@@ -117,6 +117,13 @@ void drawSettingsScreen(WindowState& w) {
     ImGui::TextDisabled("Every save keeps a copy of the previous file in data/backups.");
 
     ImGui::SeparatorText("This window");
+    const char* windowThemeLabels[] = {"Night (dark ink, gold accents)", "Parchment (light paper, brown ink)"};
+    for (size_t i = 0; i < kWindowThemes.size(); ++i) {
+        if (ImGui::RadioButton(windowThemeLabels[i], s.windowTheme == kWindowThemes[i])) {
+            s.windowTheme = kWindowThemes[i];  // the window switches before drawing the next frame
+            changed = true;
+        }
+    }
     // The new size is applied when the slider is let go, so the slider doesn't move under the mouse.
     static int textSize = 100;
     static bool dragging = false;

@@ -114,9 +114,13 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     }
     addSection(sheet, about);
 
-    if (!c.honorificName.empty()) {
+    std::vector<std::string> honorificLines;  // the window keeps three lines, some of them maybe empty
+    for (const auto& line : c.honorificName) {
+        if (!line.empty()) honorificLines.push_back(line);
+    }
+    if (!honorificLines.empty()) {
         Section honorific{"Honorific Name"};
-        honorific.quote(join(c.honorificName, "\n"));
+        honorific.quote(join(honorificLines, "\n"));
         addSection(sheet, honorific);
     }
 

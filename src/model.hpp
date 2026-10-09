@@ -154,6 +154,7 @@ struct Settings {
     std::string exportTheme = "auto";  // auto, light, dark
     int backupsToKeep = 5;
     int windowTextSize = 100;  // app window only: text size in percent
+    std::string windowTheme = "night";  // app window only: night (dark) or parchment (light)
 };
 
 // Everything loaded in memory while the program runs.

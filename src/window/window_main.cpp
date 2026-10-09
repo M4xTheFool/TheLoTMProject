@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
-#include <initializer_list>
 #include <string>
 
 #include <imgui.h>
@@ -43,112 +42,6 @@ void showFatal(const std::string& text) {
 #endif
 }
 
-ImFont* loadFirstFont(std::initializer_list<const char*> paths, float size) {
-    for (const char* path : paths) {
-        std::error_code ec;
-        if (!fs::is_regular_file(path, ec)) continue;
-        if (ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF(path, size)) return font;
-    }
-    return nullptr;
-}
-
-// The computer's own fonts: Segoe UI and Georgia on Windows, their look-alikes elsewhere.
-Fonts loadFonts() {
-    const float size = 18.0f;
-    Fonts fonts;
-    fonts.body = loadFirstFont({"C:/Windows/Fonts/segoeui.ttf", "/System/Library/Fonts/Supplemental/Arial.ttf",
-                                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"},
-                               size);
-    if (!fonts.body) fonts.body = ImGui::GetIO().Fonts->AddFontDefaultVector();
-    fonts.bold = loadFirstFont({"C:/Windows/Fonts/segoeuib.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-                                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"},
-                               size);
-    fonts.heading = loadFirstFont({"C:/Windows/Fonts/georgia.ttf", "/System/Library/Fonts/Supplemental/Georgia.ttf",
-                                   "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
-                                   "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"},
-                                  size);
-    if (!fonts.bold) fonts.bold = fonts.body;
-    if (!fonts.heading) fonts.heading = fonts.body;
-    ImGui::GetIO().FontDefault = fonts.body;
-    return fonts;
-}
-
-// Dark ink and parchment with gold accents, like the dark theme of the HTML exports.
-void applyStyle(float scale) {
-    ImGuiStyle& style = ImGui::GetStyle();
-    ImGui::StyleColorsDark(&style);
-    style.FontSizeBase = 18.0f;
-    style.WindowPadding = ImVec2(14, 12);
-    style.FramePadding = ImVec2(9, 5);
-    style.ItemSpacing = ImVec2(10, 8);
-    style.ItemInnerSpacing = ImVec2(6, 6);
-    style.IndentSpacing = 20;
-    style.ScrollbarSize = 14;
-    style.GrabMinSize = 14;
-    style.WindowRounding = 0;
-    style.ChildRounding = 6;
-    style.FrameRounding = 5;
-    style.PopupRounding = 6;
-    style.GrabRounding = 4;
-    style.TabRounding = 5;
-    style.ScrollbarRounding = 6;
-    style.SeparatorTextBorderSize = 1;
-    style.SeparatorTextPadding = ImVec2(0, 6);
-
-    auto rgb = [](int r, int g, int b, float a = 1.0f) { return ImVec4(r / 255.0f, g / 255.0f, b / 255.0f, a); };
-    ImVec4* c = style.Colors;
-    c[ImGuiCol_Text] = rgb(232, 226, 212);
-    c[ImGuiCol_TextDisabled] = rgb(150, 143, 130);
-    c[ImGuiCol_WindowBg] = rgb(22, 22, 27);
-    c[ImGuiCol_ChildBg] = rgb(27, 27, 33);
-    c[ImGuiCol_PopupBg] = rgb(30, 30, 37, 0.98f);
-    c[ImGuiCol_Border] = rgb(58, 56, 62);
-    c[ImGuiCol_FrameBg] = rgb(38, 38, 47);
-    c[ImGuiCol_FrameBgHovered] = rgb(50, 49, 60);
-    c[ImGuiCol_FrameBgActive] = rgb(60, 57, 66);
-    c[ImGuiCol_TitleBg] = rgb(22, 22, 27);
-    c[ImGuiCol_TitleBgActive] = rgb(30, 29, 36);
-    c[ImGuiCol_MenuBarBg] = rgb(27, 27, 33);
-    c[ImGuiCol_ScrollbarBg] = rgb(22, 22, 27);
-    c[ImGuiCol_ScrollbarGrab] = rgb(64, 61, 68);
-    c[ImGuiCol_ScrollbarGrabHovered] = rgb(84, 79, 82);
-    c[ImGuiCol_ScrollbarGrabActive] = rgb(120, 98, 60);
-    c[ImGuiCol_CheckMark] = rgb(217, 173, 84);
-    c[ImGuiCol_SliderGrab] = rgb(190, 148, 70);
-    c[ImGuiCol_SliderGrabActive] = rgb(232, 190, 100);
-    c[ImGuiCol_Button] = rgb(46, 45, 56);
-    c[ImGuiCol_ButtonHovered] = rgb(66, 62, 70);
-    c[ImGuiCol_ButtonActive] = rgb(120, 98, 60);
-    c[ImGuiCol_Header] = rgb(66, 56, 40);
-    c[ImGuiCol_HeaderHovered] = rgb(80, 68, 46);
-    c[ImGuiCol_HeaderActive] = rgb(100, 82, 52);
-    c[ImGuiCol_Separator] = rgb(58, 56, 62);
-    c[ImGuiCol_SeparatorHovered] = rgb(150, 120, 66);
-    c[ImGuiCol_SeparatorActive] = rgb(217, 173, 84);
-    c[ImGuiCol_ResizeGrip] = rgb(66, 56, 40, 0.5f);
-    c[ImGuiCol_ResizeGripHovered] = rgb(150, 120, 66);
-    c[ImGuiCol_ResizeGripActive] = rgb(217, 173, 84);
-    c[ImGuiCol_Tab] = rgb(36, 35, 43);
-    c[ImGuiCol_TabHovered] = rgb(80, 68, 46);
-    c[ImGuiCol_TabSelected] = rgb(58, 50, 38);
-    c[ImGuiCol_TabSelectedOverline] = rgb(217, 173, 84);
-    c[ImGuiCol_TabDimmed] = rgb(30, 30, 36);
-    c[ImGuiCol_TabDimmedSelected] = rgb(48, 43, 36);
-    c[ImGuiCol_TableHeaderBg] = rgb(40, 38, 46);
-    c[ImGuiCol_TableBorderStrong] = rgb(58, 56, 62);
-    c[ImGuiCol_TableBorderLight] = rgb(46, 45, 52);
-    c[ImGuiCol_TableRowBgAlt] = rgb(255, 255, 255, 0.025f);
-    c[ImGuiCol_TextSelectedBg] = rgb(150, 120, 66, 0.45f);
-    c[ImGuiCol_NavCursor] = rgb(217, 173, 84);
-    c[ImGuiCol_ModalWindowDimBg] = rgb(0, 0, 0, 0.55f);
-    c[ImGuiCol_TextLink] = rgb(217, 173, 84);
-
-    style.ScaleAllSizes(scale);
-    style.FontScaleDpi = scale;
-}
-
 bool saveEverything(WindowState& w) {
     bool ok = true;
     if (w.characters.draft.dirty()) ok = saveCharacterDraft(w) && ok;
@@ -165,13 +58,16 @@ void drawWindow(WindowState& w) {
                  ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
                      ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.35f);
-    ImGui::TextColored(kGold, "LoTM Creator Suite");
+    ImGui::PushFont(w.fonts.title, ImGui::GetStyle().FontSizeBase * 1.45f);
+    ImGui::TextColored(palette().gold, "LoTM Creator Suite");
     ImGui::PopFont();
     ImGui::SameLine();
-    const std::string counts = std::to_string(w.app.db.characters.size()) + " characters   " +
-                               std::to_string(w.app.db.artifacts.size()) + " Sealed Artifacts   " +
-                               std::to_string(w.app.db.pathways.size()) + " pathways";
+    auto count = [](size_t n, const char* one, const char* many) {
+        return std::to_string(n) + " " + (n == 1 ? one : many);
+    };
+    const std::string counts = count(w.app.db.characters.size(), "character", "characters") + "  \xC2\xB7  " +
+                               count(w.app.db.artifacts.size(), "Sealed Artifact", "Sealed Artifacts") +
+                               "  \xC2\xB7  " + count(w.app.db.pathways.size(), "pathway", "pathways");
     ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(counts.c_str()).x);
     ImGui::AlignTextToFramePadding();
     ImGui::TextDisabled("%s", counts.c_str());
@@ -185,7 +81,13 @@ void drawWindow(WindowState& w) {
                                                     {Tab::Settings, "Settings"}};
         for (const auto& [tab, name] : tabs) {
             const ImGuiTabItemFlags flags = w.switchTo == tab ? ImGuiTabItemFlags_SetSelected : 0;
-            if (!ImGui::BeginTabItem(name, nullptr, flags)) continue;
+            // Tab names in the title font, with a little more room around them.
+            ImGui::PushFont(w.fonts.title, ImGui::GetStyle().FontSizeBase * 1.05f);
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetFontSize() * 0.8f, ImGui::GetFontSize() * 0.4f));
+            const bool open = ImGui::BeginTabItem(name, nullptr, flags);
+            ImGui::PopStyleVar();
+            ImGui::PopFont();
+            if (!open) continue;
             w.tab = tab;
             ImGui::BeginChild("screen", ImVec2(0, -statusHeight));
             switch (tab) {
@@ -206,8 +108,10 @@ void drawWindow(WindowState& w) {
     if (w.status.empty()) {
         ImGui::TextDisabled("Saved in %s", w.app.storage.dataDir().string().c_str());
     } else {
+        const ImVec4 colour = w.statusIsError ? palette().danger : palette().success;
+        statusDot(colour);
         ImGui::PushTextWrapPos(0.0f);
-        ImGui::TextColored(w.statusIsError ? kDanger : kSuccess, "%s", w.status.c_str());
+        ImGui::TextColored(colour, "%s", w.status.c_str());
         ImGui::PopTextWrapPos();
     }
 
@@ -220,7 +124,7 @@ void drawLoadError(const std::string& problem, bool& quit) {
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::Begin("problem", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
-    ImGui::TextColored(kDanger, "The program could not load its data.");
+    ImGui::TextColored(palette().danger, "The program could not load its data.");
     ImGui::Spacing();
     ImGui::TextWrapped("%s", problem.c_str());
     ImGui::Spacing();
@@ -281,8 +185,8 @@ int main(int argc, char** argv) {
     } catch (const std::exception& e) {
         loadProblem = e.what();
     }
-    applyStyle(scale);
-    w.fonts = loadFonts();
+    w.fonts = loadFonts(w.app.storage.dataDir());
+    std::string appliedTheme;
 
     bool quit = false;
     while (!quit) {
@@ -301,6 +205,10 @@ int main(int argc, char** argv) {
             continue;
         }
 
+        if (appliedTheme != w.app.db.settings.windowTheme) {  // between frames, never halfway through one
+            appliedTheme = w.app.db.settings.windowTheme;
+            applyTheme(appliedTheme, scale);
+        }
         ImGui::GetStyle().FontScaleMain = w.app.db.settings.windowTextSize / 100.0f;
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -312,7 +220,8 @@ int main(int argc, char** argv) {
         int width = 0, height = 0;
         glfwGetFramebufferSize(window, &width, &height);
         glViewport(0, 0, width, height);
-        glClearColor(0.086f, 0.086f, 0.106f, 1.0f);
+        const ImVec4 background = backgroundColour();
+        glClearColor(background.x, background.y, background.z, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);

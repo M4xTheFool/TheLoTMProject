@@ -1,5 +1,7 @@
 // Controls shared by every screen of the app window.
 #include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <map>
 
 #include "rules.hpp"
@@ -22,6 +24,33 @@ void label(const char* text) {
 }
 
 std::string hidden(const char* text) { return std::string("##") + text; }
+
+ImU32 colourU32(const ImVec4& c, float alpha = 1.0f) { return ImGui::GetColorU32(ImVec4(c.x, c.y, c.z, c.w * alpha)); }
+
+// Cuts text to fit a width, ending it with "..." when something had to go.
+std::string fitText(const std::string& text, ImFont* font, float size, float width) {
+    if (font->CalcTextSizeA(size, FLT_MAX, 0.0f, text.c_str()).x <= width) return text;
+    std::string cut = text;
+    while (!cut.empty()) {
+        cut.pop_back();
+        while (!cut.empty() && (static_cast<unsigned char>(cut.back()) & 0xC0) == 0x80) cut.pop_back();
+        if (font->CalcTextSizeA(size, FLT_MAX, 0.0f, (cut + "...").c_str()).x <= width) break;
+    }
+    while (!cut.empty() && cut.back() == ' ') cut.pop_back();
+    return cut + "...";
+}
+
+void drawMedallion(const WindowState& w, ImVec2 centre, float radius, const ImVec4& colour, const std::string& text) {
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    draw->AddCircleFilled(centre, radius, colourU32(colour, 0.16f));
+    draw->AddCircle(centre, radius, colourU32(colour), 0, std::max(1.5f, radius * 0.08f));
+    if (text.empty()) return;
+    ImFont* font = w.fonts.bold;
+    const float size = radius * (text.size() > 2 ? 0.72f : 0.86f);
+    const ImVec2 textSize = font->CalcTextSizeA(size, FLT_MAX, 0.0f, text.c_str());
+    draw->AddText(font, size, ImVec2(centre.x - textSize.x * 0.5f, centre.y - textSize.y * 0.5f), colourU32(colour),
+                  text.c_str());
+}
 
 // ImGui reads "%" in a slider's text as a number placeholder, so it has to be doubled.
 std::string escapePercent(const std::string& text) {
@@ -161,12 +190,187 @@ bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence) {
 }
 
 void heading(const WindowState& w, const std::string& text) {
-    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.25f);
-    ImGui::PushStyleColor(ImGuiCol_Text, kGold);
+    ImGui::PushFont(w.fonts.title, ImGui::GetStyle().FontSizeBase * 1.1f);
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().gold);
     ImGui::TextUnformatted(text.c_str());
     ImGui::PopStyleColor();
     ImGui::PopFont();
-    ImGui::Separator();
+    // A small diamond, then a rule that fades out towards the right edge.
+    const ImVec2 textMin = ImGui::GetItemRectMin();
+    const ImVec2 textMax = ImGui::GetItemRectMax();
+    const float right = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
+    const float y = std::floor((textMin.y + textMax.y) * 0.5f) + 0.5f;
+    const float d = ImGui::GetFontSize() * 0.22f;
+    const float start = textMax.x + ImGui::GetFontSize() * 0.6f;
+    if (start + d * 4.0f < right) {
+        ImDrawList* draw = ImGui::GetWindowDrawList();
+        const ImU32 gold = colourU32(palette().gold, 0.85f);
+        draw->AddQuadFilled(ImVec2(start, y), ImVec2(start + d, y - d), ImVec2(start + d * 2.0f, y), ImVec2(start + d, y + d),
+                            gold);
+        draw->AddRectFilledMultiColor(ImVec2(start + d * 2.6f, y - 0.5f), ImVec2(right, y + 0.5f), gold,
+                                      colourU32(palette().gold, 0.0f), colourU32(palette().gold, 0.0f), gold);
+    }
+    ImGui::Spacing();
+}
+
+std::string initials(const std::string& name) {
+    // The first letter of each word (stopping at a bracket), then the first and last of those.
+    std::vector<std::string> letters;
+    bool wordStart = true;
+    for (size_t i = 0; i < name.size();) {
+        size_t end = i + 1;
+        while (end < name.size() && (static_cast<unsigned char>(name[end]) & 0xC0) == 0x80) ++end;  // one UTF-8 letter
+        const unsigned char ch = static_cast<unsigned char>(name[i]);
+        if (ch == '(') break;
+        if (ch == ' ' || ch == '-') {
+            wordStart = true;
+        } else {
+            if (wordStart && (std::isalpha(ch) || ch >= 0x80)) {
+                std::string letter = name.substr(i, end - i);
+                if (letter.size() == 1) letter[0] = static_cast<char>(std::toupper(ch));
+                letters.push_back(letter);
+            }
+            wordStart = false;
+        }
+        i = end;
+    }
+    if (letters.empty()) return "?";
+    return letters.size() == 1 ? letters[0] : letters.front() + letters.back();
+}
+
+void medallion(const WindowState& w, const std::string& text, const ImVec4& colour, float radius) {
+    const ImVec2 at = ImGui::GetCursorScreenPos();
+    drawMedallion(w, ImVec2(at.x + radius, at.y + radius), radius, colour, text);
+    ImGui::Dummy(ImVec2(radius * 2.0f, radius * 2.0f));
+}
+
+void chip(const std::string& text, const ImVec4& colour) {
+    const ImVec2 padding(ImGui::GetFontSize() * 0.55f, ImGui::GetFontSize() * 0.18f);
+    const ImVec2 textSize = ImGui::CalcTextSize(text.c_str());
+    const ImVec2 at = ImGui::GetCursorScreenPos();
+    const ImVec2 end(at.x + textSize.x + padding.x * 2.0f, at.y + textSize.y + padding.y * 2.0f);
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    const float rounding = (end.y - at.y) * 0.5f;
+    draw->AddRectFilled(at, end, colourU32(colour, 0.14f), rounding);
+    draw->AddRect(at, end, colourU32(colour, 0.55f), rounding);
+    draw->AddText(ImVec2(at.x + padding.x, at.y + padding.y), colourU32(colour), text.c_str());
+    ImGui::Dummy(ImVec2(end.x - at.x, end.y - at.y));
+}
+
+void statusDot(const ImVec4& colour) {
+    const ImVec2 at = ImGui::GetCursorScreenPos();
+    const float size = ImGui::GetFontSize();
+    ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(at.x + size * 0.3f, at.y + size * 0.55f), size * 0.22f,
+                                                colourU32(colour));
+    ImGui::Dummy(ImVec2(size * 0.6f, size));
+    ImGui::SameLine();
+}
+
+bool listCard(const WindowState& w, const std::string& id, bool selected, const ImVec4& colour,
+              const std::string& badge, const std::string& title, const std::string& subtitle) {
+    const float font = ImGui::GetFontSize();
+    const float pad = font * 0.4f;
+    const float height = ImGui::GetTextLineHeight() * 2.0f + pad * 2.0f;
+    const float width = ImGui::GetContentRegionAvail().x;
+    const ImVec2 at = ImGui::GetCursorScreenPos();
+    ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.0f, 0.5f));
+    const bool clicked = ImGui::Selectable(("##" + id).c_str(), selected, ImGuiSelectableFlags_None, ImVec2(width, height));
+    ImGui::PopStyleVar();
+
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    if (selected) {
+        draw->AddRectFilled(at, ImVec2(at.x + font * 0.18f, at.y + height), colourU32(palette().gold), font * 0.1f);
+    }
+    const float radius = height * 0.34f;
+    drawMedallion(w, ImVec2(at.x + pad + radius + font * 0.2f, at.y + height * 0.5f), radius, colour, badge);
+    const float textX = at.x + pad * 2.0f + radius * 2.0f + font * 0.3f;
+    const float room = at.x + width - textX - pad;
+    ImFont* titleFont = selected ? w.fonts.bold : ImGui::GetFont();
+    draw->AddText(titleFont, font, ImVec2(textX, at.y + pad), ImGui::GetColorU32(ImGuiCol_Text),
+                  fitText(title, titleFont, font, room).c_str());
+    draw->AddText(ImGui::GetFont(), font * 0.9f, ImVec2(textX, at.y + pad + ImGui::GetTextLineHeight()),
+                  ImGui::GetColorU32(ImGuiCol_TextDisabled), fitText(subtitle, ImGui::GetFont(), font * 0.9f, room).c_str());
+    return clicked;
+}
+
+void statBoxes(const WindowState& w, const std::vector<StatRow>& stats) {
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float font = ImGui::GetFontSize();
+    const float avail = ImGui::GetContentRegionAvail().x;
+    const int perRow = avail > font * 33.0f ? 6 : 3;  // two rows of three in a narrow window
+    const float boxWidth = (avail - style.ItemSpacing.x * static_cast<float>(perRow - 1)) / static_cast<float>(perRow);
+    const float boxHeight = font * 5.4f;
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    for (size_t i = 0; i < stats.size(); ++i) {
+        const StatRow& row = stats[i];
+        if (i % static_cast<size_t>(perRow) != 0) ImGui::SameLine();
+        const ImVec2 at = ImGui::GetCursorScreenPos();
+        const ImVec2 end(at.x + boxWidth, at.y + boxHeight);
+        draw->AddRectFilled(at, end, ImGui::GetColorU32(ImGuiCol_FrameBg), style.ChildRounding);
+        draw->AddRect(at, end, ImGui::GetColorU32(ImGuiCol_Border), style.ChildRounding);
+        auto centred = [&](ImFont* f, float size, float y, ImU32 colour, const std::string& text) {
+            const ImVec2 textSize = f->CalcTextSizeA(size, FLT_MAX, 0.0f, text.c_str());
+            draw->AddText(f, size, ImVec2(at.x + (boxWidth - textSize.x) * 0.5f, y), colour, text.c_str());
+        };
+        const bool nameFits =
+            w.fonts.title->CalcTextSizeA(font * 0.85f, FLT_MAX, 0.0f, row.name.c_str()).x < boxWidth - font * 0.6f;
+        centred(w.fonts.title, font * 0.85f, at.y + font * 0.35f, colourU32(palette().muted), nameFits ? row.name : row.code);
+        centred(w.fonts.title, font * 1.75f, at.y + font * 1.3f, ImGui::GetColorU32(ImGuiCol_Text),
+                std::to_string(row.total));
+        centred(w.fonts.bold, font, at.y + font * 3.35f, colourU32(palette().gold), signedNumber(row.modifier));
+        const std::string detail = row.bonus == 0 ? "base " + std::to_string(row.base)
+                                                  : std::to_string(row.base) + " + " + std::to_string(row.bonus) + " pathway";
+        centred(ImGui::GetFont(), font * 0.78f, at.y + font * 4.45f, ImGui::GetColorU32(ImGuiCol_TextDisabled), detail);
+        ImGui::Dummy(ImVec2(boxWidth, boxHeight));
+    }
+}
+
+void statChart(const std::vector<std::array<int, kStatCount>>& totals, float size) {
+    int highest = 0;
+    for (const auto& set : totals) highest = std::max(highest, *std::max_element(set.begin(), set.end()));
+    // Rings every 5 points up to 20 or the highest score, every 10 past 30.
+    const int roughScale = std::max(20, (highest + 4) / 5 * 5);
+    const int step = roughScale > 30 ? 10 : 5;
+    const int scale = (roughScale + step - 1) / step * step;
+
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    const ImVec2 origin = ImGui::GetCursorScreenPos();
+    const ImVec2 centre(origin.x + size * 0.5f, origin.y + size * 0.5f);
+    const float labelRoom = ImGui::GetFontSize() * 1.6f;
+    const float radius = size * 0.5f - labelRoom;
+    auto point = [&](int axis, float fraction) {
+        const float angle = -1.5707963f + static_cast<float>(axis) * 1.0471976f;  // from the top, clockwise
+        return ImVec2(centre.x + std::cos(angle) * radius * fraction, centre.y + std::sin(angle) * radius * fraction);
+    };
+
+    const ImU32 grid = ImGui::GetColorU32(ImGuiCol_Border);
+    for (int ring = step; ring <= scale; ring += step) {
+        ImVec2 corners[kStatCount];
+        for (int axis = 0; axis < kStatCount; ++axis) {
+            corners[axis] = point(axis, static_cast<float>(ring) / static_cast<float>(scale));
+        }
+        draw->AddPolyline(corners, kStatCount, grid, ImDrawFlags_Closed, 1.0f);
+    }
+    for (int axis = 0; axis < kStatCount; ++axis) {
+        draw->AddLine(centre, point(axis, 1.0f), grid);
+        const char* code = kStatCodes[static_cast<size_t>(axis)];
+        const ImVec2 textSize = ImGui::CalcTextSize(code);
+        const ImVec2 at = point(axis, 1.0f + labelRoom * 0.55f / radius);
+        draw->AddText(ImVec2(at.x - textSize.x * 0.5f, at.y - textSize.y * 0.5f), colourU32(palette().muted), code);
+    }
+    for (size_t i = 0; i < totals.size() && i < palette().series.size(); ++i) {
+        const ImVec4& tint = palette().series[i];
+        ImVec2 corners[kStatCount];
+        for (int axis = 0; axis < kStatCount; ++axis) {
+            const float fraction = static_cast<float>(totals[i][static_cast<size_t>(axis)]) / static_cast<float>(scale);
+            corners[axis] = point(axis, std::clamp(fraction, 0.0f, 1.0f));
+        }
+        draw->AddConcavePolyFilled(corners, kStatCount, colourU32(tint, 0.14f));
+        draw->AddPolyline(corners, kStatCount, colourU32(tint), ImDrawFlags_Closed, 2.0f);
+        for (const ImVec2& corner : corners) draw->AddCircleFilled(corner, 3.0f, colourU32(tint));
+    }
+    ImGui::Dummy(ImVec2(size, size));
+    ImGui::TextDisabled("Totals with pathway bonuses. A ring every %d points, up to %d.", step, scale);
 }
 
 // A sheet drawn with the window's own controls: the same content as the exports.
@@ -174,7 +378,7 @@ void drawSheet(const WindowState& w, const Sheet& sheet) {
     ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.7f);
     ImGui::TextWrapped("%s", sheet.title.c_str());
     ImGui::PopFont();
-    ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
     ImGui::TextWrapped("%s", sheet.subtitle.c_str());
     ImGui::PopStyleColor();
 
@@ -190,7 +394,7 @@ void drawSheet(const WindowState& w, const Sheet& sheet) {
         for (const auto& block : section.blocks) {
             switch (block.kind) {
                 case BlockKind::Field:
-                    ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
+                    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
                     ImGui::TextUnformatted(block.label.c_str());
                     ImGui::PopStyleColor();
                     ImGui::SameLine(valueColumn);
@@ -201,7 +405,7 @@ void drawSheet(const WindowState& w, const Sheet& sheet) {
                     break;
                 case BlockKind::Quote:
                     ImGui::Indent();
-                    ImGui::PushStyleColor(ImGuiCol_Text, kGold);
+                    ImGui::PushStyleColor(ImGuiCol_Text, palette().gold);
                     ImGui::TextWrapped("\"%s\"", block.text.c_str());
                     ImGui::PopStyleColor();
                     ImGui::Unindent();
@@ -229,26 +433,7 @@ void drawSheet(const WindowState& w, const Sheet& sheet) {
                     break;
                 }
                 case BlockKind::Stats:
-                    if (ImGui::BeginTable("stats", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit)) {
-                        for (const char* column : {"Stat", "Base", "Bonus", "Total", "Mod"}) {
-                            ImGui::TableSetupColumn(column);
-                        }
-                        ImGui::TableHeadersRow();
-                        for (const auto& row : block.stats) {
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::TextUnformatted(row.name.c_str());
-                            ImGui::TableNextColumn();
-                            ImGui::Text("%d", row.base);
-                            ImGui::TableNextColumn();
-                            ImGui::TextUnformatted(row.bonus == 0 ? "-" : signedNumber(row.bonus).c_str());
-                            ImGui::TableNextColumn();
-                            ImGui::Text("%d", row.total);
-                            ImGui::TableNextColumn();
-                            ImGui::TextUnformatted(signedNumber(row.modifier).c_str());
-                        }
-                        ImGui::EndTable();
-                    }
+                    statBoxes(w, block.stats);
                     break;
             }
         }
@@ -293,7 +478,7 @@ EditorAction drawEditorButtons(const EditorButtons& options) {
 
     if (!options.isNew && options.canDelete) {
         ImGui::SameLine();
-        ImGui::PushStyleColor(ImGuiCol_Text, kDanger);
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().danger);
         if (ImGui::Button("Delete")) ImGui::OpenPopup("###delete");
         ImGui::PopStyleColor();
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
@@ -321,7 +506,7 @@ EditorAction drawEditorButtons(const EditorButtons& options) {
 
     if (options.dirty) {
         ImGui::SameLine();
-        ImGui::TextColored(kWarning, options.isNew ? "Not saved yet" : "Unsaved changes");
+        ImGui::TextColored(palette().warning, options.isNew ? "Not saved yet" : "Unsaved changes");
     }
     return action;
 }
