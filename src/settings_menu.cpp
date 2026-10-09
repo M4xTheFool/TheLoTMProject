@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "presets.hpp"
 #include "ui.hpp"
 
 namespace lotm {
@@ -13,13 +14,11 @@ void runSettingsMenu(App& app) {
                                "Backups kept per file: " + std::to_string(s.backupsToKeep)},
                               "Back to the main menu");
         if (pick == 0) {
-            const std::vector<std::string> modes = {"ask", "always", "never"};
-            int m = ui::choose("HP mode:", modes, "Cancel");
-            if (m >= 0) s.hpMode = modes[m];
+            int m = ui::choose("HP mode:", kHpModes, "Cancel");
+            if (m >= 0) s.hpMode = kHpModes[m];
         } else if (pick == 1) {
-            const std::vector<std::string> themes = {"auto", "light", "dark"};
-            int t = ui::choose("Export theme:", themes, "Cancel");
-            if (t >= 0) s.exportTheme = themes[t];
+            int t = ui::choose("Export theme:", kExportThemes, "Cancel");
+            if (t >= 0) s.exportTheme = kExportThemes[t];
         } else if (pick == 2) {
             s.backupsToKeep = ui::readInt("Backups to keep (0 turns backups off)", 0, 50, s.backupsToKeep);
         } else {

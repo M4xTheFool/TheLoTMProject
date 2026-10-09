@@ -152,6 +152,20 @@ std::string sequenceLabel(const Pathway* pathway, int sequence) {
     return label;
 }
 
+std::pair<std::string, std::string> splitAbility(const std::string& ability) {
+    const size_t colon = ability.find(": ");
+    if (colon == std::string::npos || colon == 0 || colon > 48 || ability.substr(0, colon).find(". ") != std::string::npos) {
+        return {"", ability};
+    }
+    return {ability.substr(0, colon), ability.substr(colon + 2)};
+}
+
+std::string joinAbility(const std::string& name, const std::string& description) {
+    if (name.empty()) return description;
+    if (description.empty()) return name;
+    return name + ": " + description;
+}
+
 std::string relationshipName(const Database& db, const Relationship& r) {
     if (const Character* other = r.characterId != 0 ? db.findCharacter(r.characterId) : nullptr) {
         return other->name + " (" + characterCode(other->id) + ")";

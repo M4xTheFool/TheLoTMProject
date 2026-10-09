@@ -79,4 +79,19 @@ std::vector<std::string> syncRelationships(Database& db, Character& c, const Cha
     return changes;
 }
 
+void linkRelationshipsByName(const Database& db, Character& c) {
+    for (auto& r : c.relationships) {
+        if (r.characterId != 0) {
+            const Character* linked = db.findCharacter(r.characterId);
+            if (linked && lowercase(linked->name) == lowercase(r.name)) continue;
+            r.characterId = 0;
+        }
+        const auto matches = db.findCharactersByName(r.name, c.id);
+        if (!r.name.empty() && matches.size() == 1 && lowercase(matches[0]->name) == lowercase(r.name)) {
+            r.characterId = matches[0]->id;
+            r.name = matches[0]->name;
+        }
+    }
+}
+
 }  // namespace lotm

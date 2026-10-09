@@ -5,6 +5,11 @@ A small program <3
 A Lord of the Mysteries creator suite in C++. Make characters and Sealed Artifacts, browse them in a
 catalogue, and export them as good-looking sheets.
 
+It comes as two programs that share the same saves:
+
+- **The app window** (`lotm_window`): a normal window with tabs, text boxes, dropdowns and sliders.
+- **The console version** (`lotm_creator`): the same features in the terminal, answered with numbers.
+
 - **Character Creator:** name, looks (hair colour, length and style, eyes, skin, face, build, height,
   voice, clothing) and bio, one of the 22 pathways or one of your own, Sequence 9 to 0 with every ability
   described, alignment, titles, aliases, honorific name (Sequence 3 and up), Beyonder characteristics and
@@ -31,7 +36,8 @@ Everything is saved as JSON in the `data` folder, with automatic backups in `dat
    extensions (**C/C++** and **CMake Tools**).
 4. If VS Code asks you to pick a "kit", choose the one that mentions **Visual Studio Build Tools 2022 - amd64**.
 
-The first build downloads one small library (nlohmann/json), so be online for it.
+The first build downloads three libraries (nlohmann/json for the saves, GLFW and Dear ImGui for the app
+window), so be online for it.
 
 ## Build and run
 
@@ -40,8 +46,10 @@ The first build downloads one small library (nlohmann/json), so be online for it
 1. Click the **CMake** icon (a triangle) in the bar on the far left. The **Project Status** panel opens.
 2. Under **Configure**, if no kit is shown, click it and pick **Visual Studio Build Tools 2022 Release - amd64**.
 3. Under **Build**, click the build icon that appears when you hover over it (or press **F7**).
-4. Under **Launch**, click the play icon (or press **Shift+F5**). The program starts in the **Terminal**
-   panel at the bottom; type numbers and press Enter.
+4. Under **Launch**, pick which program to start: hover over it, click the pencil icon, and choose
+   **lotm_window** (the app window) or **lotm_creator** (the console version). VS Code remembers the choice.
+5. Click the play icon next to **Launch** (or press **Shift+F5**). The app window opens on its own; the
+   console version starts in the **Terminal** panel at the bottom, where you type numbers and press Enter.
 
 You can also press **Ctrl+Shift+P** and run **CMake: Build**, then **CMake: Run Without Debugging**.
 
@@ -51,14 +59,36 @@ usually can't find `cmake`), go to this folder with `cd`, then run:
 ```
 cmake -S . -B build
 cmake --build build --config Release
-.\build\Release\lotm_creator.exe
+.\build\Release\lotm_window.exe
 ```
 
-On macOS or Linux the same `cmake` commands work, and the program is `./build/lotm_creator`.
+The console version is `.\build\Release\lotm_creator.exe`.
+
+On macOS or Linux the same `cmake` commands work, and the programs are `./build/lotm_window` and
+`./build/lotm_creator`. Linux needs a few packages for the window first:
+`sudo apt install libgl-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev`. To build only the
+console version, configure with `cmake -S . -B build -DLOTM_BUILD_WINDOW=OFF`.
 
 To run the automatic checks: `ctest --test-dir build -C Release`.
 
-## Using it
+## Using the app window
+
+- The tabs at the top are **Characters**, **Sealed Artifacts**, **Pathways** and **Settings**. Each one
+  lists everything on the left (with a search box) and shows the one you picked on the right. Drag the
+  list's right edge to make it wider.
+- A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Sealed Artifacts,
+  Relationships, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
+- The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
+  **Roll** rolls 4d6 and drops the lowest die; hover over the slider to see the last roll.
+- Boxes with an arrow on the right take anything you type, or pick a suggestion from the arrow.
+- Nothing is saved until you click **Save** (or press **Ctrl+S**). The Save button turns gold when there
+  are changes. If you open something else first, the window asks whether to save them, throw them away,
+  or keep editing. Closing the window asks the same.
+- **Export...** saves the open sheet as HTML, Markdown or plain text in the `exports` folder; HTML opens in
+  your browser. Settings has a button that exports everything at once.
+- In Settings, **Text size** makes everything in the window bigger or smaller.
+
+## Using the console version
 
 - Type the number of a menu entry and press Enter. `0` goes back.
 - When a value is shown in `[brackets]`, pressing Enter keeps it. Typing `-` clears an optional text.
@@ -78,7 +108,7 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 | Your own pathways (the Maestro and any you create) | `data/custom_pathways.json` |
 | Your characters | `data/characters.json` |
 | Your Sealed Artifacts | `data/artifacts.json` |
-| Settings (HP mode, export theme, backups) | `data/settings.json` |
+| Settings (HP mode, export theme, backups, window text size) | `data/settings.json` |
 | Backups (last 5 of each file) | `data/backups/` |
 | Exports | `exports/` |
 
@@ -89,7 +119,11 @@ it shares your pathways with anyone else who uses the repository.
 
 ### Adding your own pathways
 
-Choose **Pathways** in the main menu, then **Create a new pathway**. The program asks for the name (usually
+In the app window, open the **Pathways** tab and click **+ New pathway**. Fill in the Overview tab, then
+open each Sequence in the Sequences tab to name it and add its abilities, and click **Save**. To start from
+a built-in pathway, pick it in the list and click **Copy into a new pathway of your own**.
+
+In the console version, choose **Pathways** in the main menu, then **Create a new pathway**. The program asks for the name (usually
 the Sequence 9 name, like Seer), the god at the top, its group of neighbouring pathways, the two stats it
 boosts, its speed grade, an optional overview and Uniqueness, and then each Sequence from 9 down to 0 with
 its abilities. Press Enter to skip anything and come back to it later from **Edit one of your pathways**.
@@ -130,13 +164,17 @@ program picks up changes the next time it starts.
 
 ```
 CMakeLists.txt        build instructions
-src/main.cpp          main menu
+src/window/           the app window: one file per tab, plus widgets.cpp and window_main.cpp
+src/main.cpp          the console version's main menu
 src/model.*           the data structures (characters, artifacts, pathways)
 src/rules.*           modifiers, tiers, bonuses, suggestions
 src/storage.*         loading and saving JSON, backups
 src/ui.*              console prompts
+src/records.*         saving and deleting, shared by both programs
 src/sheet.*           what goes on a character or artifact sheet
 src/render.*          drawing a sheet as text, Markdown or HTML
+src/exporter.*        writing exports to the exports folder
+src/presets.hpp       the suggestion lists (hair colours, organizations ...)
 src/*_creator.cpp     the two creators
 src/pathway_menu.cpp  the Pathways menu (your own pathways)
 src/catalogue.cpp     the catalogue
@@ -150,7 +188,7 @@ data/custom_pathways.json  your own pathways
 
 - **F5 says "program 'enter program name ...' does not exist"**: VS Code made a blank `launch.json` for you.
   Press **Cancel** and use **Shift+F5**, or delete `.vscode/launch.json` and pull the latest version from
-  GitHub, which includes a working one. After that, F5 builds and runs the program too.
+  GitHub, which includes a working one. After that, F5 builds and runs the program picked under **Launch** too.
 - **No CMake triangle icon in VS Code**: press **Ctrl+Shift+X**, search for **CMake Tools**, and install it
   (and **C/C++** from Microsoft).
 - **`cmake` is not recognized**: you are in a normal PowerShell. Use **Developer PowerShell for VS 2022**
@@ -161,4 +199,6 @@ data/custom_pathways.json  your own pathways
   automatically), or set the `LOTM_DATA_DIR` environment variable to the `data` folder's path.
 - **A save file "is not valid JSON"**: it was edited by hand and has a typo. Fix it, or copy the newest
   matching file from `data/backups` over it.
+- **The app window doesn't open, or opens and closes at once**: the window needs OpenGL 3, which every
+  graphics driver from the last ten years has. Update the graphics driver, or use the console version.
 - **Accented letters look wrong in the console**: use Windows Terminal (the default on Windows 11).

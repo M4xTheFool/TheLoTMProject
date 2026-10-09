@@ -29,6 +29,6 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, appearance,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Artifact, id, name, visualDescription, pathwayId, sequenceLevel,
                                                 ability, drawback, notes, createdAt, updatedAt)
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, hpMode, exportTheme, backupsToKeep)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, hpMode, exportTheme, backupsToKeep, windowTextSize)
 
 }  // namespace lotm

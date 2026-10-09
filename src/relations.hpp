@@ -21,4 +21,9 @@ std::string reciprocalType(const std::string& type);
 // Returns one line per change, for showing to the user.
 std::vector<std::string> syncRelationships(Database& db, Character& c, const Character* before);
 
+// For screens where names are typed freely (the app window): a relationship whose name matches one
+// saved character exactly (ignoring case) is linked to it, and a linked one whose name was changed to
+// someone else is unlinked. Call before syncRelationships.
+void linkRelationshipsByName(const Database& db, Character& c);
+
 }  // namespace lotm

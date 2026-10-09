@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "app.hpp"
+#include "records.hpp"
 #include "render.hpp"
 #include "sheet.hpp"
 #include "ui.hpp"
@@ -71,42 +72,20 @@ std::optional<int> parseIndex(const std::string& input, size_t count) {
 
 // ---------------------------------------------------------------- characters
 
-void deleteCharacter(App& app, int id) {
-    const auto backup = app.db.characters;
-    const Character* deleted = app.db.findCharacter(id);
-    const std::string name = deleted ? deleted->name : "";
-    auto& list = app.db.characters;
-    list.erase(std::remove_if(list.begin(), list.end(), [id](const Character& c) { return c.id == id; }), list.end());
-    // Other characters keep the relationship, by name only.
-    for (auto& c : list) {
-        for (auto& r : c.relationships) {
-            if (r.characterId != id) continue;
-            r.characterId = 0;
-            if (!name.empty()) r.name = name;
-        }
-    }
+void removeCharacter(App& app, int id) {
     try {
-        app.storage.saveCharacters(app.db);
+        deleteCharacter(app, id);
         ui::info("Deleted.");
     } catch (const StorageError& e) {
-        app.db.characters = backup;
         ui::info(std::string("Deleting failed: ") + e.what());
     }
 }
 
-void duplicateCharacter(App& app, int id) {
-    const Character* original = app.db.findCharacter(id);
-    if (!original) return;
-    Character copy = *original;
-    copy.id = app.db.nextCharacterId();
-    copy.name += " (copy)";
-    copy.createdAt = copy.updatedAt = nowTimestamp();
-    app.db.characters.push_back(copy);
+void copyCharacter(App& app, int id) {
     try {
-        app.storage.saveCharacters(app.db);
-        ui::info("Saved the copy as " + characterCode(copy.id) + ". Open it from the list to edit it.");
+        const int copyId = duplicateCharacter(app, id);
+        ui::info("Saved the copy as " + characterCode(copyId) + ". Open it from the list to edit it.");
     } catch (const StorageError& e) {
-        app.db.characters.pop_back();
         ui::info(std::string("Copying failed: ") + e.what());
     }
 }
@@ -117,10 +96,10 @@ void viewCharacter(App& app, int id) {
         int pick = ui::choose("\nWhat now?", {"Edit", "Export", "Duplicate", "Delete"}, "Back to the list");
         if (pick == 0) runCharacterCreator(app, id);
         else if (pick == 1) exportCharacter(app, id);
-        else if (pick == 2) duplicateCharacter(app, id);
+        else if (pick == 2) copyCharacter(app, id);
         else if (pick == 3) {
             if (ui::yesNo("Delete " + c->name + " for good?", false)) {
-                deleteCharacter(app, id);
+                removeCharacter(app, id);
                 return;
             }
         } else return;
@@ -171,21 +150,11 @@ void browseCharacters(App& app) {
 
 // ---------------------------------------------------------------- artifacts
 
-void deleteArtifact(App& app, int id) {
-    const auto artifactsBackup = app.db.artifacts;
-    const auto charactersBackup = app.db.characters;
-    auto& list = app.db.artifacts;
-    list.erase(std::remove_if(list.begin(), list.end(), [id](const Artifact& a) { return a.id == id; }), list.end());
-    for (auto& c : app.db.characters) {
-        c.artifactIds.erase(std::remove(c.artifactIds.begin(), c.artifactIds.end(), id), c.artifactIds.end());
-    }
+void removeArtifact(App& app, int id) {
     try {
-        app.storage.saveArtifacts(app.db);
-        app.storage.saveCharacters(app.db);
+        deleteArtifact(app, id);
         ui::info("Deleted, and removed from every character who held it.");
     } catch (const StorageError& e) {
-        app.db.artifacts = artifactsBackup;
-        app.db.characters = charactersBackup;
         ui::info(std::string("Deleting failed: ") + e.what());
     }
 }
@@ -198,7 +167,7 @@ void viewArtifact(App& app, int id) {
         else if (pick == 1) exportArtifact(app, id);
         else if (pick == 2) {
             if (ui::yesNo("Delete " + a->name + " for good?", false)) {
-                deleteArtifact(app, id);
+                removeArtifact(app, id);
                 return;
             }
         } else return;

@@ -6,6 +6,8 @@
 #include <optional>
 
 #include "app.hpp"
+#include "presets.hpp"
+#include "records.hpp"
 #include "relations.hpp"
 #include "render.hpp"
 #include "rules.hpp"
@@ -15,45 +17,6 @@
 namespace lotm {
 
 namespace {
-
-const std::vector<std::string> kHair = {"Black", "Brown", "Blond", "Red", "Grey", "White", "Silver", "Bald"};
-const std::vector<std::string> kHairLength = {"Shaved", "Cropped", "Short", "Chin-length", "Shoulder-length",
-                                              "Long", "Very long"};
-const std::vector<std::string> kHairStyle = {"Straight", "Wavy", "Curly", "Coiled", "Slicked back", "Neatly parted",
-                                             "Tied back", "Braided", "In a bun", "Messy"};
-const std::vector<std::string> kEyes = {"Brown", "Blue", "Green", "Grey", "Hazel", "Black", "Amber", "Red"};
-const std::vector<std::string> kSkin = {"Pale", "Fair", "Olive", "Tanned", "Brown", "Dark", "Weathered", "Freckled"};
-const std::vector<std::string> kFace = {"Sharp features", "Soft features", "Round face", "Gaunt", "Square jaw",
-                                        "Full beard", "Moustache", "Clean-shaven", "Youthful", "Lined with age"};
-const std::vector<std::string> kVoice = {"Deep", "Soft", "Raspy", "Melodic", "Booming", "Quiet", "Accented",
-                                         "Flat and calm"};
-const std::vector<std::string> kBuild = {"Slim", "Average", "Athletic", "Muscular", "Stocky", "Heavy", "Frail"};
-const std::vector<std::string> kHeight = {"Short", "Below average", "Average", "Tall", "Very tall"};
-const std::vector<std::string> kClothing = {"Gentleman's suit and top hat", "Worker's clothes", "Church robes",
-                                            "Sailor's coat",  "Noble finery",     "Detective's coat and hat",
-                                            "Long dark cloak"};
-const std::vector<std::string> kMarks = {"Scar", "Monocle", "Tattoo", "Burn mark", "Mismatched eyes",
-                                         "Missing finger", "Walking cane"};
-const std::vector<std::string> kAlignments = {"Lawful Good", "Neutral Good", "Chaotic Good",
-                                              "Lawful Neutral", "True Neutral", "Chaotic Neutral",
-                                              "Lawful Evil", "Neutral Evil", "Chaotic Evil"};
-const std::vector<std::string> kOrganizations = {
-    "Nighthawks (Church of the Evernight Goddess)",
-    "Mandated Punishers (Church of the Lord of Storms)",
-    "Machinery Hivemind (Church of the God of Steam and Machinery)",
-    "Tarot Club",
-    "Aurora Order",
-    "Rose School of Thought",
-    "Psychology Alchemists",
-    "Moses Ascetic Order",
-    "Twilight Hermit Order",
-    "Independent"};
-// Mentor/Student, Parent/Child and Superior/Subordinate flip on the other character's sheet (relations.cpp).
-const std::vector<std::string> kRelationshipTypes = {
-    "Lover",  "Spouse", "Close friend", "Friend",  "Acquaintance", "Ally",      "Colleague",   "Rival", "Enemy",
-    "Mentor", "Student", "Parent",      "Child",   "Sibling",      "Relative",  "Superior",    "Subordinate"};
-const std::vector<std::string> kStatuses = {"Active", "At large", "Under watch", "Cooperating", "In custody",
-                                            "Missing", "Deceased", "Unknown"};
 
 const Pathway* pathwayOf(const App& app, const Character& c) { return app.db.findPathway(c.pathwayId); }
 
@@ -490,28 +453,16 @@ void stepNotes(Character& c) {
 }
 
 bool save(App& app, Character& c, bool isNew) {
-    for (const auto& note : normalizeCharacter(c)) ui::info(note);
-    const auto backup = app.db.characters;
-    std::optional<Character> before;
-    if (const Character* saved = isNew ? nullptr : app.db.findCharacter(c.id)) before = *saved;
-    const auto changes = syncRelationships(app.db, c, before ? &*before : nullptr);
-    c.updatedAt = nowTimestamp();
-    if (isNew) {
-        c.createdAt = c.updatedAt;
-        app.db.characters.push_back(c);
-    } else if (Character* existing = app.db.findCharacter(c.id)) {
-        *existing = c;
-    }
     try {
-        app.storage.saveCharacters(app.db);
+        const CharacterSaveReport report = saveCharacter(app, c, isNew);
+        for (const auto& note : report.cleanups) ui::info(note);
+        ui::info("Saved " + c.name + " as " + characterCode(c.id) + ".");
+        for (const auto& change : report.linked) ui::info(change);
+        return true;
     } catch (const StorageError& e) {
-        app.db.characters = backup;
         ui::info(std::string("Saving failed: ") + e.what());
         return false;
     }
-    ui::info("Saved " + c.name + " as " + characterCode(c.id) + ".");
-    for (const auto& change : changes) ui::info(change);
-    return true;
 }
 
 }  // namespace

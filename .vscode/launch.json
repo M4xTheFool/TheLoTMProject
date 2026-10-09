@@ -1,6 +1,7 @@
 {
-  // F5 builds the program with CMake and runs it in the Terminal panel, where you can type.
-  // If VS Code asks which program to run, pick lotm_creator.
+  // F5 builds with CMake and runs the program picked under Launch in the CMake panel.
+  // If VS Code asks which program to run, pick lotm_window (the app window) or lotm_creator
+  // (the console version, which runs in the Terminal panel where you can type).
   "version": "0.2.0",
   "configurations": [
     {
