@@ -11,7 +11,7 @@ namespace lotm {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SequenceInfo, sequence, name, abilities)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MovementUnlock, sequence, mode)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Pathway, id, name, god, group, primaryStat, secondaryStat,
-                                                speedGrade, speedNote, movement, sequences)
+                                                speedGrade, speedNote, description, uniqueness, movement, sequences)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Appearance, hair, hairLength, hairStyle, eyes, skin, face, voice,
                                                 build, height, clothing, distinguishingMark, description)

@@ -5,7 +5,7 @@ out/
 .vs/
 *.user
 
-# Your own saves stay on your computer (pathways.json is part of the program and is tracked)
+# Your own saves stay on your computer (pathways.json and custom_pathways.json are tracked)
 data/characters.json
 data/artifacts.json
 data/settings.json

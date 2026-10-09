@@ -39,8 +39,14 @@ struct Pathway {
     std::string secondaryStat;   // "DEX"
     std::string speedGrade = "Average";  // Slow, Average, Fast or Very fast
     std::string speedNote;
+    std::string description;  // optional overview: themes, Sefirah, Divine Kingdom ...
+    std::string uniqueness;   // optional: the pathway's Uniqueness, its name and look
     std::vector<MovementUnlock> movement;
     std::vector<SequenceInfo> sequences;  // Sequence 9 down to 0
+
+    // Not stored in the file: true for pathways from custom_pathways.json, which the
+    // program's Pathways menu can edit. The built-in ones in pathways.json are edited by hand.
+    bool custom = false;
 
     const SequenceInfo* findSequence(int sequence) const;
 };
@@ -156,6 +162,7 @@ struct Database {
     Settings settings;
 
     const Pathway* findPathway(const std::string& id) const;
+    Pathway* findPathway(const std::string& id);
     Character* findCharacter(int id);
     const Character* findCharacter(int id) const;
     // Saved characters (other than excludeId) whose name contains the text, ignoring case.
@@ -165,6 +172,10 @@ struct Database {
     const Artifact* findArtifact(int id) const;
     int nextCharacterId() const;
     int nextArtifactId() const;
+    // A free id for a new pathway, made from its name: "Mystery Pryer" -> "mystery_pryer" (or "mystery_pryer_2").
+    std::string newPathwayId(const std::string& name) const;
+    // Names of the characters and Sealed Artifacts that belong to this pathway.
+    std::vector<std::string> pathwayUsers(const std::string& id) const;
 };
 
 // Display helpers shared by every screen and export.

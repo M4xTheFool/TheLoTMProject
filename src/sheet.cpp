@@ -73,7 +73,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         sheet.subtitle = "Ordinary mortal";
     } else {
         const SequenceInfo* seq = pathway ? pathway->findSequence(c.sequence) : nullptr;
-        sheet.subtitle = "Sequence " + std::to_string(c.sequence) + (seq ? " " + seq->name : "") + ", " +
+        sheet.subtitle = "Sequence " + std::to_string(c.sequence) + (seq && !seq->name.empty() ? " " + seq->name : "") + ", " +
                          (pathway ? pathway->name + " pathway" : pathwayLabel(db, c.pathwayId));
         if (pathway && !pathway->god.empty()) sheet.subtitle += " (" + pathway->god + ")";
     }
@@ -128,6 +128,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         Section uniqueness{"Uniqueness"};
         uniqueness.paragraph("Has absorbed the Uniqueness of the " +
                              (pathway ? pathway->name : pathwayLabel(db, c.pathwayId)) + " pathway.");
+        uniqueness.paragraph(c.uniquenessForm);
         addSection(sheet, uniqueness);
     }
 
@@ -164,7 +165,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     if (pathway) {
         Section abilities{"Abilities"};
         for (const SequenceInfo* s : abilitiesUpTo(*pathway, c.sequence)) {
-            abilities.subheading("Sequence " + std::to_string(s->sequence) + ": " + s->name);
+            abilities.subheading(sequenceLabel(pathway, s->sequence));
             for (const auto& a : s->abilities) abilities.bullet(a);
             for (const auto& mode : movementUnlockedAt(*pathway, s->sequence)) abilities.bullet("Movement: " + mode);
         }
@@ -262,6 +263,47 @@ Sheet buildArtifactSheet(const Artifact& a, const Database& db) {
         sheet.footer = "Created " + a.createdAt;
         if (!a.updatedAt.empty() && a.updatedAt != a.createdAt) sheet.footer += ", last edited " + a.updatedAt;
     }
+    return sheet;
+}
+
+Sheet buildPathwaySheet(const Pathway& p) {
+    Sheet sheet;
+    sheet.anchor = "p-" + p.id;
+    sheet.kind = "Pathway";
+    sheet.title = p.name + " pathway";
+    sheet.subtitle = p.god.empty() ? "Sequence 9 to 0" : "Sequence 9 to 0, " + p.god;
+    if (p.custom) sheet.subtitle += ", one of your own pathways";
+
+    auto statName = [](const std::string& code) {
+        const int i = statIndex(code);
+        return i < 0 ? code : std::string(kStatNames[i]) + " (" + kStatCodes[i] + ")";
+    };
+    Section overview{"Overview"};
+    overview.field("Pathway id", p.id);
+    overview.field("God", p.god);
+    overview.field("Neighbouring pathways", p.group);
+    overview.field("Primary stat", p.primaryStat.empty() ? "" : statName(p.primaryStat));
+    overview.field("Secondary stat", p.secondaryStat.empty() ? "" : statName(p.secondaryStat));
+    std::string speed = p.speedGrade;
+    if (speedGradeModifier(p.speedGrade) != 0) speed += " (" + signedNumber(speedGradeModifier(p.speedGrade)) + " Speed)";
+    overview.field("Speed grade", speed);
+    overview.field("Speed note", p.speedNote);
+    overview.paragraph(p.description);
+    addSection(sheet, overview);
+
+    Section uniqueness{"Uniqueness"};
+    uniqueness.paragraph(p.uniqueness);
+    addSection(sheet, uniqueness);
+
+    Section sequences{"Sequences"};
+    for (const auto& s : p.sequences) {
+        sequences.subheading("Sequence " + std::to_string(s.sequence) + (s.name.empty() ? "" : ": " + s.name));
+        if (s.abilities.empty()) sequences.paragraph("No abilities written yet.");
+        for (const auto& a : s.abilities) sequences.bullet(a);
+    }
+    addSection(sheet, sequences);
+
+    sheet.footer = p.custom ? "Stored in custom_pathways.json" : "Stored in pathways.json";
     return sheet;
 }
 

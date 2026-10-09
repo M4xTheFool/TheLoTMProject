@@ -24,6 +24,7 @@ add_library(lotm_core STATIC
     src/sheet.cpp
     src/render.cpp
     src/pathway_picker.cpp
+    src/pathway_menu.cpp
     src/artifact_creator.cpp
     src/character_creator.cpp
     src/catalogue.cpp

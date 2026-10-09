@@ -111,7 +111,7 @@ void stepSequence(const App& app, Character& c) {
         return;
     }
     for (const auto& s : p->sequences) {
-        std::cout << "  " << s.sequence << ") " << s.name << "\n";
+        std::cout << "  " << s.sequence << ") " << (s.name.empty() ? "(no name yet)" : s.name) << "\n";
     }
     ui::info("9 is the weakest, 0 is a god.");
     c.sequence = ui::readInt("Sequence", 0, 9, c.sequence);
@@ -119,11 +119,12 @@ void stepSequence(const App& app, Character& c) {
     size_t count = 0;
     for (const SequenceInfo* s : all) count += s->abilities.size();
     if (const SequenceInfo* s = p->findSequence(c.sequence)) {
-        ui::info(s->name + " adds:");
+        ui::info(sequenceLabel(p, c.sequence) + " adds:");
         for (const auto& a : s->abilities) ui::info("  - " + a);
         for (const auto& mode : movementUnlockedAt(*p, c.sequence)) ui::info("  - Movement: " + mode);
     }
-    if (c.sequence == 1) ui::info("Sequence 1: set Beyonder characteristics and the Uniqueness in Customization.");
+    if (c.sequence == 1) ui::info("Sequence 1: set Beyonder characteristics and describe the Uniqueness in Customization.");
+    if (c.sequence == 0) ui::info("Sequence 0: you can describe the absorbed Uniqueness in Customization.");
     ui::info("The sheet lists " + std::to_string(count) + " abilities from Sequence 9 down to " +
              std::to_string(c.sequence) + ".");
 }
@@ -198,19 +199,27 @@ void stepCustomization(const App& app, Character& c) {
     }
 
     ui::blank();
+    const Pathway* p = pathwayOf(app, c);
     if (sequenceOneChoices(c)) {
         c.beyonderCharacteristics =
             ui::readInt("Beyonder characteristics they hold (1 or 2)", 1, 2, c.beyonderCharacteristics);
         c.hasUniqueness = ui::yesNo("Does this character hold the pathway's Uniqueness?", c.hasUniqueness);
         if (c.hasUniqueness) {
-            c.uniquenessForm = ui::readMultiline("What shape does the Uniqueness take?", c.uniquenessForm);
+            // A pathway that describes its Uniqueness gives the starting text; Enter keeps it.
+            const std::string current = c.uniquenessForm.empty() && p ? p->uniqueness : c.uniquenessForm;
+            c.uniquenessForm = ui::readMultiline("Describe the Uniqueness: what it looks like and what shape it takes",
+                                                 current);
             ui::info("The Uniqueness grants a couple of the Sequence 0 powers. Pick them:");
-            chooseUniquenessAbilities(pathwayOf(app, c), c);
+            chooseUniquenessAbilities(p, c);
         }
     } else if (absorbedUniqueness(c)) {
-        ui::info("Uniqueness: at Sequence 0 it has already been absorbed.");
+        ui::info("At Sequence 0 the Uniqueness has been absorbed, so its powers are all theirs.");
+        const std::string current = c.uniquenessForm.empty() && p ? p->uniqueness : c.uniquenessForm;
+        c.uniquenessForm = ui::readMultiline("Describe the absorbed Uniqueness and how it shows itself now (optional)",
+                                             current);
     } else {
-        ui::info("Uniqueness and a second Beyonder characteristic: Sequence 1 only.");
+        ui::info("Uniqueness (its look and the Sequence 0 powers it grants) and a second Beyonder characteristic:");
+        ui::info("these are set at Sequence 1. Change the Sequence to 1 to describe them.");
     }
 }
 

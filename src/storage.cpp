@@ -15,6 +15,7 @@
 
 namespace fs = std::filesystem;
 using nlohmann::json;
+using nlohmann::ordered_json;
 
 namespace lotm {
 
@@ -112,19 +113,66 @@ void backUp(const fs::path& file, const fs::path& backupsDir, int keep) {
 }
 
 // Writes to a temporary file first so a crash never leaves a half-written save.
-void writeJsonFile(const fs::path& file, const json& data, const fs::path& backupsDir, int keep) {
+template <typename Json>
+void writeJsonFile(const fs::path& file, const Json& data, const fs::path& backupsDir, int keep) {
     backUp(file, backupsDir, keep);
     const fs::path temp = file.string() + ".tmp";
     {
         std::ofstream out(temp, std::ios::binary | std::ios::trunc);
         if (!out) throw StorageError("Could not write " + temp.string());
-        out << data.dump(2, ' ', false, json::error_handler_t::replace) << '\n';
+        out << data.dump(2, ' ', false, Json::error_handler_t::replace) << '\n';
         if (!out) throw StorageError("Could not finish writing " + temp.string());
     }
     std::error_code ec;
     fs::rename(temp, file, ec);
     if (ec) throw StorageError("Could not replace " + file.string() + ": " + ec.message());
 }
+
+std::vector<Pathway> readPathways(const fs::path& file) {
+    const json data = readJsonFile(file);
+    try {
+        return data.value("pathways", json::array()).get<std::vector<Pathway>>();
+    } catch (const json::exception& e) {
+        throw StorageError(file.filename().string() + " has a pathway in the wrong shape.\nDetails: " + e.what());
+    }
+}
+
+// The same fields as model_json.hpp, in the order people expect when they open the file,
+// leaving out optional fields that are empty.
+ordered_json pathwayToJson(const Pathway& p) {
+    ordered_json j;
+    j["id"] = p.id;
+    j["name"] = p.name;
+    j["god"] = p.god;
+    j["group"] = p.group;
+    j["primaryStat"] = p.primaryStat;
+    j["secondaryStat"] = p.secondaryStat;
+    j["speedGrade"] = p.speedGrade;
+    j["speedNote"] = p.speedNote;
+    if (!p.description.empty()) j["description"] = p.description;
+    if (!p.uniqueness.empty()) j["uniqueness"] = p.uniqueness;
+    if (!p.movement.empty()) {
+        ordered_json movement = ordered_json::array();
+        for (const auto& m : p.movement) movement.push_back(ordered_json{{"sequence", m.sequence}, {"mode", m.mode}});
+        j["movement"] = movement;
+    }
+    ordered_json sequences = ordered_json::array();
+    for (const auto& s : p.sequences) {
+        ordered_json entry;
+        entry["sequence"] = s.sequence;
+        entry["name"] = s.name;
+        entry["abilities"] = s.abilities;
+        sequences.push_back(entry);
+    }
+    j["sequences"] = sequences;
+    return j;
+}
+
+const std::vector<std::string> kCustomPathwaysAbout = {
+    "Your own pathways. The Pathways menu in the program creates, edits and deletes them,",
+    "and you can also edit this file by hand. It uses the same layout as pathways.json,",
+    "and every id must be different from the ids in both files.",
+    "Write each ability as \"Name: what it does\"."};
 
 template <typename T>
 std::vector<T> readList(const fs::path& file, const char* key) {
@@ -168,17 +216,24 @@ fs::path Storage::exportsDir() const { return dataDir_.parent_path() / "exports"
 
 fs::path Storage::backupsDir() const { return dataDir_ / "backups"; }
 
+fs::path Storage::customPathwaysFile() const { return dataDir_ / "custom_pathways.json"; }
+
 void Storage::loadAll(Database& db) const {
-    const json pathwayFile = readJsonFile(dataDir_ / "pathways.json");
-    try {
-        db.pathways = pathwayFile.value("pathways", json::array()).get<std::vector<Pathway>>();
-    } catch (const json::exception& e) {
-        throw StorageError(std::string("pathways.json has a pathway in the wrong shape.\nDetails: ") + e.what());
+    db.pathways = readPathways(dataDir_ / "pathways.json");
+    std::error_code ec;
+    if (fs::exists(customPathwaysFile(), ec)) {
+        for (auto& p : readPathways(customPathwaysFile())) {
+            p.custom = true;
+            db.pathways.push_back(std::move(p));
+        }
     }
     std::set<std::string> ids;
     for (auto& p : db.pathways) {
-        if (p.id.empty() || p.name.empty()) throw StorageError("pathways.json: every pathway needs an id and a name.");
-        if (!ids.insert(p.id).second) throw StorageError("pathways.json: the id \"" + p.id + "\" is used twice.");
+        const std::string file = p.custom ? "custom_pathways.json" : "pathways.json";
+        if (p.id.empty() || p.name.empty()) throw StorageError(file + ": every pathway needs an id and a name.");
+        if (!ids.insert(p.id).second) {
+            throw StorageError(file + ": the id \"" + p.id + "\" is already used by another pathway. Give it a new id.");
+        }
         std::sort(p.sequences.begin(), p.sequences.end(),
                   [](const SequenceInfo& a, const SequenceInfo& b) { return a.sequence > b.sequence; });
     }
@@ -186,7 +241,6 @@ void Storage::loadAll(Database& db) const {
     db.characters = readList<Character>(dataDir_ / "characters.json", "characters");
     db.artifacts = readList<Artifact>(dataDir_ / "artifacts.json", "artifacts");
 
-    std::error_code ec;
     if (fs::exists(dataDir_ / "settings.json", ec)) {
         try {
             db.settings = readJsonFile(dataDir_ / "settings.json").get<Settings>();
@@ -208,6 +262,28 @@ void Storage::saveArtifacts(const Database& db) const {
 
 void Storage::saveSettings(const Database& db) const {
     writeJsonFile(dataDir_ / "settings.json", json(db.settings), backupsDir(), 0);
+}
+
+void Storage::saveCustomPathways(const Database& db) const {
+    // Keeps the notes at the top of the file if someone has rewritten them.
+    ordered_json about = kCustomPathwaysAbout;
+    std::error_code ec;
+    if (fs::exists(customPathwaysFile(), ec)) {
+        try {
+            const json old = readJsonFile(customPathwaysFile());
+            if (old.contains("about")) about = old["about"];
+        } catch (const StorageError&) {
+        }
+    }
+    ordered_json pathways = ordered_json::array();
+    for (const auto& p : db.pathways) {
+        if (p.custom) pathways.push_back(pathwayToJson(p));
+    }
+    ordered_json file;
+    file["about"] = about;
+    file["version"] = 1;
+    file["pathways"] = pathways;
+    writeJsonFile(customPathwaysFile(), file, backupsDir(), db.settings.backupsToKeep);
 }
 
 }  // namespace lotm

@@ -28,11 +28,14 @@ public:
     const std::filesystem::path& dataDir() const { return dataDir_; }
     std::filesystem::path exportsDir() const;  // sits next to the data folder
     std::filesystem::path backupsDir() const;
+    std::filesystem::path customPathwaysFile() const;  // data/custom_pathways.json
 
     void loadAll(Database& db) const;
     void saveCharacters(const Database& db) const;
     void saveArtifacts(const Database& db) const;
     void saveSettings(const Database& db) const;
+    // Writes the pathways marked custom to custom_pathways.json. pathways.json is never written.
+    void saveCustomPathways(const Database& db) const;
 
 private:
     std::filesystem::path dataDir_;

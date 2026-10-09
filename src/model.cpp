@@ -44,6 +44,10 @@ const Pathway* Database::findPathway(const std::string& id) const {
     return nullptr;
 }
 
+Pathway* Database::findPathway(const std::string& id) {
+    return const_cast<Pathway*>(static_cast<const Database&>(*this).findPathway(id));
+}
+
 Character* Database::findCharacter(int id) {
     for (auto& c : characters) {
         if (c.id == id) return &c;
@@ -97,6 +101,30 @@ int Database::nextArtifactId() const {
     return highest + 1;
 }
 
+std::string Database::newPathwayId(const std::string& name) const {
+    std::string id;
+    for (unsigned char ch : name) {
+        if (std::isalnum(ch) && ch < 128) id += static_cast<char>(std::tolower(ch));
+        else if (!id.empty() && id.back() != '_') id += '_';
+    }
+    while (!id.empty() && id.back() == '_') id.pop_back();
+    if (id.empty()) id = "pathway";
+    std::string unique = id;
+    for (int n = 2; findPathway(unique); ++n) unique = id + "_" + std::to_string(n);
+    return unique;
+}
+
+std::vector<std::string> Database::pathwayUsers(const std::string& id) const {
+    std::vector<std::string> users;
+    for (const auto& c : characters) {
+        if (c.pathwayId == id) users.push_back(c.name + " (" + characterCode(c.id) + ")");
+    }
+    for (const auto& a : artifacts) {
+        if (a.pathwayId == id) users.push_back(a.name + " (" + artifactCode(a.id) + ")");
+    }
+    return users;
+}
+
 static std::string code(char prefix, int id) {
     char buffer[32];
     std::snprintf(buffer, sizeof buffer, "%c-%03d", prefix, id);
@@ -109,7 +137,7 @@ std::string artifactCode(int id) { return code('A', id); }
 std::string pathwayLabel(const Database& db, const std::string& pathwayId) {
     if (pathwayId.empty()) return "None";
     const Pathway* p = db.findPathway(pathwayId);
-    if (!p) return pathwayId + " (missing from pathways.json)";
+    if (!p) return pathwayId + " (pathway not found)";
     if (p->god.empty()) return p->name;
     return p->name + " (" + p->god + ")";
 }

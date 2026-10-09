@@ -6,12 +6,15 @@ A Lord of the Mysteries creator suite in C++. Make characters and Sealed Artifac
 catalogue, and export them as good-looking sheets.
 
 - **Character Creator:** name, looks (hair colour, length and style, eyes, skin, face, build, height,
-  voice, clothing) and bio, one of the 22 pathways, Sequence 9 to 0 with every ability described,
-  alignment, titles, aliases, honorific name (Sequence 3 and up), Beyonder characteristics and Uniqueness
-  (Sequence 1), affiliation, two-way relationships, a D&D-style stat block (roll, re-roll, type or
+  voice, clothing) and bio, one of the 22 pathways or one of your own, Sequence 9 to 0 with every ability
+  described, alignment, titles, aliases, honorific name (Sequence 3 and up), Beyonder characteristics and
+  the Uniqueness with its look and the Sequence 0 powers it grants (Sequence 1), affiliation, two-way relationships, a D&D-style stat block (roll, re-roll, type or
   point-buy), Speed, optional HP, Spirituality, the Sealed Artifacts the character holds, and a dossier
   with an automatic threat level.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
+- **Pathways:** read any pathway Sequence by Sequence, create and edit your own inside the program, start
+  one from a copy of a built-in pathway, and export a pathway as a sheet. The Maestro pathway from the
+  book is already in as one of your own.
 - **Catalogue:** browse, search, filter by pathway, sort, edit, duplicate, delete.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
   Markdown, or plain text.
@@ -71,7 +74,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 
 | What | Where |
 | --- | --- |
-| Pathway database (editable) | `data/pathways.json` |
+| The 22 built-in pathways | `data/pathways.json` |
+| Your own pathways (the Maestro and any you create) | `data/custom_pathways.json` |
 | Your characters | `data/characters.json` |
 | Your Sealed Artifacts | `data/artifacts.json` |
 | Settings (HP mode, export theme, backups) | `data/settings.json` |
@@ -79,15 +83,28 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 | Exports | `exports/` |
 
 Your own characters, artifacts and exports are **not** uploaded to GitHub (see `.gitignore`); they stay on
-your computer. Copy the `data` folder to back them up or move them to another PC.
+your computer. Copy the `data` folder to back them up or move them to another PC. Your own pathways are
+different: GitHub Desktop shows `custom_pathways.json` as changed after you edit a pathway, and committing
+it shares your pathways with anyone else who uses the repository.
 
-### Editing or adding pathways
+### Adding your own pathways
 
-Open `data/pathways.json` in VS Code. Each pathway is one `{ ... }` block with its id, name, god, the two
-stats it boosts, its speed grade, and Sequences 9 to 0 with their abilities. Write each ability as
-`"Name: what it does"`; the exports show the name in bold. Movement powers are ordinary abilities of the
-Sequence that unlocks them. To add a custom pathway, copy a whole block, give it a new unique `id`, and
-change the rest. The program picks up changes the next time it starts.
+Choose **Pathways** in the main menu, then **Create a new pathway**. The program asks for the name (usually
+the Sequence 9 name, like Seer), the god at the top, its group of neighbouring pathways, the two stats it
+boosts, its speed grade, an optional overview and Uniqueness, and then each Sequence from 9 down to 0 with
+its abilities. Press Enter to skip anything and come back to it later from **Edit one of your pathways**.
+When you add an ability, type its name and then what it does, or type both at once as
+`Name: what it does`. To start from an existing pathway, open it with **Look at a pathway** and choose
+**Copy it into a new pathway of your own**.
+
+Your pathways show up in every pathway list (character creator, Sealed Artifacts, filters). A pathway that
+a character or Sealed Artifact still belongs to can't be deleted until you move them to another pathway.
+If a pathway describes its Uniqueness, a Sequence 1 character who holds it starts from that description.
+
+The 22 built-in pathways in `data/pathways.json` can only be changed by hand: open the file in VS Code,
+find the pathway's `{ ... }` block and edit it. Write each ability as `"Name: what it does"`; the exports
+show the name in bold. Movement powers are ordinary abilities of the Sequence that unlocks them. The
+program picks up changes the next time it starts.
 
 ## How the rules work
 
@@ -100,8 +117,10 @@ change the rest. The program picks up changes the next time it starts.
   (Spirituality); you can always type your own. HP can be asked per character, always on, or always off
   in Settings.
 - **Sequence 1 and the Uniqueness:** only a Sequence 1 chooses whether they hold 1 or 2 Beyonder
-  characteristics and whether they hold the pathway's Uniqueness. A Uniqueness grants the Sequence 0
-  abilities you pick for it. A Sequence 0 has already absorbed it.
+  characteristics and whether they hold the pathway's Uniqueness. If they hold it, Customization asks you
+  to describe what it looks like and to pick the Sequence 0 abilities it grants. A Sequence 0 has already
+  absorbed it and has every Sequence 0 ability, but you can still describe it. Other Sequences can't hold
+  one, so the question doesn't appear for them.
 - **Threat level:** three numbers added up. Sequence: mortal 0, Sequence 9-8 1, 7-5 3, 4-3 5, 2-1 7,
   Sequence 0 10. Recent actions: peaceful -1, minor incidents 0, violent +1, mass casualties +2. Sealed
   Artifacts held: one or two +1, three or more +2. A total up to 2 is Low, 3-4 Moderate, 5-6 High, 7-8
@@ -119,10 +138,12 @@ src/ui.*              console prompts
 src/sheet.*           what goes on a character or artifact sheet
 src/render.*          drawing a sheet as text, Markdown or HTML
 src/*_creator.cpp     the two creators
+src/pathway_menu.cpp  the Pathways menu (your own pathways)
 src/catalogue.cpp     the catalogue
 src/export_menu.cpp   exports
 tests/tests.cpp       automatic checks
-data/pathways.json    the 22 pathways
+data/pathways.json    the 22 built-in pathways
+data/custom_pathways.json  your own pathways
 ```
 
 ## Troubleshooting

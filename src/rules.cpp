@@ -181,7 +181,9 @@ std::vector<std::string> normalizeCharacter(Character& c) {
         notes.push_back("Honorific name removed: it needs Sequence 3 or stronger.");
     }
     if (!sequenceOneChoices(c)) {
-        if (c.hasUniqueness) notes.push_back("Uniqueness removed: only Sequence 1 can hold one.");
+        if (c.hasUniqueness && !absorbedUniqueness(c)) {
+            notes.push_back("Uniqueness removed: only Sequence 1 can hold one.");
+        }
         if (c.beyonderCharacteristics != 1) {
             notes.push_back("Beyonder characteristics set back to 1: only Sequence 1 chooses between 1 and 2.");
         }
@@ -189,10 +191,16 @@ std::vector<std::string> normalizeCharacter(Character& c) {
         c.beyonderCharacteristics = 1;
     }
     c.beyonderCharacteristics = std::clamp(c.beyonderCharacteristics, 1, 2);
-    if (!c.hasUniqueness && (!c.uniquenessForm.empty() || !c.uniquenessAbilities.empty())) {
-        c.uniquenessForm.clear();
+    if (!c.hasUniqueness) {
+        // A Sequence 0 god keeps the description of the Uniqueness it absorbed, but has every
+        // Sequence 0 power anyway, so the picked ones go.
+        const bool keepForm = absorbedUniqueness(c);
+        const bool hadDetails = (!keepForm && !c.uniquenessForm.empty()) || !c.uniquenessAbilities.empty();
+        if (!keepForm) c.uniquenessForm.clear();
         c.uniquenessAbilities.clear();
-        if (sequenceOneChoices(c)) notes.push_back("Uniqueness details removed: the character no longer holds one.");
+        if (hadDetails && sequenceOneChoices(c)) {
+            notes.push_back("Uniqueness details removed: the character no longer holds one.");
+        }
     }
     if (!c.stats.hpIncluded) c.stats.hp = 0;
     return notes;

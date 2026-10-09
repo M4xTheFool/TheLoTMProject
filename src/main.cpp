@@ -20,14 +20,15 @@ void mainMenu(lotm::App& app) {
                        std::to_string(app.db.artifacts.size()) + " Sealed Artifacts, " +
                        std::to_string(app.db.pathways.size()) + " pathways loaded.");
         int pick = lotm::ui::choose("", {"Create a character", "Create a Sealed Artifact", "Open the Catalogue",
-                                         "Export", "Settings"},
+                                         "Pathways (look through them, or add your own)", "Export", "Settings"},
                                     "Quit");
         switch (pick) {
             case 0: lotm::runCharacterCreator(app); break;
             case 1: lotm::runArtifactCreator(app); break;
             case 2: lotm::runCatalogue(app); break;
-            case 3: lotm::runExportMenu(app); break;
-            case 4: lotm::runSettingsMenu(app); break;
+            case 3: lotm::runPathwayMenu(app); break;
+            case 4: lotm::runExportMenu(app); break;
+            case 5: lotm::runSettingsMenu(app); break;
             default: return;
         }
     }

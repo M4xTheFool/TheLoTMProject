@@ -46,7 +46,7 @@ struct Section {
 
 struct Sheet {
     std::string anchor;    // unique id used for links in a combined export, e.g. "c-001"
-    std::string kind;      // "Character" or "Sealed Artifact"
+    std::string kind;      // "Character", "Sealed Artifact" or "Pathway"
     std::string title;
     std::string subtitle;
     std::vector<Section> sections;
@@ -55,5 +55,6 @@ struct Sheet {
 
 Sheet buildCharacterSheet(const Character& c, const Database& db);
 Sheet buildArtifactSheet(const Artifact& a, const Database& db);
+Sheet buildPathwaySheet(const Pathway& p);
 
 }  // namespace lotm
