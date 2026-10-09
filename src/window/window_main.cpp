@@ -246,14 +246,14 @@ int main(int argc, char** argv) {
 #endif
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const float scale = monitor ? ImGui_ImplGlfw_GetContentScaleForMonitor(monitor) : 1.0f;
-    int width = static_cast<int>(1320 * scale), height = static_cast<int>(860 * scale);
+    int windowWidth = static_cast<int>(1320 * scale), windowHeight = static_cast<int>(860 * scale);
     if (monitor) {  // never bigger than the screen, leaving room for the taskbar and title bar
         int x = 0, y = 0, areaWidth = 0, areaHeight = 0;
         glfwGetMonitorWorkarea(monitor, &x, &y, &areaWidth, &areaHeight);
-        if (areaWidth > 0) width = std::min(width, areaWidth * 9 / 10);
-        if (areaHeight > 0) height = std::min(height, areaHeight * 9 / 10);
+        if (areaWidth > 0) windowWidth = std::min(windowWidth, areaWidth * 9 / 10);
+        if (areaHeight > 0) windowHeight = std::min(windowHeight, areaHeight * 9 / 10);
     }
-    GLFWwindow* window = glfwCreateWindow(width, height, "LoTM Creator Suite", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "LoTM Creator Suite", nullptr, nullptr);
     if (!window) {
         showFatal("Could not open the window: " + glfwProblem +
                   "\nThe console version (lotm_creator) still works.");

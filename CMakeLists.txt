@@ -65,9 +65,9 @@ if(LOTM_BUILD_WINDOW)
         URL https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip
         URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-    # The release tag pins the version.
     FetchContent_Declare(imgui
         URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.9b.tar.gz
+        URL_HASH SHA256=21d8a0a565e85dce943e375db00812c2f3f0ab21f3f0f7964e364a63422d7f99
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
     FetchContent_MakeAvailable(glfw imgui)
 

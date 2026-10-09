@@ -656,9 +656,11 @@ static void testSharedRecords() {
     const fs::path file = writeExport(app, exportName(*kept), ExportFormat::Markdown,
                                       {buildCharacterSheet(*kept, app.db)}, kept->name);
     CHECK(file == root / "exports" / (exportName(*kept) + ".md"));
-    std::ifstream in(file);
-    const std::string text((std::istreambuf_iterator<char>(in)), {});
-    CHECK(text.find("Audrey Hall") != std::string::npos);
+    {
+        std::ifstream in(file);  // closed before the folder is removed: Windows can't delete open files
+        const std::string text((std::istreambuf_iterator<char>(in)), {});
+        CHECK(text.find("Audrey Hall") != std::string::npos);
+    }
     fs::remove_all(root);
 }
 
