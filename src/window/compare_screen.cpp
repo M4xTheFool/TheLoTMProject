@@ -214,7 +214,10 @@ void drawCompareScreen(WindowState& w) {
         ImGui::Spacing();
         if (w.app.db.characters.size() < 2) {
             ImGui::TextDisabled("Save at least two characters to compare them.");
-            if (ImGui::TextLink("Add the Tarot Club or other samples")) w.switchTo = Tab::Settings;
+            if (ImGui::TextLink("Add the Tarot Club or other samples")) {
+                w.switchTo = Tab::Settings;
+                w.showSampleSets = true;
+            }
         } else {
             ImGui::TextDisabled("Tick two to four characters on the left to see them side by side.");
         }
