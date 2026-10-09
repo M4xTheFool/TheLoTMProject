@@ -1,0 +1,16 @@
+# Build output
+build/
+build-*/
+out/
+.vs/
+*.user
+
+# Your own saves stay on your computer (pathways.json is part of the program and is tracked)
+data/characters.json
+data/artifacts.json
+data/settings.json
+data/backups/
+data/*.tmp
+
+# Exported sheets
+exports/

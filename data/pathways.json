@@ -1,0 +1,1991 @@
+{
+  "about": [
+    "The pathway database. Edit it freely in any text editor; the program reads it on start.",
+    "Ability text is a short summary in our own words. Entries starting with 'Edit me' still need filling in,",
+    "and higher-sequence names and powers are best-effort: correct anything you know better.",
+    "To add a pathway, copy a whole { ... } block below, give it a new unique id, and change its fields.",
+    "primaryStat / secondaryStat: STR, DEX, CON, INT, WIS or CHA. speedGrade: Slow, Average, Fast or Very fast.",
+    "movement: each mode is gained at that sequence and every stronger (lower-numbered) one."
+  ],
+  "version": 1,
+  "pathways": [
+    {
+      "id": "seer",
+      "name": "Seer",
+      "god": "The Fool",
+      "group": "Fool / Door / Error",
+      "primaryStat": "WIS",
+      "secondaryStat": "DEX",
+      "speedGrade": "Average",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 5,
+          "mode": "Swapping places with a marionette"
+        },
+        {
+          "sequence": 4,
+          "mode": "Short trips through the Spirit World"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Seer",
+          "abilities": [
+            "Spirit Vision",
+            "Divination (dowsing, pendulum, dreams, mirrors)",
+            "Sense of approaching danger"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Clown",
+          "abilities": [
+            "Superb balance and body control",
+            "Calm, unreadable expressions",
+            "Paper cards thrown as blades"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Magician",
+          "abilities": [
+            "Paper Figure Substitute to escape a lethal blow",
+            "Flame jumping, air bullets and small illusions",
+            "Escape artistry"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Faceless",
+          "abilities": [
+            "Reshaping face, body and voice to become someone else"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Marionettist",
+          "abilities": [
+            "Seeing and grabbing Spirit Body Threads",
+            "Turning victims into marionettes",
+            "Swapping places with a marionette"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Bizarro Sorcerer",
+          "abilities": [
+            "Grotesque, very hard to kill body",
+            "Moving through the Spirit World"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Scholar of Yore",
+          "abilities": [
+            "Summoning projections of the past and of past selves from history"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Miracle Invoker",
+          "abilities": [
+            "Making wishes come true within limits"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Attendant of Mysteries",
+          "abilities": [
+            "Grafting concepts onto one another",
+            "Deep control over the hidden and the Spirit World"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Fool",
+          "abilities": [
+            "Authority over mysteries, deception and the unknown"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "apprentice",
+      "name": "Apprentice",
+      "god": "Door",
+      "group": "Fool / Door / Error",
+      "primaryStat": "INT",
+      "secondaryStat": "DEX",
+      "speedGrade": "Very fast",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 9,
+          "mode": "Passing through walls and doors"
+        },
+        {
+          "sequence": 5,
+          "mode": "Teleportation"
+        },
+        {
+          "sequence": 2,
+          "mode": "Opening gates to other worlds"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Apprentice",
+          "abilities": [
+            "Opening any door or lock",
+            "Passing through walls",
+            "Slipping out of restraints"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Trickmaster",
+          "abilities": [
+            "Small tricks: flashes of light, gusts of wind, sparks, slippery ground"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Astrologer",
+          "abilities": [
+            "Divination by the stars",
+            "Reading fate and danger from astrology"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Scribe",
+          "abilities": [
+            "Recording other Beyonder powers to use them later"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Traveler",
+          "abilities": [
+            "Long-range teleportation",
+            "Travel through the Spirit World"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Secrets Sorcerer",
+          "abilities": [
+            "Creating hidden spaces and secret doors",
+            "Folding and hiding space"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Wanderer",
+          "abilities": [
+            "Wandering between distant places and realms"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Planeswalker",
+          "abilities": [
+            "Crossing between planes and worlds"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Key of Stars",
+          "abilities": [
+            "Gateways across the starry sky"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Door",
+          "abilities": [
+            "Authority over space, travel and gateways"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "marauder",
+      "name": "Marauder",
+      "god": "Error",
+      "group": "Fool / Door / Error",
+      "primaryStat": "DEX",
+      "secondaryStat": "INT",
+      "speedGrade": "Fast",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 4,
+          "mode": "Parasitizing a host"
+        },
+        {
+          "sequence": 1,
+          "mode": "Stealing time to act first"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Marauder",
+          "abilities": [
+            "Stealing objects unnoticed",
+            "Quick hands and sharp eyes"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Swindler",
+          "abilities": [
+            "Persuasive lies that briefly bend a target's thinking"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Cryptologist",
+          "abilities": [
+            "Breaking codes and spotting hidden patterns and flaws"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Prometheus",
+          "abilities": [
+            "Stealing another Beyonder's power for a short time"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Dream Stealer",
+          "abilities": [
+            "Stealing thoughts, intentions and memories"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Parasite",
+          "abilities": [
+            "Living inside other beings and controlling them from within"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Mentor of Deceit",
+          "abilities": [
+            "Exploiting loopholes in rules and in the world itself"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Trojan Horse of Destiny",
+          "abilities": [
+            "Stealing and swapping fates"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Worm of Time",
+          "abilities": [
+            "Stealing time itself"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Error",
+          "abilities": [
+            "Authority over theft, loopholes and deception"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spectator",
+      "name": "Spectator",
+      "god": "Visionary",
+      "group": "Visionary / Sun / Tyrant / White Tower / Hanged Man",
+      "primaryStat": "WIS",
+      "secondaryStat": "CHA",
+      "speedGrade": "Average",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 5,
+          "mode": "Travelling through dreams"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Spectator",
+          "abilities": [
+            "Reading body language and emotions",
+            "Going unnoticed while observing"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Telepathist",
+          "abilities": [
+            "Sensing surface thoughts and feelings"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Psychiatrist",
+          "abilities": [
+            "Calming or unsettling minds",
+            "Treating and causing madness"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Hypnotist",
+          "abilities": [
+            "Hypnotizing individuals, groups or oneself"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Dreamwalker",
+          "abilities": [
+            "Entering and shaping other people's dreams"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Manipulator",
+          "abilities": [
+            "Planting ideas and steering thoughts without being noticed"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Dream Weaver",
+          "abilities": [
+            "Bringing dreams and imagined things into reality"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Discerner",
+          "abilities": [
+            "Reaching into the collective subconscious"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Author",
+          "abilities": [
+            "Writing events into reality"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Visionary",
+          "abilities": [
+            "Authority over the mind and imagination"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bard",
+      "name": "Bard",
+      "god": "Sun",
+      "group": "Visionary / Sun / Tyrant / White Tower / Hanged Man",
+      "primaryStat": "CHA",
+      "secondaryStat": "CON",
+      "speedGrade": "Average",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 2,
+          "mode": "Moving as light"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Bard",
+          "abilities": [
+            "Songs that raise allies' courage and strength",
+            "Resistance to fear"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Light Suppliant",
+          "abilities": [
+            "Calling down sunlight",
+            "Light that harms undead and evil"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Solar High Priest",
+          "abilities": [
+            "Holy light attacks and purification",
+            "Blessings of sunlight"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Notary",
+          "abilities": [
+            "Notarizing to strengthen or weaken effects",
+            "Making agreements binding"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Priest of Light",
+          "abilities": [
+            "Large-scale holy light and fire"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Unshadowed",
+          "abilities": [
+            "A body of light that burns away evil"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Justice Mentor",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Lightseeker",
+          "abilities": [
+            "Seeking and channelling all light"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "White Angel",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Sun",
+          "abilities": [
+            "Authority over the sun and light"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sailor",
+      "name": "Sailor",
+      "god": "Tyrant",
+      "group": "Visionary / Sun / Tyrant / White Tower / Hanged Man",
+      "primaryStat": "STR",
+      "secondaryStat": "CON",
+      "speedGrade": "Fast",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 9,
+          "mode": "Strong swimmer, breathes underwater for long stretches"
+        },
+        {
+          "sequence": 6,
+          "mode": "Flight on the wind"
+        },
+        {
+          "sequence": 3,
+          "mode": "Travelling as lightning"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Sailor",
+          "abilities": [
+            "Great strength and balance",
+            "Long breath-holding and fast swimming"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Folk of Rage",
+          "abilities": [
+            "Strength that surges with anger"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Seafarer",
+          "abilities": [
+            "Sensing storms and the sea",
+            "Calling down lightning"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Wind-blessed",
+          "abilities": [
+            "Commanding wind, wind blades and flight"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Ocean Songster",
+          "abilities": [
+            "Songs that sway the sea and people's emotions"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Cataclysmic Interrer",
+          "abilities": [
+            "Storms, tsunamis and quakes at sea"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Sea King",
+          "abilities": [
+            "Command over the sea and its creatures"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Calamity",
+          "abilities": [
+            "Natural disasters across whole regions"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Thunder God",
+          "abilities": [
+            "Lightning in every form"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Tyrant",
+          "abilities": [
+            "Authority over storms, sea and thunder"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reader",
+      "name": "Reader",
+      "god": "White Tower",
+      "group": "Visionary / Sun / Tyrant / White Tower / Hanged Man",
+      "primaryStat": "INT",
+      "secondaryStat": "WIS",
+      "speedGrade": "Average",
+      "speedNote": "Relies on copied or prepared abilities more than raw speed.",
+      "movement": [
+        {
+          "sequence": 3,
+          "mode": "Mimicking movement abilities they have analysed"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Reader",
+          "abilities": [
+            "Fast reading and near-perfect recall",
+            "Learning quickly"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Student of Ratiocination",
+          "abilities": [
+            "Logical deduction from small clues"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Detective",
+          "abilities": [
+            "Finding hidden clues and seeing through lies"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Polymath",
+          "abilities": [
+            "Mastering many skills and mystical knowledge"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Mysticism Magister",
+          "abilities": [
+            "Using rituals and mystical knowledge freely"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Prophet",
+          "abilities": [
+            "Glimpsing the future"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Cognizer",
+          "abilities": [
+            "Understanding and imitating Beyonder powers they study"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Wisdom Angel",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Omniscient Eye",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "White Tower",
+          "abilities": [
+            "Authority over knowledge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secrets_supplicant",
+      "name": "Secrets Supplicant",
+      "god": "Hanged Man",
+      "group": "Visionary / Sun / Tyrant / White Tower / Hanged Man",
+      "primaryStat": "CON",
+      "secondaryStat": "WIS",
+      "speedGrade": "Average",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 7,
+          "mode": "Shadow travel"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Secrets Supplicant",
+          "abilities": [
+            "Praying to hidden beings for knowledge",
+            "Resistance to madness"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Listener",
+          "abilities": [
+            "Hearing the whispers of hidden existences"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Shadow Ascetic",
+          "abilities": [
+            "Merging into and travelling through shadows"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Rose Bishop",
+          "abilities": [
+            "Manipulating flesh and blood"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Shepherd",
+          "abilities": [
+            "Herding the souls of the dead and using their powers"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Black Knight",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Trinity Templar",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Profane Presbyter",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Dark Angel",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Hanged Man",
+          "abilities": [
+            "Authority over sacrifice and degeneration"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sleepless",
+      "name": "Sleepless",
+      "god": "Darkness",
+      "group": "Darkness / Death / Twilight Giant",
+      "primaryStat": "WIS",
+      "secondaryStat": "DEX",
+      "speedGrade": "Average",
+      "speedNote": "Counts as Fast (+2) at night.",
+      "movement": [
+        {
+          "sequence": 7,
+          "mode": "Entering other people's dreams"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Sleepless",
+          "abilities": [
+            "Needs little sleep",
+            "Stronger, faster and sharper at night",
+            "Sees in the dark"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Midnight Poet",
+          "abilities": [
+            "Poems that calm, frighten or soothe"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Nightmare",
+          "abilities": [
+            "Entering dreams and attacking through nightmares"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Soul Assurer",
+          "abilities": [
+            "Soothing and protecting souls"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Spirit Warlock",
+          "abilities": [
+            "Commanding spirits"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Nightwatcher",
+          "abilities": [
+            "A domain of night and concealment"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Horror Bishop",
+          "abilities": [
+            "Spreading fear and nightmares over large areas"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Servant of Concealment",
+          "abilities": [
+            "Hiding people, places and truths"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Knight of Misfortune",
+          "abilities": [
+            "Bringing misfortune"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Darkness",
+          "abilities": [
+            "Authority over night, sleep and concealment"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corpse_collector",
+      "name": "Corpse Collector",
+      "god": "Death",
+      "group": "Darkness / Death / Twilight Giant",
+      "primaryStat": "CON",
+      "secondaryStat": "WIS",
+      "speedGrade": "Slow",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 5,
+          "mode": "Opening gates to the underworld"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Corpse Collector",
+          "abilities": [
+            "Immune to corpse poisons",
+            "Spotting the weak points of undead",
+            "Resistant to cold"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Gravedigger",
+          "abilities": [
+            "Burial rites and fighting the undead"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Spirit Medium",
+          "abilities": [
+            "Seeing and speaking with spirits"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Spirit Guide",
+          "abilities": [
+            "Guiding and commanding spirits"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Gatekeeper",
+          "abilities": [
+            "Opening the gates of the underworld"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Undying",
+          "abilities": [
+            "A body that shrugs off fatal wounds"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Ferryman",
+          "abilities": [
+            "Ferrying souls to their end"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Death Consul",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Pale Emperor",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Death",
+          "abilities": [
+            "Authority over death and the underworld"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "warrior",
+      "name": "Warrior",
+      "god": "Twilight Giant",
+      "group": "Darkness / Death / Twilight Giant",
+      "primaryStat": "STR",
+      "secondaryStat": "CON",
+      "speedGrade": "Fast",
+      "speedNote": "Pure physical speed and leaping.",
+      "movement": [],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Warrior",
+          "abilities": [
+            "Peak strength and endurance",
+            "Combat reflexes and weapon handling"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Pugilist",
+          "abilities": [
+            "Mastery of unarmed fighting"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Weapon Master",
+          "abilities": [
+            "Mastery of every weapon",
+            "Sensing an enemy's weak points"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Dawn Paladin",
+          "abilities": [
+            "Armour and weapons of dawn light"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Guardian",
+          "abilities": [
+            "Protecting allies and taking blows for them"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Demon Hunter",
+          "abilities": [
+            "Hunting demons and spotting their weaknesses"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Silver Knight",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Glory",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Hand of God",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Twilight Giant",
+          "abilities": [
+            "Authority over dawn, dusk and decline"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hunter",
+      "name": "Hunter",
+      "god": "Red Priest",
+      "group": "Red Priest / Demoness",
+      "primaryStat": "STR",
+      "secondaryStat": "DEX",
+      "speedGrade": "Fast",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 7,
+          "mode": "Flame jumping between fires"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Hunter",
+          "abilities": [
+            "Tracking, traps and survival",
+            "Sharp senses"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Provoker",
+          "abilities": [
+            "Provoking anger to throw enemies off balance"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Pyromaniac",
+          "abilities": [
+            "Fire control: fireballs, flame spears",
+            "Flame jumping"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Conspirer",
+          "abilities": [
+            "Scheming and reading a situation"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Reaper",
+          "abilities": [
+            "Finding and striking weak points"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Iron-blooded Knight",
+          "abilities": [
+            "A steel-hard body and command over troops"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "War Bishop",
+          "abilities": [
+            "Blessing armies in battle"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Weather Warlock",
+          "abilities": [
+            "Controlling the weather"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Conqueror",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Red Priest",
+          "abilities": [
+            "Authority over war and hunting"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assassin",
+      "name": "Assassin",
+      "god": "Demoness",
+      "group": "Red Priest / Demoness",
+      "primaryStat": "DEX",
+      "secondaryStat": "CHA",
+      "speedGrade": "Very fast",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 9,
+          "mode": "Light feet and slowed falls"
+        },
+        {
+          "sequence": 7,
+          "mode": "Mirror travel"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Assassin",
+          "abilities": [
+            "Stealth and light feet",
+            "Slowing falls"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Instigator",
+          "abilities": [
+            "Stirring up emotions and conflict"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Witch",
+          "abilities": [
+            "Black flames and ice",
+            "Mirror substitution and charm"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Pleasure",
+          "abilities": [
+            "Charm and control through pleasure"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Affliction",
+          "abilities": [
+            "Spreading curses and disease"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Despair",
+          "abilities": [
+            "Spreading despair"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Unaging",
+          "abilities": [
+            "Agelessness"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Catastrophe",
+          "abilities": [
+            "Disasters on a large scale"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Apocalypse",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Primordial Demoness",
+          "abilities": [
+            "Authority over calamity and ruin"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "planter",
+      "name": "Planter",
+      "god": "Mother",
+      "group": "Mother / Moon",
+      "primaryStat": "CON",
+      "secondaryStat": "WIS",
+      "speedGrade": "Slow",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 5,
+          "mode": "Moving through plants and forests"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Planter",
+          "abilities": [
+            "Growing and tending plants",
+            "Knowledge of crops and soil"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Doctor",
+          "abilities": [
+            "Healing wounds and illness"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Harvest Priest",
+          "abilities": [
+            "Blessing harvests and life"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Biologist",
+          "abilities": [
+            "Understanding and altering living things"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Druid",
+          "abilities": [
+            "Commanding plants and nature"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Classical Alchemist",
+          "abilities": [
+            "Creating life through alchemy"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Pallbearer",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Desolate Matriarch",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Naturewalker",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Mother",
+          "abilities": [
+            "Authority over life and the earth"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "apothecary",
+      "name": "Apothecary",
+      "god": "Moon",
+      "group": "Mother / Moon",
+      "primaryStat": "CHA",
+      "secondaryStat": "CON",
+      "speedGrade": "Fast",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 7,
+          "mode": "Bat form and flight"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Apothecary",
+          "abilities": [
+            "Brewing remedies, potions and poisons"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Beast Tamer",
+          "abilities": [
+            "Taming and commanding animals"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Vampire",
+          "abilities": [
+            "Fast regeneration",
+            "Turning into a swarm of bats",
+            "Draining life"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Potions Professor",
+          "abilities": [
+            "Brewing potions with Beyonder effects"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Scarlet Scholar",
+          "abilities": [
+            "Strength drawn from the moon"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Shaman King",
+          "abilities": [
+            "Shamanic curses and summoning"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "High Summoner",
+          "abilities": [
+            "Summoning creatures from other worlds"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Life-Giver",
+          "abilities": [
+            "Creating life"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Beauty Goddess",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Moon",
+          "abilities": [
+            "Authority over the moon and life"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "criminal",
+      "name": "Criminal",
+      "god": "Abyss",
+      "group": "Abyss / Chained",
+      "primaryStat": "STR",
+      "secondaryStat": "CON",
+      "speedGrade": "Fast",
+      "speedNote": "Demonic physical speed.",
+      "movement": [],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Criminal",
+          "abilities": [
+            "A tougher body and criminal instincts"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Unwinged Angel",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Serial Killer",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Devil",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Desire Apostle",
+          "abilities": [
+            "Stirring and feeding on desires"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Demon",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Blatherer",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Bloody Archduke",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Filthy Monarch",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Abyss",
+          "abilities": [
+            "Authority over depravity and desire"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prisoner",
+      "name": "Prisoner",
+      "god": "Chained",
+      "group": "Abyss / Chained",
+      "primaryStat": "CON",
+      "secondaryStat": "STR",
+      "speedGrade": "Average",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 5,
+          "mode": "Passing through objects as a wraith"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Prisoner",
+          "abilities": [
+            "Endurance and resistance to being controlled"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Lunatic",
+          "abilities": [
+            "Frenzy that trades reason for strength"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Werewolf",
+          "abilities": [
+            "Wolf transformation and fast healing"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Zombie",
+          "abilities": [
+            "A tough, near-undead body"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Wraith",
+          "abilities": [
+            "An incorporeal form that passes through objects",
+            "Fear-based attacks"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Puppet",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Disciple of Silence",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Ancient Bane",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Abomination",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Chained",
+          "abilities": [
+            "Authority over restraint and transformation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lawyer",
+      "name": "Lawyer",
+      "god": "Black Emperor",
+      "group": "Black Emperor / Justiciar",
+      "primaryStat": "CHA",
+      "secondaryStat": "INT",
+      "speedGrade": "Average",
+      "speedNote": "Repositions by exploiting rules and loopholes.",
+      "movement": [],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Lawyer",
+          "abilities": [
+            "Eloquence",
+            "Finding loopholes in rules and contracts"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Barbarian",
+          "abilities": [
+            "A tough, ferocious body"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Briber",
+          "abilities": [
+            "Gifts that weaken, charm or bind the receiver"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Baron of Corruption",
+          "abilities": [
+            "Corrupting desires and morals"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Mentor of Disorder",
+          "abilities": [
+            "Twisting the rules of an area into disorder"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Earl of the Fallen",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Frenzied Mage",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Duke of Entropy",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Prince of Abolition",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Black Emperor",
+          "abilities": [
+            "Authority over corruption and twisted order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "arbiter",
+      "name": "Arbiter",
+      "god": "Justiciar",
+      "group": "Black Emperor / Justiciar",
+      "primaryStat": "CHA",
+      "secondaryStat": "STR",
+      "speedGrade": "Average",
+      "speedNote": "Area authority rather than movement.",
+      "movement": [],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Arbiter",
+          "abilities": [
+            "A commanding presence",
+            "Solid physical combat"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Sheriff",
+          "abilities": [
+            "Sensing crime and anything unusual in their area"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Interrogator",
+          "abilities": [
+            "Drawing out the truth"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Judge",
+          "abilities": [
+            "Verdicts that become rules in an area"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Disciplinary Paladin",
+          "abilities": [
+            "Enforcing order by force"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Imperative Mage",
+          "abilities": [
+            "Commands that others must obey"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Chaos Hunter",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Balancer",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Hand of Order",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Justiciar",
+          "abilities": [
+            "Authority over order and law"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "savant",
+      "name": "Savant",
+      "god": "Paragon",
+      "group": "Hermit / Paragon",
+      "primaryStat": "INT",
+      "secondaryStat": "DEX",
+      "speedGrade": "Slow",
+      "speedNote": "Moves faster through devices and constructs than on foot.",
+      "movement": [],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Savant",
+          "abilities": [
+            "Engineering, crafting and quick learning"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Archaeologist",
+          "abilities": [
+            "Identifying ancient things and ruins"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Appraiser",
+          "abilities": [
+            "Appraising items and their mysterious properties"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Artisan",
+          "abilities": [
+            "Crafting mystical items"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Astronomer",
+          "abilities": [
+            "Reading and using the stars"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Alchemist",
+          "abilities": [
+            "Transmuting materials"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Arcane Scholar",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Knowledge Magister",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Illuminator",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Paragon",
+          "abilities": [
+            "Authority over knowledge and creation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mystery_pryer",
+      "name": "Mystery Pryer",
+      "god": "Hermit",
+      "group": "Hermit / Paragon",
+      "primaryStat": "INT",
+      "secondaryStat": "WIS",
+      "speedGrade": "Average",
+      "speedNote": "",
+      "movement": [
+        {
+          "sequence": 6,
+          "mode": "Teleporting with prepared scrolls"
+        }
+      ],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Mystery Pryer",
+          "abilities": [
+            "Seeing spirituality",
+            "Ritual magic and mystical knowledge"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Melee Scholar",
+          "abilities": [
+            "Combat that draws on mystical knowledge"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Warlock",
+          "abilities": [
+            "Casting spells: fire, ice, lightning"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Scrolls Professor",
+          "abilities": [
+            "Scrolls that store spells for one use"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Constellations Master",
+          "abilities": [
+            "Power drawn from the stars"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Mysticologist",
+          "abilities": [
+            "Analysing and recreating mystical phenomena"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Clairvoyant",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Sage",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Knowledge Emperor",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Hermit",
+          "abilities": [
+            "Authority over mysteries of knowledge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "monster",
+      "name": "Monster",
+      "god": "Wheel of Fortune",
+      "group": "Wheel of Fortune",
+      "primaryStat": "WIS",
+      "secondaryStat": "DEX",
+      "speedGrade": "Average",
+      "speedNote": "Luck-driven dodging rather than raw speed.",
+      "movement": [],
+      "sequences": [
+        {
+          "sequence": 9,
+          "name": "Monster",
+          "abilities": [
+            "Sensing danger and shifts of luck",
+            "Strong intuition"
+          ]
+        },
+        {
+          "sequence": 8,
+          "name": "Robot",
+          "abilities": [
+            "Cold, precise calculation without emotion"
+          ]
+        },
+        {
+          "sequence": 7,
+          "name": "Lucky One",
+          "abilities": [
+            "Good luck in daily life"
+          ]
+        },
+        {
+          "sequence": 6,
+          "name": "Calamity Priest",
+          "abilities": [
+            "Sensing and nudging small disasters"
+          ]
+        },
+        {
+          "sequence": 5,
+          "name": "Winner",
+          "abilities": [
+            "Turning the odds into victories"
+          ]
+        },
+        {
+          "sequence": 4,
+          "name": "Misfortune Mage",
+          "abilities": [
+            "Granting fortune or misfortune to others"
+          ]
+        },
+        {
+          "sequence": 3,
+          "name": "Chaoswalker",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 2,
+          "name": "Soothsayer",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 1,
+          "name": "Snake of Mercury",
+          "abilities": [
+            "Edit me: add this sequence's powers"
+          ]
+        },
+        {
+          "sequence": 0,
+          "name": "Wheel of Fortune",
+          "abilities": [
+            "Authority over fate and luck"
+          ]
+        }
+      ]
+    }
+  ]
+}
