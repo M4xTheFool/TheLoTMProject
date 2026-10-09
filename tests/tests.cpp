@@ -850,11 +850,11 @@ static void testComparison() {
     CHECK(wisdom.label == "Wisdom" && wisdom.highest == std::vector<bool>({false, false}));  // equal: nobody marked
     const CompareRow& hp = result.sections[1].rows[7];
     CHECK(hp.label == "HP" && hp.values[0] == "not used");
-    const CompareRow& held = result.sections[2].rows[2];
+    const CompareRow& held = result.sections[2].rows[1];
     CHECK(held.values == std::vector<std::string>({"Creeping Hunger", "none"}));
     // Superior on one side and Subordinate on the other is said once; Friend appears too.
     CHECK(result.between.size() == 2);
-    CHECK(result.between[0] == "Leonard Mitchell is Dunn Smith's Superior (his captain)");
+    CHECK(result.between[0] == "Leonard Mitchell is Dunn Smith's superior (his captain)");
     CHECK(result.between[1] == "Leonard Mitchell and Dunn Smith: Friend");
 
     const std::string text = renderComparisonText(result);

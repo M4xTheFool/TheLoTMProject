@@ -1,9 +1,11 @@
 #include "compare.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <climits>
 #include <cstddef>
 
+#include "presets.hpp"
 #include "relations.hpp"
 #include "rules.hpp"
 
@@ -12,6 +14,13 @@ namespace lotm {
 namespace {
 
 constexpr int kMissing = INT_MIN;  // a ranked row where this character has no value
+
+// "Superior" reads as "Dunn's superior"; a type someone typed themselves is kept as written.
+std::string inSentence(std::string type) {
+    if (std::find(kRelationshipTypes.begin(), kRelationshipTypes.end(), type) == kRelationshipTypes.end()) return type;
+    for (char& ch : type) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    return type;
+}
 
 std::string join(const std::vector<std::string>& items) {
     std::string out;
@@ -65,7 +74,7 @@ std::vector<std::string> relationshipsBetween(const std::vector<const Character*
                 }
                 std::string line = reciprocalType(r.type) == r.type
                                        ? from.name + " and " + to.name + ": " + r.type
-                                       : to.name + " is " + from.name + "'s " + r.type;
+                                       : to.name + " is " + from.name + "'s " + inSentence(r.type);
                 if (!r.note.empty()) line += " (" + r.note + ")";
                 lines.push_back(line);
             }
@@ -216,9 +225,6 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
     powers.rows.push_back(rankedRow(
         "Abilities", each([&](const Character& c, const Pathway* p) { return std::to_string(abilityCount(c, p)); }),
         numbers(abilityCount)));
-    powers.rows.push_back(textRow("Movement", each([](const Character& c, const Pathway* p) {
-        return join(movementModes(c, p));
-    })));
     powers.rows.push_back(rankedRow(
         "Sealed Artifacts", each([&](const Character& c, const Pathway*) {
             std::vector<std::string> names;

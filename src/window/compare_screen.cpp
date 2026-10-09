@@ -255,7 +255,8 @@ void drawCompareScreen(WindowState& w) {
         if (section.heading == "Stats") {
             // The chart sits beside the table when there is room, and above it when there isn't.
             const float chartSize = std::min(ImGui::GetFontSize() * 17.0f, ImGui::GetContentRegionAvail().x);
-            const bool beside = ImGui::GetContentRegionAvail().x > chartSize + ImGui::GetFontSize() * 30.0f;
+            const float tableWidth = ImGui::GetFontSize() * (10.0f + 7.0f * static_cast<float>(characters.size()));
+            const bool beside = ImGui::GetContentRegionAvail().x > chartSize + tableWidth;
             ImGui::BeginGroup();
             statChart(w, characters, chartSize);
             ImGui::EndGroup();
