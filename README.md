@@ -30,10 +30,18 @@ The first build downloads one small library (nlohmann/json), so be online for it
 
 ## Build and run
 
-**In VS Code:** click **Build** in the blue status bar at the bottom, then the **play** button (Run) next
-to it. The program runs in the terminal panel; type numbers and press Enter.
+**In VS Code** (with the CMake Tools extension installed):
 
-**From a terminal** (use "Developer PowerShell for VS 2022" from the Start menu, inside this folder):
+1. Click the **CMake** icon (a triangle) in the bar on the far left. The **Project Status** panel opens.
+2. Under **Configure**, if no kit is shown, click it and pick **Visual Studio Build Tools 2022 Release - amd64**.
+3. Under **Build**, click the build icon that appears when you hover over it (or press **F7**).
+4. Under **Launch**, click the play icon (or press **Shift+F5**). The program starts in the **Terminal**
+   panel at the bottom; type numbers and press Enter.
+
+You can also press **Ctrl+Shift+P** and run **CMake: Build**, then **CMake: Run Without Debugging**.
+
+**From a terminal:** open **Developer PowerShell for VS 2022** from the Start menu (a normal PowerShell
+usually can't find `cmake`), go to this folder with `cd`, then run:
 
 ```
 cmake -S . -B build
@@ -105,6 +113,12 @@ data/pathways.json    the 22 pathways
 
 ## Troubleshooting
 
+- **No CMake triangle icon in VS Code**: press **Ctrl+Shift+X**, search for **CMake Tools**, and install it
+  (and **C/C++** from Microsoft).
+- **`cmake` is not recognized**: you are in a normal PowerShell. Use **Developer PowerShell for VS 2022**
+  instead, or build from VS Code.
+- **CMake complains about the `build` folder** (for example a "generator" mismatch): delete the `build`
+  folder and build again.
 - **"Could not find the data folder"**: run the program from this project folder (VS Code does this
   automatically), or set the `LOTM_DATA_DIR` environment variable to the `data` folder's path.
 - **A save file "is not valid JSON"**: it was edited by hand and has a typo. Fix it, or copy the newest
