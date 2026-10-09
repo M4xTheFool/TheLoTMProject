@@ -162,7 +162,7 @@
         "lastSeen": "",
         "remarks": ""
       },
-      "notes": "Snapshot: end of the main story, Sequence 0 Fool (reached about Ch. 1380). Age is an estimate (wiki gives no age; birthday 4 March). Alignment and stats are my interpretation. Artifacts listed are his last known holdings; the wiki does not say where each one is at the very end.",
+      "notes": "Snapshot: end of the main story, Sequence 0 Fool (reached about Ch. 1380). Age is an estimate (wiki gives no age; birthday 4 March). Alignment and stats are an interpretation. Artifacts listed are his last known holdings; the wiki does not say where each one is at the very end.",
       "createdAt": "",
       "updatedAt": ""
     },
@@ -809,7 +809,7 @@
         "lastSeen": "",
         "remarks": "Bounty of 45,000 pounds (raised from 37,000 after hosting Gehrman Sparrow). Publicly declared herself Queen of Stars, a Pirate Queen, at the very end of the story; the bounty figure predates that."
       },
-      "notes": "Sequence 4 Mysticologist is my inference: the wiki says she was promoted to demigod and declared herself Queen of Stars (Ch. 1391), and Hermit Sequence 4 is Mysticologist. Joined the club Ch. 564; Moses Ascetic Order Pillar Ch. 1276; bounty Ch. 911. The 11-million bounty is from the sequel and left out. Age unknown. Alignment and stats are interpretation.",
+      "notes": "Sequence 4 Mysticologist is an inference: the wiki says she was promoted to demigod and declared herself Queen of Stars (Ch. 1391), and Hermit Sequence 4 is Mysticologist. Joined the club Ch. 564; Moses Ascetic Order Pillar Ch. 1276; bounty Ch. 911. The 11-million bounty is from the sequel and left out. Age unknown. Alignment and stats are interpretation.",
       "createdAt": "",
       "updatedAt": ""
     },
@@ -1010,7 +1010,7 @@
       "visualDescription": "A thin black glove of human skin with a hidden maw in its palm.",
       "pathwayId": "secrets_supplicant",
       "sequenceLevel": 5,
-      "ability": "It devours the souls of Beyonders and keeps them inside, letting the wearer borrow their powers. The wiki compares these to Sequence 7-5 Hanged Man pathway abilities, such as driving targets mad, entering dreams and changing appearance.",
+      "ability": "It devours the souls of Beyonders and keeps them inside, letting the wearer borrow their powers. These match Sequence 7 to 5 Hanged Man pathway abilities, such as driving targets mad, entering dreams and changing appearance.",
       "drawback": "It has to be fed. While sealed it eats a soul each time it is used; otherwise it wants a living person's flesh and soul every other day, and a starving glove will turn on its own wearer.",
       "notes": "Grade 2 Sealed Artifact (first appears Ch. 146). Qilangos held it before Klein; Klein carried it for much of the story, including as Gehrman Sparrow. Its whereabouts at the very end are not stated.",
       "createdAt": "",
@@ -1120,7 +1120,7 @@
       "sequenceLevel": 9,
       "ability": "Opens locks and lets its holder pass through obstacles, like a Sequence 9 Apprentice.",
       "drawback": "Its curse leaves the user lost and unable to find their way.",
-      "notes": "Grade 3 (first appears Ch. 309). Emlyn White took it from a hospital thief, and its curse led to his capture by Father Utravsky. novelwiki says it was later destroyed, so no holder at the snapshot.",
+      "notes": "Grade 3 (first appears Ch. 309). Emlyn White took it from a hospital thief, and its curse led to his capture by Father Utravsky. It was later destroyed, so no holder at the snapshot.",
       "createdAt": "",
       "updatedAt": ""
     },
