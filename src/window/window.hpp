@@ -26,6 +26,9 @@ inline const ImVec4 kMuted{0.62f, 0.59f, 0.53f, 1.0f};
 inline const ImVec4 kDanger{0.86f, 0.38f, 0.33f, 1.0f};
 inline const ImVec4 kWarning{0.93f, 0.72f, 0.36f, 1.0f};
 inline const ImVec4 kSuccess{0.53f, 0.76f, 0.52f, 1.0f};
+// One colour per character on the Compare tab.
+inline const std::array<ImVec4, 4> kSeries = {ImVec4{0.85f, 0.68f, 0.33f, 1.0f}, ImVec4{0.40f, 0.72f, 0.80f, 1.0f},
+                                              ImVec4{0.86f, 0.47f, 0.58f, 1.0f}, ImVec4{0.56f, 0.78f, 0.45f, 1.0f}};
 
 struct Fonts {
     ImFont* body = nullptr;
@@ -80,7 +83,12 @@ struct PathwayScreen {
     std::string search;
 };
 
-enum class Tab { Characters, Artifacts, Pathways, Settings };
+struct CompareScreen {
+    std::vector<int> ids;  // the characters being compared, in the order they were ticked (up to four)
+    std::string search;
+};
+
+enum class Tab { Characters, Compare, Artifacts, Pathways, Settings };
 
 struct WindowState {
     App app{Database{}, Storage{std::filesystem::path()}, Dice{}};  // loaded once the window is open
@@ -89,6 +97,7 @@ struct WindowState {
     Tab tab = Tab::Characters;
     std::optional<Tab> switchTo;  // set to change tabs from code
     CharacterScreen characters;
+    CompareScreen compare;
     ArtifactScreen artifacts;
     PathwayScreen pathways;
 
@@ -111,6 +120,7 @@ struct WindowState {
 // ---------------------------------------------------------------- screens
 
 void drawCharactersScreen(WindowState& w);
+void drawCompareScreen(WindowState& w);
 void drawArtifactsScreen(WindowState& w);
 void drawPathwaysScreen(WindowState& w);
 void drawSettingsScreen(WindowState& w);
@@ -119,6 +129,9 @@ void drawSettingsScreen(WindowState& w);
 bool saveCharacterDraft(WindowState& w);
 bool saveArtifactDraft(WindowState& w);
 bool savePathwayDraft(WindowState& w);
+
+// Opens a saved character on the Characters tab (asking first about unsaved changes there).
+void openCharacter(WindowState& w, int id);
 
 // Shows the saved version of the open character again, after something else changed it on disk
 // (adding a sample set can add relationships to it). Does nothing while it has unsaved changes.

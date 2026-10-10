@@ -21,6 +21,8 @@ It comes as two programs that share the same saves:
   one from a copy of a built-in pathway, and export a pathway as a sheet. The Maestro pathway from the
   book is already in as one of your own.
 - **Catalogue:** browse, search, filter by pathway, sort, edit, duplicate, delete.
+- **Compare:** two to four characters side by side, with their stats on one chart and the highest value
+  in each row marked.
 - **Sample sets:** the members of the Tarot Club and a few canon Sealed Artifacts, ready to add to your
   saves from Settings.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
@@ -75,9 +77,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 
 ## Using the app window
 
-- The tabs at the top are **Characters**, **Sealed Artifacts**, **Pathways** and **Settings**. Each one
-  lists everything on the left (with a search box) and shows the one you picked on the right. Drag the
-  list's right edge to make it wider.
+- The tabs at the top are **Characters**, **Compare**, **Sealed Artifacts**, **Pathways** and
+  **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
+  the right. Drag the list's right edge to make it wider.
 - A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Sealed Artifacts,
   Relationships, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
 - The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
@@ -86,6 +88,11 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - Nothing is saved until you click **Save** (or press **Ctrl+S**). The Save button turns gold when there
   are changes. If you open something else first, the window asks whether to save them, throw them away,
   or keep editing. Closing the window asks the same.
+- **Compare** puts two to four characters side by side: tick them in the list. It shows their pathway,
+  Sequence, tier and threat level, every stat with a bar (and the six stats on one chart), Speed, HP,
+  Spirituality, abilities, Sealed Artifacts and how they're related to each other. The highest value in
+  each row is in bold, in that character's colour. Rows none of them has filled in are left out.
+  **Open** jumps to that character's editor.
 - **Export...** saves the open sheet as HTML, Markdown or plain text in the `exports` folder; HTML opens in
   your browser. Settings has a button that exports everything at once.
 - In Settings, **Text size** makes everything in the window bigger or smaller.
@@ -102,6 +109,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   both sides. If you list someone by name first and create them later, they link up when you save them.
 - Every creator finishes on a review screen where you can change any step before saving.
 - In the stat block, `R` rolls 4d6 and drops the lowest die; roll again as often as you like or type a value.
+- **Open the Catalogue**, then **Compare characters side by side**, picks two to four characters and
+  prints them as a table, with the highest value in each row marked `*`.
 
 ### Where things are saved
 
@@ -197,6 +206,7 @@ src/presets.hpp       the suggestion lists (hair colours, organizations ...)
 src/*_creator.cpp     the two creators
 src/pathway_menu.cpp  the Pathways menu (your own pathways)
 src/catalogue.cpp     the catalogue
+src/compare.*         comparing characters side by side, shared by both programs
 src/export_menu.cpp   exports
 tests/tests.cpp       automatic checks
 data/pathways.json    the 22 built-in pathways

@@ -8,6 +8,7 @@
 #include <string>
 
 #include "app.hpp"
+#include "compare.hpp"
 #include "dice.hpp"
 #include "exporter.hpp"
 #include "model_json.hpp"
@@ -815,6 +816,59 @@ static void testShippedSamples() {
     }
 }
 
+static void testComparison() {
+    Database db;
+    db.pathways.push_back(warrior());
+    Artifact glove;
+    glove.id = 1;
+    glove.name = "Creeping Hunger";
+    db.artifacts.push_back(glove);
+
+    Character a;
+    a.id = 1;
+    a.name = "Dunn Smith";
+    a.pathwayId = "warrior";
+    a.sequence = 5;
+    a.stats.base = {14, 10, 12, 10, 10, 8};
+    a.artifactIds = {1};
+    a.relationships.push_back({2, "Leonard Mitchell", "Superior", "his captain"});
+    Character b;
+    b.id = 2;
+    b.name = "Leonard Mitchell";
+    b.stats.base = {10, 10, 10, 10, 10, 10};
+    b.stats.hpIncluded = true;
+    b.stats.hp = 30;
+    b.relationships.push_back({1, "Dunn Smith", "Subordinate", ""});
+    b.relationships.push_back({1, "Dunn Smith", "Friend", ""});
+    db.characters = {a, b};
+
+    const Comparison result = buildComparison({&db.characters[0], &db.characters[1]}, db);
+    CHECK(result.names == std::vector<std::string>({"Dunn Smith", "Leonard Mitchell"}));
+    CHECK(result.sections.size() == 3);
+    const CompareRow& sequence = result.sections[0].rows[1];
+    CHECK(sequence.label == "Sequence" && sequence.highest == std::vector<bool>({true, false}));
+    CHECK(sequence.values[1] == "-");
+    const CompareRow& wisdom = result.sections[1].rows[4];
+    CHECK(wisdom.label == "Wisdom" && wisdom.highest == std::vector<bool>({false, false}));  // equal: nobody marked
+    const CompareRow& hp = result.sections[1].rows[7];
+    CHECK(hp.label == "HP" && hp.values[0] == "not used" && hp.highest == std::vector<bool>({false, false}));
+    // Rows neither of them has filled in are left out.
+    for (const CompareSection& section : result.sections) {
+        for (const CompareRow& row : section.rows) CHECK(row.label != "Spirituality" && row.label != "Age");
+    }
+    const CompareRow& held = result.sections[2].rows[1];
+    CHECK(held.values == std::vector<std::string>({"Creeping Hunger", "none"}));
+    // Superior on one side and Subordinate on the other is said once; Friend appears too.
+    CHECK(result.between.size() == 2);
+    CHECK(result.between[0] == "Leonard Mitchell is Dunn Smith's superior (his captain)");
+    CHECK(result.between[1] == "Leonard Mitchell and Dunn Smith: Friend");
+
+    const std::string text = renderComparisonText(result);
+    CHECK(text.find("Dunn Smith") != std::string::npos && text.find("Leonard Mitchell") != std::string::npos);
+    CHECK(text.find("Creeping Hunger *") != std::string::npos);
+    CHECK(text.find("Between them") != std::string::npos);
+}
+
 int main() {
     testModifiers();
     testTiers();
@@ -832,6 +886,7 @@ int main() {
     testCustomPathways();
     testSharedRecords();
     testSampleImport();
+    testComparison();
     testShippedSamples();
     testRendering();
     if (failures == 0) {

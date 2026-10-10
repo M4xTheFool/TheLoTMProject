@@ -179,6 +179,7 @@ void drawWindow(WindowState& w) {
     const float statusHeight = ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y;
     if (ImGui::BeginTabBar("screens")) {
         const std::pair<Tab, const char*> tabs[] = {{Tab::Characters, "Characters"},
+                                                    {Tab::Compare, "Compare"},
                                                     {Tab::Artifacts, "Sealed Artifacts"},
                                                     {Tab::Pathways, "Pathways"},
                                                     {Tab::Settings, "Settings"}};
@@ -189,6 +190,7 @@ void drawWindow(WindowState& w) {
             ImGui::BeginChild("screen", ImVec2(0, -statusHeight));
             switch (tab) {
                 case Tab::Characters: drawCharactersScreen(w); break;
+                case Tab::Compare: drawCompareScreen(w); break;
                 case Tab::Artifacts: drawArtifactsScreen(w); break;
                 case Tab::Pathways: drawPathwaysScreen(w); break;
                 case Tab::Settings: drawSettingsScreen(w); break;
