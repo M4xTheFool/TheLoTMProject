@@ -482,6 +482,12 @@ void dossierTab(Character& c) {
 
 bool saveCharacterDraft(WindowState& w) { return saveImpl(w); }
 
+void reloadCharacterDraft(WindowState& w) {
+    const auto& draft = w.characters.draft;
+    if (!draft.open || draft.isNew || draft.dirty()) return;
+    if (const Character* saved = w.app.db.findCharacter(draft.value.id)) open(w, *saved, false);
+}
+
 void drawCharactersScreen(WindowState& w) {
     auto& s = w.characters;
     auto& draft = s.draft;
@@ -513,6 +519,12 @@ void drawCharactersScreen(WindowState& w) {
                                                 : sequenceLabel(w.app.db.findPathway(c.pathwayId), c.sequence).c_str());
         ImGui::Unindent();
     }
+    ImGui::Spacing();
+    if (ImGui::TextLink("Add the Tarot Club or other samples")) {
+        w.switchTo = Tab::Settings;
+        w.showSampleSets = true;
+    }
+    ImGui::SetItemTooltip("Ready-made characters and Sealed Artifacts, under Sample sets in Settings.");
     ImGui::EndChild();
     ImGui::SameLine();
 

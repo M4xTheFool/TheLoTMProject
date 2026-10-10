@@ -1,0 +1,1140 @@
+{
+  "title": "The Tarot Club",
+  "description": "Every member of the Tarot Club as of the end of the first novel, with their pathways, Sequences, looks, backstories and how they relate to each other, plus canon Sealed Artifacts held by Klein, Gehrman Sparrow and Fors. Stats and alignments are an interpretation; each character's Notes say what is canon and what is a guess.",
+  "characters": [
+    {
+      "id": 1,
+      "name": "Klein Moretti",
+      "appearance": {
+        "hair": "Black",
+        "hairLength": "Short",
+        "hairStyle": "",
+        "eyes": "Brown",
+        "skin": "",
+        "face": "Ordinary-looking, with a fairly deep facial outline",
+        "voice": "",
+        "build": "Slim",
+        "height": "",
+        "clothing": "Expensive suits and a cane; as The Fool, a black trench coat and dark leather gloves with a star-encrusted cane",
+        "distinguishingMark": "",
+        "description": "A slim young man with black hair, brown eyes and an unremarkable face that carries a bookish air. Above the gray fog he appears wreathed in grayish-white mist, so the other members never see who he really is."
+      },
+      "age": "Mid-twenties",
+      "gender": "Male",
+      "shortDescription": "Transmigrated history graduate who founded the Tarot Club and rose to become the Fool.",
+      "backstory": "Klein Moretti was a newly graduated history student in Tingen whose body was taken over by Zhou Mingrui, a man from another world, after the original Klein died in the wake of a mysterious ritual. Drawn above a gray fog into an ancient castle, he began gathering people under the mask of 'Mr. Fool' and founded the Tarot Club with Audrey Hall and Alger Wilson. He became a Seer, joined the Tingen Nighthawks and, after he was believed killed in the Tingen incident, left his old life behind for a string of identities: the detective Sherlock Moriarty, the adventurer Gehrman Sparrow and the tycoon Dwayne Dantès. Following the acting method he climbed the Seer pathway one Sequence at a time, reaching Sequence 1 Attendant of Mysteries around chapter 1352 and becoming the Fool, a true god, around chapter 1380. At the close of the main story he is the Lord of Mysteries and owner of Sefirah Castle, and he sinks into a deep sleep while the Tarot Club carries on without him.",
+      "pathwayId": "seer",
+      "sequence": 0,
+      "alignment": "Neutral Good",
+      "titles": [
+        "The Fool",
+        "Lord of Mysteries",
+        "Owner of Sefirah Castle"
+      ],
+      "aliases": [
+        "Zhou Mingrui",
+        "Mr. Fool",
+        "Gehrman Sparrow",
+        "Sherlock Moriarty",
+        "Dwayne Dantès",
+        "Merlin Hermes",
+        "Sea God Kalvetua"
+      ],
+      "honorificName": [
+        "The Fool that doesn't belong to this era;",
+        "The mysterious ruler above the gray fog;",
+        "The King of Yellow and Black who wields good luck."
+      ],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          10,
+          12,
+          10,
+          15,
+          14,
+          11
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The Fool"
+      },
+      "relationships": [
+        {
+          "characterId": 2,
+          "name": "Audrey Hall",
+          "type": "Subordinate",
+          "note": "Justice; founding member of the club"
+        },
+        {
+          "characterId": 3,
+          "name": "Alger Wilson",
+          "type": "Subordinate",
+          "note": "The Hanged Man; founding member, later his official follower"
+        },
+        {
+          "characterId": 4,
+          "name": "Derrick Berg",
+          "type": "Subordinate",
+          "note": "The Sun; his first official follower"
+        },
+        {
+          "characterId": 5,
+          "name": "Fors Wall",
+          "type": "Subordinate",
+          "note": "The Magician"
+        },
+        {
+          "characterId": 6,
+          "name": "Gehrman Sparrow",
+          "type": "Subordinate",
+          "note": "The World: his own persona, presented to the club as his follower"
+        },
+        {
+          "characterId": 7,
+          "name": "Emlyn White",
+          "type": "Subordinate",
+          "note": "The Moon"
+        },
+        {
+          "characterId": 8,
+          "name": "Cattleya",
+          "type": "Subordinate",
+          "note": "The Hermit"
+        },
+        {
+          "characterId": 9,
+          "name": "Leonard Mitchell",
+          "type": "Subordinate",
+          "note": "The Star"
+        },
+        {
+          "characterId": 10,
+          "name": "Xio Derecha",
+          "type": "Subordinate",
+          "note": "Judgment"
+        },
+        {
+          "characterId": 9,
+          "name": "Leonard Mitchell",
+          "type": "Colleague",
+          "note": "Fellow Tingen Nighthawk under Dunn Smith; later partners against Ince Zangwill"
+        },
+        {
+          "characterId": 2,
+          "name": "Audrey Hall",
+          "type": "Colleague",
+          "note": "Works alongside her at the Loen Charity Bursary Foundation as Dwayne Dantès"
+        },
+        {
+          "characterId": 0,
+          "name": "Benson Moretti",
+          "type": "Sibling",
+          "note": "Elder brother"
+        },
+        {
+          "characterId": 0,
+          "name": "Melissa Moretti",
+          "type": "Sibling",
+          "note": "Younger sister"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Snapshot: end of the main story, Sequence 0 Fool (reached about Ch. 1380). Age is an estimate (wiki gives no age; birthday 4 March). Alignment and stats are an interpretation. Artifacts listed are his last known holdings; the wiki does not say where each one is at the very end.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 2,
+      "name": "Audrey Hall",
+      "appearance": {
+        "hair": "Blonde",
+        "hairLength": "Long",
+        "hairStyle": "Smooth, usually tied up casually",
+        "eyes": "Emerald green",
+        "skin": "",
+        "face": "Strikingly beautiful",
+        "voice": "",
+        "build": "",
+        "height": "",
+        "clothing": "",
+        "distinguishingMark": "",
+        "description": "A strikingly beautiful young noblewoman with long, smooth golden hair and clear emerald eyes. Her presence feels calm and warm rather than alluring."
+      },
+      "age": "Early twenties",
+      "gender": "Female",
+      "shortDescription": "Earl's daughter, 'the most dazzling gem of Backlund', and a Visionary-pathway reader of minds.",
+      "backstory": "Audrey Hall is the youngest child and only daughter of a Loen earl who sits in the Cabinet and ranks among the kingdom's leading bankers, and Backlund society calls her its most dazzling gem. Pulled above the gray fog at the very first gathering, she took the codename Justice and is credited with giving the Tarot Club its name. Through the club she obtained the Spectator formula and advanced along the Visionary pathway, becoming adept at reading and soothing minds, and she later joined the Psychology Alchemists. After the Great Smog of Backlund she threw herself into the Loen Charity Bursary Foundation and pushed her family to back laws that improve workers' conditions. By the end of the story she has become a demigod, a Sequence 4 Manipulator whose advancement ritual took place in Memorial Square, and she helps The World keep his mental state in check.",
+      "pathwayId": "spectator",
+      "sequence": 4,
+      "alignment": "Neutral Good",
+      "titles": [
+        "Justice",
+        "The most dazzling gem of Backlund"
+      ],
+      "aliases": [
+        "Miss Justice"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          8,
+          12,
+          10,
+          13,
+          14,
+          15
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "Justice"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Colleague",
+          "note": "Works with 'Dwayne Dantès' at the Loen Charity Bursary Foundation without knowing who he is"
+        },
+        {
+          "characterId": 4,
+          "name": "Derrick Berg",
+          "type": "Ally",
+          "note": "Traded potion formulas; helped strip his emotions for his Sequence 4 advancement"
+        },
+        {
+          "characterId": 5,
+          "name": "Fors Wall",
+          "type": "Acquaintance",
+          "note": "Met through Viscount Glaint's gatherings"
+        },
+        {
+          "characterId": 7,
+          "name": "Emlyn White",
+          "type": "Ally",
+          "note": "Took part in a joint club operation together"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Sequence 4 Manipulator reached about Ch. 1189. Her temporary Sequence 4 honorific is left out because the sheet only takes honorific names at Sequence 3 or above. Other affiliations: Psychology Alchemists, Loen Charity Bursary Foundation. Her dog Susie also became a Beyonder. Age is an estimate; alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 3,
+      "name": "Alger Wilson",
+      "appearance": {
+        "hair": "Dark blue",
+        "hairLength": "",
+        "hairStyle": "",
+        "eyes": "",
+        "skin": "Bronze",
+        "face": "",
+        "voice": "",
+        "build": "",
+        "height": "",
+        "clothing": "A robe patterned with storms and waves",
+        "distinguishingMark": "",
+        "description": "A mixed-race man in his thirties with distinctive dark blue hair and bronze skin. He usually wears a robe decorated with storm and wave patterns."
+      },
+      "age": "Thirties",
+      "gender": "Male",
+      "shortDescription": "Calculating Tyrant-pathway sailor and founding member who traded the Storm church for the Sea God's.",
+      "backstory": "Alger Wilson grew up a mixed-race islander who faced constant discrimination; he was dropped from the Church of the Lord of Storms' children's choir and served under a violent priest before becoming a Beyonder. The church then sent him into the Sonia Sea as an undercover intelligence officer posing as a pirate, where he took the ghost ship Blue Avenger after killing its captain. A glass bottle he took from that ship drew him above the gray fog, making him one of the Tarot Club's founding members as The Hanged Man. Calm and ambitious beneath a show of irritability, he climbed the Tyrant pathway with the club's help, reached Sequence 4 and became Cardinal of the Rorsted Archipelago diocese after the war. Near the end of the story he prayed to The Fool to calm runaway Sealed Artifacts, lost his Cardinal post because of it, and at The Fool's word became Pontiff of the Church of the Sea God.",
+      "pathwayId": "sailor",
+      "sequence": 4,
+      "alignment": "True Neutral",
+      "titles": [
+        "The Hanged Man",
+        "Pontiff of the Church of the Sea God",
+        "Former Cardinal of the Rorsted Archipelago diocese"
+      ],
+      "aliases": [
+        "Mr. Hanged Man"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          13,
+          12,
+          13,
+          13,
+          13,
+          11
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The Hanged Man"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 4,
+          "name": "Derrick Berg",
+          "type": "Student",
+          "note": "Coached the young Sun more than any other member"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Sequence 4 Cataclysmic Interrer (approved about Ch. 1216; Cardinal post Ch. 1276). The wiki calls his pathway Tyrant, which is the 'sailor' pathway here. Pontiff role from Ch. 1355-1360. Whether he still commands the Blue Avenger at the snapshot is unclear, so it is not listed as a title. Alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 4,
+      "name": "Derrick Berg",
+      "appearance": {
+        "hair": "Brownish-yellow",
+        "hairLength": "",
+        "hairStyle": "",
+        "eyes": "",
+        "skin": "",
+        "face": "",
+        "voice": "",
+        "build": "Very muscular",
+        "height": "Over 2 m",
+        "clothing": "A distinctive black, tight-fitting suit",
+        "distinguishingMark": "",
+        "description": "A towering, heavily muscled youth with brownish-yellow hair who passed two meters in height at sixteen. He wears the close-fitting black suit typical of the City of Silver."
+      },
+      "age": "Late teens",
+      "gender": "Male",
+      "shortDescription": "Earnest young warrior of the City of Silver who carries the Sun's light into a cursed land.",
+      "backstory": "Derrick Berg grew up in the City of Silver inside the cursed Forsaken Land of the Gods, where the curse even forced him to kill his own parents. In despair he prayed to a crystal ball and was pulled above the gray fog in chapter 137, joining the Tarot Club as The Sun. He paid for the club's help with historical records and Beyonder materials taken from local monsters, became a Sun pathway Beyonder, and learned a great deal from the other members, above all The Hanged Man. He gradually earned the trust of Chief Colin Iliad, and when Colin died he became the youngest Elder of the Six-member Council before leading the first expedition out of the Forsaken Land. With Audrey's help in stripping away his emotions, he advanced to Sequence 4 Unshadowed using the Unshadowed Crucifix.",
+      "pathwayId": "bard",
+      "sequence": 4,
+      "alignment": "Lawful Good",
+      "titles": [
+        "The Sun",
+        "Elder of the Six-member Council"
+      ],
+      "aliases": [
+        "Mr. Sun"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          15,
+          13,
+          14,
+          10,
+          9,
+          11
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The Sun"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 3,
+          "name": "Alger Wilson",
+          "type": "Mentor",
+          "note": "Taught him more than any other member"
+        },
+        {
+          "characterId": 2,
+          "name": "Audrey Hall",
+          "type": "Ally",
+          "note": "Traded formulas; she helped with his Sequence 4 advancement"
+        },
+        {
+          "characterId": 0,
+          "name": "Colin Iliad",
+          "type": "Superior",
+          "note": "Chief of the City of Silver whose trust he earned; now dead"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Sequence 4 Unshadowed (about Ch. 1227; some translations say 'Light Guardian'). Elder from Ch. 1266, expedition Ch. 1267. The 1352 founding of the Church of the Fool is left out as post-snapshot. Age is an estimate (wiki: a teenager in Book 1). Alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 5,
+      "name": "Fors Wall",
+      "appearance": {
+        "hair": "Brown",
+        "hairLength": "",
+        "hairStyle": "Slightly curly",
+        "eyes": "Pale blue",
+        "skin": "",
+        "face": "",
+        "voice": "",
+        "build": "",
+        "height": "About 1.65 m",
+        "clothing": "Plain Loen-style dresses",
+        "distinguishingMark": "",
+        "description": "A woman of average height with slightly curly brown hair and pale blue eyes. She dresses plainly and often has a cigarette or a drink close at hand."
+      },
+      "age": "",
+      "gender": "Female",
+      "shortDescription": "Lazy bestselling romance novelist and Door-pathway Beyonder, disciple of the Abraham family.",
+      "backstory": "Fors Wall trained as a doctor after a hard childhood: her father, a low-ranking officer, abandoned the family, and her mother died while Fors was still in grammar school. Working at the Yosifov Clinic, she cared for Mrs. Aulisa, a widow from a branch of the Abraham family, who left her savings, books and the formula for a Door pathway travel bracelet. That inheritance made her a Door pathway Beyonder and gave her room to become a bestselling romance novelist. When the ravings of Mr. Door nearly drove her mad, she prayed to The Fool and joined the Tarot Club as The Magician. She later became a disciple of Dorian Gray Abraham and, with his help, reached Sequence 4 Secrets Sorcerer, sealing a demigod-level creature with the Devil's Oil Painting during her advancement. Her closest friend and roommate is Xio Derecha.",
+      "pathwayId": "apprentice",
+      "sequence": 4,
+      "alignment": "Chaotic Good",
+      "titles": [
+        "The Magician"
+      ],
+      "aliases": [
+        "Miss Magician",
+        "Slacker Without a Dream (pen name)"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          8,
+          13,
+          12,
+          15,
+          13,
+          12
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [
+        9
+      ],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The Magician"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 10,
+          "name": "Xio Derecha",
+          "type": "Close friend",
+          "note": "Best friend and roommate"
+        },
+        {
+          "characterId": 2,
+          "name": "Audrey Hall",
+          "type": "Acquaintance",
+          "note": "Met through Viscount Glaint's gatherings"
+        },
+        {
+          "characterId": 0,
+          "name": "Dorian Gray Abraham",
+          "type": "Mentor",
+          "note": "Abraham family teacher who helped her reach Sequence 4"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Sequence 4 Secrets Sorcerer (about Ch. 1293). Joined the club about Ch. 297. Other ties: the Abraham family through Dorian Gray. Age not stated on the wiki. Alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 6,
+      "name": "Gehrman Sparrow",
+      "appearance": {
+        "hair": "Black",
+        "hairLength": "",
+        "hairStyle": "Neat",
+        "eyes": "Dark brown",
+        "skin": "",
+        "face": "Cold, sharp features",
+        "voice": "",
+        "build": "",
+        "height": "",
+        "clothing": "",
+        "distinguishingMark": "Gold-rimmed glasses",
+        "description": "A young gentleman with neat black hair, dark brown eyes and gold-rimmed glasses. He looks colder and harder than Klein's other faces and gives off the gloom of a seasoned, ruthless adventurer."
+      },
+      "age": "Young adult",
+      "gender": "Male",
+      "shortDescription": "Klein Moretti's persona: a silent, reckless pirate-hunting adventurer who sits in the club as The World.",
+      "backstory": "Gehrman Sparrow is not a separate person: he is one of Klein Moretti's personas, built with Faceless shapeshifting and played with complete commitment. In the Tarot Club he sits as The World and is presented to the others as a fervent follower of The Fool, so the members treat him as one of their own. Outside the club he is a taciturn, reckless adventurer who started out hunting pirates and was drawn into more and more demigod-level Beyonder incidents. His wanted bounty stood at 50,000 pounds after the Bayam incident and later climbed to 90,000 pounds. For a time he traveled aboard Cattleya's flagship Future. Because Gehrman is Klein, this sheet uses Klein's pathway and Sequence at the snapshot.",
+      "pathwayId": "seer",
+      "sequence": 0,
+      "alignment": "Chaotic Good",
+      "titles": [
+        "The World"
+      ],
+      "aliases": [
+        "Mr. World"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          12,
+          14,
+          12,
+          13,
+          13,
+          10
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [
+        1
+      ],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The World"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club; in truth Gehrman is The Fool's own persona"
+        },
+        {
+          "characterId": 8,
+          "name": "Cattleya",
+          "type": "Ally",
+          "note": "She let him travel aboard the Future"
+        }
+      ],
+      "dossier": {
+        "filedBy": "Wanted notices (who issued them is not stated)",
+        "recentActions": "Violent incidents",
+        "recentActionsNote": "Hunts pirates and keeps turning up in demigod-level Beyonder incidents",
+        "threatLevel": "",
+        "status": "At large",
+        "lastSeen": "",
+        "remarks": "Bounty of 90,000 pounds (up from 50,000 after the Bayam incident). Speaks little, stays cold and calm, and pushes others around."
+      },
+      "notes": "The same person as Klein Moretti. Sequence 0 is Klein's real level; the persona's honorific name on the wiki is a later, six-line one from the sequel era, so it is left out. Stats are a separate interpretation of the persona's style, not Klein's own. Bounty figures: Ch. 734 and Ch. 1035.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 7,
+      "name": "Emlyn White",
+      "appearance": {
+        "hair": "Black",
+        "hairLength": "",
+        "hairStyle": "",
+        "eyes": "Red",
+        "skin": "",
+        "face": "High nose and thin lips; handsome without looking masculine",
+        "voice": "",
+        "build": "",
+        "height": "",
+        "clothing": "Formal attire or a priest's robe",
+        "distinguishingMark": "",
+        "description": "A refined-looking man with black hair, bright red eyes, a high nose and thin lips. He is handsome in a delicate way and is usually seen in formal clothes or a priest's robe."
+      },
+      "age": "Looks 28-29",
+      "gender": "Male",
+      "shortDescription": "Proud Sanguine vampire, Harvest Church priest and devoted doll collector.",
+      "backstory": "Emlyn White is a Sanguine, a member of Backlund's hidden vampire clan, proud by nature and convinced he is the one meant to save his people. While his family was quietly drawing blood from a hospital he caught a thief and kept the thief's Master Key, whose curse left him lost and led to his capture by Father Utravsky. Utravsky made him a priest of the Harvest Church, and Emlyn's faith has been slowly shifting from the Moon and the Sanguine Ancestor Lilith toward the Earth Mother. After praying to The Fool he joined the Tarot Club as The Moon, which let him advance faster than the rest of his clan. He reached Sequence 5 Scarlet Scholar under a full moon around chapter 1009 and holds the Sanguine rank of Earl. Away from his duties he likes to stay home, spending lavishly on his doll collection.",
+      "pathwayId": "apothecary",
+      "sequence": 5,
+      "alignment": "Lawful Neutral",
+      "titles": [
+        "The Moon",
+        "Sanguine Earl",
+        "Priest of the Harvest Church"
+      ],
+      "aliases": [
+        "Mr. Moon"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          10,
+          13,
+          12,
+          13,
+          12,
+          14
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The Moon"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 9,
+          "name": "Leonard Mitchell",
+          "type": "Ally",
+          "note": "Worked together around Father Utravsky's protection"
+        },
+        {
+          "characterId": 2,
+          "name": "Audrey Hall",
+          "type": "Ally",
+          "note": "Took part in a joint club operation together"
+        },
+        {
+          "characterId": 0,
+          "name": "Father Utravsky",
+          "type": "Superior",
+          "note": "Harvest Church bishop who captured him and made him a priest"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Sequence 5 Scarlet Scholar (about Ch. 1009); no later advancement found for Book 1. Moon pathway = 'apothecary' here. His later post as high-ranking deacon for Backlund's Sanguine looks post-snapshot and is left out. Alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 8,
+      "name": "Cattleya",
+      "appearance": {
+        "hair": "Black",
+        "hairLength": "",
+        "hairStyle": "",
+        "eyes": "Black, with a purple tint when her glasses come off",
+        "skin": "",
+        "face": "",
+        "voice": "",
+        "build": "",
+        "height": "",
+        "clothing": "A black classical robe embroidered with symbols, including a lashless eye; a celestial globe and short scepter at her waist",
+        "distinguishingMark": "Thick glasses that seal her Eye of Mystery Prying",
+        "description": "A black-haired woman in a classical black robe covered in mystical symbols, hiding faintly purple eyes behind thick glasses. She carries a small celestial globe and a short scepter at her waist."
+      },
+      "age": "",
+      "gender": "Female",
+      "shortDescription": "Pirate admiral of the Future, adopted daughter of Bernadette, and the Hermit of the club.",
+      "backstory": "Cattleya's parents are unknown; before she was three she was adopted by Bernadette Gustav, the Queen Mystic, who raised her as captain, teacher and mother. She grew into the Admiral of Stars, commanding the Stars Pirates from her flagship Future, and wore thick glasses to restrain her hard-to-control Eye of Mystery Prying. When the Hidden Sage nearly drove her to lose control, Klein pulled her above the gray fog and she joined the Tarot Club as The Hermit. At Bernadette's request she left her fleet and joined the Moses Ascetic Order, where she came to be counted among its ten Pillars. Letting Gehrman Sparrow board the Future raised her bounty from 37,000 to 45,000 pounds. She quietly became a demigod and, after Mr. Fool fell into his deep sleep, publicly proclaimed herself Queen of Stars.",
+      "pathwayId": "mystery_pryer",
+      "sequence": 4,
+      "alignment": "Chaotic Neutral",
+      "titles": [
+        "The Hermit",
+        "Queen of Stars",
+        "Admiral of Stars (former)",
+        "Pillar of the Moses Ascetic Order"
+      ],
+      "aliases": [
+        "Ma'am Hermit"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          9,
+          12,
+          12,
+          15,
+          13,
+          12
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The Hermit"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 6,
+          "name": "Gehrman Sparrow",
+          "type": "Ally",
+          "note": "Let him travel aboard the Future"
+        },
+        {
+          "characterId": 0,
+          "name": "Bernadette Gustav",
+          "type": "Parent",
+          "note": "Adoptive mother, teacher and former captain"
+        },
+        {
+          "characterId": 0,
+          "name": "Frank Lee",
+          "type": "Subordinate",
+          "note": "First mate of the Future"
+        }
+      ],
+      "dossier": {
+        "filedBy": "Wanted notices (who issued them is not stated)",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "At large",
+        "lastSeen": "",
+        "remarks": "Bounty of 45,000 pounds (raised from 37,000 after hosting Gehrman Sparrow). Publicly declared herself Queen of Stars, a Pirate Queen, at the very end of the story; the bounty figure predates that."
+      },
+      "notes": "Sequence 4 Mysticologist is an inference: the wiki says she was promoted to demigod and declared herself Queen of Stars (Ch. 1391), and Hermit Sequence 4 is Mysticologist. Joined the club Ch. 564; Moses Ascetic Order Pillar Ch. 1276; bounty Ch. 911. The 11-million bounty is from the sequel and left out. Age unknown. Alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 9,
+      "name": "Leonard Mitchell",
+      "appearance": {
+        "hair": "Black",
+        "hairLength": "",
+        "hairStyle": "Combed very casually",
+        "eyes": "Green",
+        "skin": "",
+        "face": "Good-looking, with black sideburns",
+        "voice": "",
+        "build": "",
+        "height": "",
+        "clothing": "",
+        "distinguishingMark": "",
+        "description": "A handsome young man with black sideburns, green eyes and carelessly combed hair, with a poet's romantic air. Fellow members joke that he could model for magazine covers."
+      },
+      "age": "Mid-twenties",
+      "gender": "Male",
+      "shortDescription": "Laid-back former Nighthawk, now a Red Gloves captain, who carries an ancient angel inside him.",
+      "backstory": "Leonard Mitchell grew up in an Evernight Church orphanage and became a member of the Tingen Nighthawks, serving beside Klein under Captain Dunn Smith. A coin he owned became the host of Pallez Zoroast, an ancient Error pathway angel of the Zoroast family, who lives in him as a parasite, guides him and taught him the acting method. The deaths of Dunn and, as he believed, of Klein turned him quieter and set him on revenge against Ince Zangwill, which he finally took together with Klein. He joined the Tarot Club around chapter 951 and drew The Star from The Fool's deck at random, only to find every card in it was The Star. In Backlund he became a captain of the Red Gloves and, after the war, a high-ranking deacon of the Church of the Evernight Goddess.",
+      "pathwayId": "sleepless",
+      "sequence": 4,
+      "alignment": "Chaotic Good",
+      "titles": [
+        "The Star",
+        "Captain of the Red Gloves",
+        "High-ranking Deacon of the Church of the Evernight Goddess"
+      ],
+      "aliases": [
+        "Mr. Star"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          12,
+          13,
+          12,
+          12,
+          11,
+          14
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "The Star"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Colleague",
+          "note": "Former Tingen Nighthawk teammate; partners in the hunt for Ince Zangwill"
+        },
+        {
+          "characterId": 7,
+          "name": "Emlyn White",
+          "type": "Ally",
+          "note": "Worked together around Father Utravsky's protection"
+        },
+        {
+          "characterId": 0,
+          "name": "Pallez Zoroast",
+          "type": "Mentor",
+          "note": "Parasitic angel who guides him and taught him the acting method"
+        },
+        {
+          "characterId": 0,
+          "name": "Dunn Smith",
+          "type": "Superior",
+          "note": "His late captain in the Tingen Nighthawks"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Sequence 4 Nightwatcher is an educated guess: the first novel doesn't spell out his Sequence at the end. It fits his rank as a high-ranking deacon after the war and the Sequence 4 powers he shows. Change it if you know better. Darkness pathway = 'sleepless' here. Age estimated from 'about the same age as Klein'. Alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 10,
+      "name": "Xio Derecha",
+      "appearance": {
+        "hair": "Blonde",
+        "hairLength": "Shoulder-length",
+        "hairStyle": "Messy and unkempt",
+        "eyes": "",
+        "skin": "Malt-colored from the sun",
+        "face": "Soft, youthful features",
+        "voice": "",
+        "build": "Very short",
+        "height": "152 cm",
+        "clothing": "",
+        "distinguishingMark": "",
+        "description": "A very short young woman, about 152 cm, with messy shoulder-length blonde hair and sun-darkened skin. Her soft features make her look younger than she is."
+      },
+      "age": "",
+      "gender": "Female",
+      "shortDescription": "Tiny ex-noble bounty hunter with a fierce sense of justice, now an MI9 agent.",
+      "backstory": "Xio Derecha was born Xio Dere, eldest daughter of Mason Dere, captain of the royal guards, until he was executed about seven years before the story for supposedly joining a revolt and the family lost its title and lands. She changed her surname, moved to East Chester and later came to Backlund alone, where she worked as a bounty hunter and settled disputes for working-class people, building a wide web of contacts. Born a half-Arbiter, she could only follow the Justiciar pathway, and she fed information to MI9 before the war. She joined the Tarot Club as Judgment, partly to help her best friend Fors Wall. After the war MI9 recruited her outright, and she advanced to Sequence 5 Disciplinary Paladin around chapter 1334.",
+      "pathwayId": "arbiter",
+      "sequence": 5,
+      "alignment": "Lawful Good",
+      "titles": [
+        "Judgment"
+      ],
+      "aliases": [
+        "Miss Judgment",
+        "Xio Dere (birth name)"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "stats": {
+        "base": [
+          14,
+          14,
+          13,
+          10,
+          12,
+          10
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [],
+      "affiliation": {
+        "organization": "Tarot Club",
+        "rank": "Judgment"
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Klein Moretti",
+          "type": "Superior",
+          "note": "Presides over the Tarot Club"
+        },
+        {
+          "characterId": 5,
+          "name": "Fors Wall",
+          "type": "Close friend",
+          "note": "Best friend and roommate"
+        },
+        {
+          "characterId": 0,
+          "name": "Mason Dere",
+          "type": "Parent",
+          "note": "Father, executed for alleged revolt"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "",
+        "recentActionsNote": "",
+        "threatLevel": "",
+        "status": "",
+        "lastSeen": "",
+        "remarks": ""
+      },
+      "notes": "Sequence 5 Disciplinary Paladin (Ch. 1334). Justiciar pathway = 'arbiter' here. Other organisation: MI9. Her contracted creature Ongla and the Colonel / deputy director ranks seem to be sequel-era, so they are left out. Age not stated. Alignment and stats are interpretation.",
+      "createdAt": "",
+      "updatedAt": ""
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 1,
+      "name": "Creeping Hunger",
+      "visualDescription": "A thin black glove of human skin with a hidden maw in its palm.",
+      "pathwayId": "secrets_supplicant",
+      "sequenceLevel": 5,
+      "ability": "It devours the souls of Beyonders and keeps them inside, letting the wearer borrow their powers. These match Sequence 7 to 5 Hanged Man pathway abilities, such as driving targets mad, entering dreams and changing appearance.",
+      "drawback": "It has to be fed. While sealed it eats a soul each time it is used; otherwise it wants a living person's flesh and soul every other day, and a starving glove will turn on its own wearer.",
+      "notes": "Grade 2 Sealed Artifact (first appears Ch. 146). Qilangos held it before Klein; Klein carried it for much of the story, including as Gehrman Sparrow. Its whereabouts at the very end are not stated.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 2,
+      "name": "Arrodes",
+      "visualDescription": "A silver mirror with ancient patterns on the back and an eye-like pattern on each side of its face.",
+      "pathwayId": "bard",
+      "sequenceLevel": -1,
+      "ability": "A sentient, talkative magic mirror that answers questions put to it.",
+      "drawback": "Every answer has a price: it asks a question back, and anyone who refuses or answers falsely must accept a punishment or answer something embarrassing.",
+      "notes": "Formerly Sealed Artifact 2-111, now treated as Grade 1 with its exact grade unknown (first appears Ch. 351). Ikanser Bernard held it before Klein; it then served Klein, and it is the reason Dwayne Dantès got a womanizer's reputation.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 3,
+      "name": "Sea God Scepter",
+      "visualDescription": "A white bone scepter inlaid with blue gems.",
+      "pathwayId": "sailor",
+      "sequenceLevel": 3,
+      "ability": "Made from the Beyonder characteristics of the sea god Kalvetua, it gives command over the sea, storms and sea creatures at roughly the level of a Sequence 3 Sea King.",
+      "drawback": "It makes the wielder irritable, periodically drains the blood of everything around it, and floods the holder with the prayers of Kalvetua's believers.",
+      "notes": "Grade 1 (first appears Ch. 549). Klein used it for his 'Sea God Kalvetua' identity; its holder at the very end is not stated.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 4,
+      "name": "Azik's Copper Whistle",
+      "visualDescription": "An old copper whistle covered in mysterious patterns.",
+      "pathwayId": "",
+      "sequenceLevel": -1,
+      "ability": "Blowing it summons a giant skeletal messenger that carries letters to and from Azik Eggers.",
+      "drawback": "No drawback is documented on the sources checked.",
+      "notes": "Given to Klein by Azik Eggers (first appears Ch. 170). Grade and pathway not stated; Azik is a Death pathway Beyonder, so 'corpse_collector' is a plausible guess. Last known holder Klein.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 5,
+      "name": "Sealed Artifact 0-08 (Quill of Alzuhod)",
+      "visualDescription": "An ordinary-looking quill pen.",
+      "pathwayId": "spectator",
+      "sequenceLevel": 1,
+      "ability": "Works like the Visionary pathway's Sequence 1 Author: what is written with it can steer events in the real world. It writes without ink, and most of its powers are kept secret.",
+      "drawback": "It has a will of its own, tries to kill its user and is extremely hard to control.",
+      "notes": "Grade 0 Sealed Artifact of the Church of the Evernight Goddess (first mentioned Ch. 19). Stolen by Ince Zangwill, which set off the events of the first volume. Holder at the end of the novel not stated.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 6,
+      "name": "Sealed Artifact 2-049 (Antigonus Family Puppet)",
+      "visualDescription": "A puppet wrapped in oil-stained brown cloth, its face painted like a red-and-yellow clown.",
+      "pathwayId": "seer",
+      "sequenceLevel": 5,
+      "ability": "Lets its user control others like puppets, comparable to a Sequence 5 Marionettist.",
+      "drawback": "Its effect also turns back on the user.",
+      "notes": "Grade 2 Sealed Artifact (first appears Ch. 70), tied to the Antigonus family and held by the Church of the Evernight Goddess.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 7,
+      "name": "Sealed Artifact 3-0782 (Mutated Sun Sacred Emblem)",
+      "visualDescription": "A dark gold badge engraved with sun symbols.",
+      "pathwayId": "bard",
+      "sequenceLevel": -1,
+      "ability": "Automatically purifies evil spirits around it.",
+      "drawback": "Kept too long, it turns its bearer into a mindless zealot of the Eternal Blazing Sun.",
+      "notes": "Grade 3 Sealed Artifact (first appears Ch. 139), kept by the Tingen Nighthawks in the first volume.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 8,
+      "name": "Unshadowed Crucifix",
+      "visualDescription": "A copper-green bronze cross wrapped in thorns.",
+      "pathwayId": "bard",
+      "sequenceLevel": 4,
+      "ability": "Grants power comparable to a Sequence 4 Unshadowed: it purifies corruption and can drive Beyonder characteristics out.",
+      "drawback": "It can't be used together with other mystical items, slowly drags the user's Sequence down (angels excepted) and gradually turns the user into a devout Sun believer.",
+      "notes": "Grade 1 relic of the ancient Sun god (first appears Ch. 1021). Fors and Xio handed it over as a sacrifice; Derrick's Sequence 4 advancement (Ch. 1227) drew on it, and the wiki lists it as destroyed. No holder at the snapshot.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 9,
+      "name": "Devil's Oil Painting",
+      "visualDescription": "An oil painting of abstract, incomprehensible shapes.",
+      "pathwayId": "apprentice",
+      "sequenceLevel": 4,
+      "ability": "Banishes and seals powerful beings like a Sequence 4 Secrets Sorcerer, strongly enough to imprison demigod-level creatures.",
+      "drawback": "Staring at it causes dizziness and nausea, and over time it wears down the viewer's mind.",
+      "notes": "Grade 1, from the Abraham family (first appears Ch. 1293). Fors used it during her advancement to Secrets Sorcerer; listed under her, though the wiki doesn't say whether she kept it.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 10,
+      "name": "Master Key",
+      "visualDescription": "An old key.",
+      "pathwayId": "apprentice",
+      "sequenceLevel": 9,
+      "ability": "Opens locks and lets its holder pass through obstacles, like a Sequence 9 Apprentice.",
+      "drawback": "Its curse leaves the user lost and unable to find their way.",
+      "notes": "Grade 3 (first appears Ch. 309). Emlyn White took it from a hospital thief, and its curse led to his capture by Father Utravsky. It was later destroyed, so no holder at the snapshot.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 11,
+      "name": "Death Knell",
+      "visualDescription": "A revolver.",
+      "pathwayId": "hunter",
+      "sequenceLevel": 5,
+      "ability": "Its shots carry the lethal power of a Sequence 5 Reaper.",
+      "drawback": "After use the wielder picks up a new phobia or weakness that lasts about six hours.",
+      "notes": "Grade 2 (first appears Ch. 707). Klein owned it for a time and sold it to Ukfa Connerchris (Ch. 708), so no member holds it at the snapshot.",
+      "createdAt": "",
+      "updatedAt": ""
+    }
+  ]
+}

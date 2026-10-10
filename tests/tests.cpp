@@ -11,6 +11,7 @@
 #include "dice.hpp"
 #include "exporter.hpp"
 #include "model_json.hpp"
+#include "presets.hpp"
 #include "records.hpp"
 #include "render.hpp"
 #include "relations.hpp"
@@ -664,6 +665,156 @@ static void testSharedRecords() {
     fs::remove_all(root);
 }
 
+static void testSampleImport() {
+    const fs::path root = fs::temp_directory_path() / "lotm_tests_samples";
+    fs::remove_all(root);
+    fs::create_directories(root / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+    App app{Database{}, Storage(root / "data"), Dice{}};
+    app.storage.loadAll(app.db);
+
+    // Already saved: one character the sample also has, and one the sample only names.
+    Character mine;
+    mine.id = app.db.nextCharacterId();
+    mine.name = "Klein Moretti";
+    mine.notes = "my own version";
+    saveCharacter(app, mine, true);
+    Character dunn;
+    dunn.id = app.db.nextCharacterId();
+    dunn.name = "Dunn Smith";
+    saveCharacter(app, dunn, true);
+
+    SampleSet set;
+    set.title = "Test set";
+    Artifact glove;
+    glove.id = 7;
+    glove.name = "Creeping Hunger";
+    set.artifacts.push_back(glove);
+    Character klein;
+    klein.id = 1;
+    klein.name = "klein moretti";
+    Character audrey;
+    audrey.id = 2;
+    audrey.name = "Audrey Hall";
+    audrey.artifactIds = {7, 99};
+    audrey.relationships = {{1, "Klein Moretti", "Superior", ""}, {0, "Dunn Smith", "Acquaintance", ""}};
+    Character leonard;
+    leonard.id = 3;
+    leonard.name = "Leonard Mitchell";
+    leonard.relationships = {{2, "Audrey Hall", "Ally", ""}};
+    audrey.relationships.push_back({3, "Leonard Mitchell", "Ally", ""});
+    set.characters = {klein, audrey, leonard};
+
+    const SampleImportReport report = importSampleSet(app, set);
+    CHECK(report.addedCharacters.size() == 2);
+    CHECK(report.addedArtifacts.size() == 1);
+    CHECK(report.skipped == std::vector<std::string>{"klein moretti"});
+    CHECK(app.db.characters.size() == 4);
+    const auto* addedAudrey = app.db.findCharactersByName("Audrey Hall", 0).at(0);
+    const auto* addedLeonard = app.db.findCharactersByName("Leonard Mitchell", 0).at(0);
+    CHECK(addedAudrey->id > dunn.id && addedLeonard->id > dunn.id);
+    // Holders point at the new artifact id; an id the sample doesn't have is dropped.
+    CHECK(addedAudrey->artifactIds == std::vector<int>{app.db.artifacts.at(0).id});
+    // Links go to the saved Klein and Dunn, and to the newly added Leonard, and come back the other way.
+    CHECK(addedAudrey->relationships.at(0).characterId == mine.id);
+    CHECK(addedAudrey->relationships.at(1).characterId == dunn.id);
+    CHECK(addedAudrey->relationships.at(2).characterId == addedLeonard->id);
+    CHECK(addedLeonard->relationships.size() == 1 && addedLeonard->relationships[0].characterId == addedAudrey->id);
+    const Character* savedKlein = app.db.findCharacter(mine.id);
+    CHECK(savedKlein->notes == "my own version");
+    CHECK(savedKlein->relationships.size() == 1 && savedKlein->relationships[0].type == "Subordinate");
+    CHECK(app.db.findCharacter(dunn.id)->relationships.size() == 1);
+
+    // Everything is on disk, and a second import adds nothing.
+    Database reloaded;
+    app.storage.loadAll(reloaded);
+    CHECK(reloaded.characters.size() == 4 && reloaded.artifacts.size() == 1);
+    const SampleImportReport again = importSampleSet(app, set);
+    CHECK(again.addedCharacters.empty() && again.addedArtifacts.empty() && again.skipped.size() == 4);
+    CHECK(app.db.characters.size() == 4);
+    fs::remove_all(root);
+}
+
+// The sample sets that ship in data/samples load, fit the rules, and import into empty saves cleanly.
+static void testShippedSamples() {
+    const Storage source(fs::path(LOTM_SOURCE_DIR) / "data");
+    Database db;
+    source.loadAll(db);
+    const std::vector<SampleSet> sets = source.loadSampleSets();
+    CHECK(!sets.empty());
+    auto known = [](const std::vector<std::string>& list, const std::string& value) {
+        return value.empty() || std::find(list.begin(), list.end(), value) != list.end();
+    };
+    for (const SampleSet& set : sets) {
+        const std::string where = set.file.filename().string() + ": ";
+        auto fail = [&](const std::string& what) {
+            std::cerr << where << what << "\n";
+            ++failures;
+        };
+        if (set.title.empty()) fail("no title");
+        auto findSampleCharacter = [&](int id) -> const Character* {
+            for (const auto& c : set.characters) {
+                if (c.id == id) return &c;
+            }
+            return nullptr;
+        };
+        for (const Character& c : set.characters) {
+            if (c.name.empty() || c.id <= 0) fail("a character without a name or id");
+            if (!c.pathwayId.empty() && !db.findPathway(c.pathwayId)) fail(c.name + ": unknown pathway " + c.pathwayId);
+            if (c.sequence < 0 || c.sequence > 9) fail(c.name + ": Sequence out of range");
+            if (!known(kAlignments, c.alignment)) fail(c.name + ": unknown alignment " + c.alignment);
+            if (!known(kRecentActions, c.dossier.recentActions)) fail(c.name + ": unknown recent actions");
+            if (!known(kStatuses, c.dossier.status)) fail(c.name + ": unknown status " + c.dossier.status);
+            if (!known(kThreatLevels, c.dossier.threatLevel)) fail(c.name + ": unknown threat level " + c.dossier.threatLevel);
+            for (int score : c.stats.base) {
+                if (score < 3 || score > 18) fail(c.name + ": a base stat outside 3-18");
+            }
+            Character copy = c;
+            if (!normalizeCharacter(copy).empty()) fail(c.name + ": has fields that don't apply at its Sequence");
+            for (int id : c.artifactIds) {
+                const bool found = std::any_of(set.artifacts.begin(), set.artifacts.end(),
+                                               [id](const Artifact& a) { return a.id == id; });
+                if (!found) fail(c.name + ": holds a Sealed Artifact the set doesn't have");
+            }
+            for (const Relationship& r : c.relationships) {
+                if (!known(kRelationshipTypes, r.type)) fail(c.name + ": unknown relationship type " + r.type);
+                if (r.characterId == 0) continue;
+                const Character* other = findSampleCharacter(r.characterId);
+                if (!other) {
+                    fail(c.name + ": relationship to a missing id");
+                    continue;
+                }
+                const bool back = std::any_of(other->relationships.begin(), other->relationships.end(),
+                                              [&](const Relationship& o) {
+                                                  return o.characterId == c.id && o.type == reciprocalType(r.type);
+                                              });
+                if (!back) fail(c.name + " -> " + other->name + ": the relationship isn't listed the other way");
+            }
+        }
+        for (const Artifact& a : set.artifacts) {
+            if (a.name.empty() || a.id <= 0) fail("a Sealed Artifact without a name or id");
+            if (!a.pathwayId.empty() && !db.findPathway(a.pathwayId)) fail(a.name + ": unknown pathway " + a.pathwayId);
+            if (a.sequenceLevel < kUnknownSequence || a.sequenceLevel > 9) fail(a.name + ": Sequence out of range");
+        }
+
+        // Importing into empty saves adds everything and changes no relationship.
+        const fs::path root = fs::temp_directory_path() / "lotm_tests_shipped_samples";
+        fs::remove_all(root);
+        fs::create_directories(root / "data");
+        fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+        App app{Database{}, Storage(root / "data"), Dice{}};
+        app.storage.loadAll(app.db);
+        const SampleImportReport report = importSampleSet(app, set);
+        CHECK(report.addedCharacters.size() == set.characters.size());
+        CHECK(report.addedArtifacts.size() == set.artifacts.size());
+        size_t before = 0, after = 0;
+        for (const auto& c : set.characters) before += c.relationships.size();
+        for (const auto& c : app.db.characters) after += c.relationships.size();
+        if (before != after) fail("importing added or lost relationships");
+        fs::remove_all(root);
+    }
+}
+
 int main() {
     testModifiers();
     testTiers();
@@ -680,6 +831,8 @@ int main() {
     testSaveLoadAndBackups();
     testCustomPathways();
     testSharedRecords();
+    testSampleImport();
+    testShippedSamples();
     testRendering();
     if (failures == 0) {
         std::cout << "All checks passed.\n";

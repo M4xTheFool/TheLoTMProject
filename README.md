@@ -21,6 +21,8 @@ It comes as two programs that share the same saves:
   one from a copy of a built-in pathway, and export a pathway as a sheet. The Maestro pathway from the
   book is already in as one of your own.
 - **Catalogue:** browse, search, filter by pathway, sort, edit, duplicate, delete.
+- **Sample sets:** the members of the Tarot Club and a few canon Sealed Artifacts, ready to add to your
+  saves from Settings.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
   Markdown, or plain text.
 
@@ -87,6 +89,7 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - **Export...** saves the open sheet as HTML, Markdown or plain text in the `exports` folder; HTML opens in
   your browser. Settings has a button that exports everything at once.
 - In Settings, **Text size** makes everything in the window bigger or smaller.
+- **Sample sets** in Settings adds ready-made characters and Sealed Artifacts to your saves (see below).
 
 ## Using the console version
 
@@ -116,6 +119,22 @@ Your own characters, artifacts and exports are **not** uploaded to GitHub (see `
 your computer. Copy the `data` folder to back them up or move them to another PC. Your own pathways are
 different: GitHub Desktop shows `custom_pathways.json` as changed after you edit a pathway, and committing
 it shares your pathways with anyone else who uses the repository.
+
+### Sample sets: the Tarot Club
+
+`data/samples` holds ready-made characters and Sealed Artifacts. The first set is the Tarot Club: every
+member as of the end of the first novel, with their pathways, Sequences, looks, backstories and
+relationships to each other, plus canon Sealed Artifacts linked to whoever holds them. Their stats are an
+interpretation (a 27-point buy before pathway bonuses), not something the novel gives.
+
+To add them, open **Settings** in the app window and click **Add to my saves** under **Sample sets**, or in
+the console choose **Settings**, then **Add a sample set**. They become ordinary characters and Sealed
+Artifacts that you can edit or delete. Anything you've already saved under the same name (your own Klein
+Moretti, say) is left as it is, and the new characters link to it instead; adding the same set twice adds
+nothing.
+
+A sample set is a JSON file with a `title`, a `description`, and `characters` and `artifacts` lists in the
+same layout as `characters.json` and `artifacts.json`. The ids inside it only need to match each other.
 
 ### Adding your own pathways
 
@@ -170,7 +189,7 @@ src/model.*           the data structures (characters, artifacts, pathways)
 src/rules.*           modifiers, tiers, bonuses, suggestions
 src/storage.*         loading and saving JSON, backups
 src/ui.*              console prompts
-src/records.*         saving and deleting, shared by both programs
+src/records.*         saving, deleting and adding sample sets, shared by both programs
 src/sheet.*           what goes on a character or artifact sheet
 src/render.*          drawing a sheet as text, Markdown or HTML
 src/exporter.*        writing exports to the exports folder
@@ -182,6 +201,7 @@ src/export_menu.cpp   exports
 tests/tests.cpp       automatic checks
 data/pathways.json    the 22 built-in pathways
 data/custom_pathways.json  your own pathways
+data/samples/         sample sets (the Tarot Club)
 ```
 
 ## Troubleshooting

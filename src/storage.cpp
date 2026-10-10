@@ -218,6 +218,8 @@ fs::path Storage::backupsDir() const { return dataDir_ / "backups"; }
 
 fs::path Storage::customPathwaysFile() const { return dataDir_ / "custom_pathways.json"; }
 
+fs::path Storage::samplesDir() const { return dataDir_ / "samples"; }
+
 void Storage::loadAll(Database& db) const {
     db.pathways = readPathways(dataDir_ / "pathways.json");
     std::error_code ec;
@@ -284,6 +286,30 @@ void Storage::saveCustomPathways(const Database& db) const {
     file["version"] = 1;
     file["pathways"] = pathways;
     writeJsonFile(customPathwaysFile(), file, backupsDir(), db.settings.backupsToKeep);
+}
+
+std::vector<SampleSet> Storage::loadSampleSets() const {
+    std::vector<SampleSet> sets;
+    std::error_code ec;
+    if (!fs::is_directory(samplesDir(), ec)) return sets;
+    for (const auto& entry : fs::directory_iterator(samplesDir(), ec)) {
+        if (entry.path().extension() != ".json") continue;
+        const json data = readJsonFile(entry.path());
+        SampleSet set;
+        set.file = entry.path();
+        try {
+            set.title = data.value("title", entry.path().stem().string());
+            set.description = data.value("description", "");
+            set.characters = data.value("characters", json::array()).get<std::vector<Character>>();
+            set.artifacts = data.value("artifacts", json::array()).get<std::vector<Artifact>>();
+        } catch (const json::exception& e) {
+            throw StorageError("samples/" + entry.path().filename().string() +
+                               " has an entry in the wrong shape.\nDetails: " + e.what());
+        }
+        sets.push_back(std::move(set));
+    }
+    std::sort(sets.begin(), sets.end(), [](const SampleSet& a, const SampleSet& b) { return a.title < b.title; });
+    return sets;
 }
 
 }  // namespace lotm
