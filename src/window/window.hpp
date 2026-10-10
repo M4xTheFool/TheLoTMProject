@@ -4,6 +4,7 @@
 #pragma once
 
 #include <array>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -20,21 +21,32 @@
 
 namespace lotm::window {
 
-// The window's colours, close to the HTML exports: parchment text, gold accents.
-inline const ImVec4 kGold{0.85f, 0.68f, 0.33f, 1.0f};
-inline const ImVec4 kMuted{0.62f, 0.59f, 0.53f, 1.0f};
-inline const ImVec4 kDanger{0.86f, 0.38f, 0.33f, 1.0f};
-inline const ImVec4 kWarning{0.93f, 0.72f, 0.36f, 1.0f};
-inline const ImVec4 kSuccess{0.53f, 0.76f, 0.52f, 1.0f};
-// One colour per character on the Compare tab.
-inline const std::array<ImVec4, 4> kSeries = {ImVec4{0.85f, 0.68f, 0.33f, 1.0f}, ImVec4{0.40f, 0.72f, 0.80f, 1.0f},
-                                              ImVec4{0.86f, 0.47f, 0.58f, 1.0f}, ImVec4{0.56f, 0.78f, 0.45f, 1.0f}};
+// The window's accent colours for the theme picked in Settings (see theme.cpp).
+struct Palette {
+    ImVec4 gold;     // headings, highlights
+    ImVec4 muted;    // labels and secondary text
+    ImVec4 danger;   // errors, Delete
+    ImVec4 warning;  // unsaved changes
+    ImVec4 success;  // saved, exported
+    std::array<ImVec4, 4> series;  // one colour per character on the Compare tab
+};
+const Palette& palette();
+
+// Colours, sizes and fonts. applyTheme runs at start-up and whenever the theme is changed in Settings.
+void applyTheme(const std::string& theme, float dpiScale);
+ImVec4 backgroundColour();
+// Every pathway group has its own colour (Fool / Door / Error violet, Red Priest / Demoness crimson ...).
+// Your own pathways get one made from their name; mortals are grey.
+ImVec4 pathwayColour(const Database& db, const std::string& pathwayId);
 
 struct Fonts {
     ImFont* body = nullptr;
     ImFont* bold = nullptr;
-    ImFont* heading = nullptr;  // serif, for titles and section headings
+    ImFont* heading = nullptr;  // Cormorant Garamond: names and sheet titles, drawn large
+    ImFont* title = nullptr;    // Cinzel: the window title, tabs and section headings
 };
+// Body text in the computer's own font, headings in the two fonts in assets/fonts.
+Fonts loadFonts(const std::filesystem::path& dataDir);
 
 // A copy of one record being edited. Nothing changes on disk until it is saved.
 template <typename T>
@@ -161,8 +173,28 @@ bool pathwayCombo(const char* label, const Database& db, std::string& pathwayId,
 // A slider from Sequence 9 (left) to Sequence 0 (right), labelled with the Sequence's name.
 bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence);
 
+// A section heading in the title font, with a gold rule running to the right.
 void heading(const WindowState& w, const std::string& text);
 void drawSheet(const WindowState& w, const Sheet& sheet);
+
+// ---- decoration (widgets.cpp)
+
+// "Klein Moretti" -> "KM"
+std::string initials(const std::string& name);
+// A round badge with a coloured ring and a short text inside (initials, a Sequence number).
+void medallion(const WindowState& w, const std::string& text, const ImVec4& colour, float radius);
+// A small rounded label in a colour. Call ImGui::SameLine() between chips.
+void chip(const std::string& text, const ImVec4& colour);
+// A coloured dot in front of the next text on the line.
+void statusDot(const ImVec4& colour);
+// One row of a list on the left: a medallion with `badge`, the title, and a muted line below.
+// Returns true when clicked. `id` must be unique in the list.
+bool listCard(const WindowState& w, const std::string& id, bool selected, const ImVec4& colour,
+              const std::string& badge, const std::string& title, const std::string& subtitle);
+// The six stats as boxes: the total large, the modifier below, base and bonus small.
+void statBoxes(const WindowState& w, const std::vector<StatRow>& stats);
+// The six stats on one chart with six spokes, one outline per set of totals, in the Compare colours.
+void statChart(const std::vector<std::array<int, kStatCount>>& totals, float size);
 
 // Save / Export / Delete row shared by the editors. Returns which button was pressed.
 enum class EditorAction { None, Save, Revert, ExportHtml, ExportMarkdown, ExportText, Duplicate, Delete, Copy };

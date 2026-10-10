@@ -23,10 +23,10 @@ void removeEmpty(std::vector<std::string>& items) {
 }
 
 ImVec4 threatColour(const std::string& level) {
-    if (level == "Low") return kSuccess;
-    if (level == "Moderate") return kGold;
-    if (level == "High") return kWarning;
-    return kDanger;
+    if (level == "Low") return palette().success;
+    if (level == "Moderate") return palette().gold;
+    if (level == "High") return palette().warning;
+    return palette().danger;
 }
 
 void open(WindowState& w, const Character& c, bool isNew) {
@@ -82,6 +82,42 @@ bool saveImpl(WindowState& w) {
 }
 
 // ---------------------------------------------------------------- tabs
+
+// The top of the editor: a medallion with the initials in the pathway's colour, the name, and chips
+// for the Sequence, tier, threat level and affiliation.
+void header(WindowState& w, const Character& c, bool isNew, const std::string& subtitle) {
+    const float font = ImGui::GetFontSize();
+    medallion(w, initials(c.name.empty() ? "?" : c.name), pathwayColour(w.app.db, c.pathwayId), font * 2.1f);
+    ImGui::SameLine(0.0f, font * 0.9f);
+    ImGui::BeginGroup();
+    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.9f);
+    ImGui::TextUnformatted(c.name.empty() ? "(unnamed)" : c.name.c_str());
+    ImGui::PopFont();
+    ImGui::SameLine();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextDisabled("%s", isNew ? "new" : characterCode(c.id).c_str());
+    ImGui::TextColored(palette().muted, "%s", subtitle.c_str());
+
+    const ImVec4 pathway = pathwayColour(w.app.db, c.pathwayId);
+    if (!c.pathwayId.empty()) {
+        chip(speedTierOf(c).name, pathway);
+        ImGui::SameLine();
+    }
+    const std::string threat = threatLevelOf(c);
+    chip("Threat: " + threat, threatColour(threat));
+    if (!c.affiliation.organization.empty()) {
+        ImGui::SameLine();
+        chip(c.affiliation.rank.empty() ? c.affiliation.organization
+                                        : c.affiliation.organization + ", " + c.affiliation.rank,
+             palette().muted);
+    }
+    if (c.stats.hpIncluded) {
+        ImGui::SameLine();
+        chip("HP " + std::to_string(c.stats.hp), palette().muted);
+    }
+    ImGui::EndGroup();
+    ImGui::Spacing();
+}
 
 void identityTab(Draft<Character>& draft) {
     Character& c = draft.value;
@@ -148,7 +184,7 @@ void pathwayTab(WindowState& w, Character& c) {
     const std::string header = "Every ability from Sequence 9 down (" + std::to_string(count) + ")";
     if (ImGui::CollapsingHeader(header.c_str())) {
         for (const SequenceInfo* s : all) {
-            ImGui::TextColored(kGold, "%s", sequenceLabel(p, s->sequence).c_str());
+            ImGui::TextColored(palette().gold, "%s", sequenceLabel(p, s->sequence).c_str());
             for (const auto& a : s->abilities) ImGui::BulletText("%s", a.c_str());
         }
     }
@@ -163,7 +199,7 @@ void uniquenessSection(WindowState& w, Character& c) {
         return;
     }
     if (!sequenceOneChoices(c)) {
-        ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
         ImGui::TextWrapped("A second Beyonder characteristic and the Uniqueness (what it looks like and the powers it "
                            "grants) come at Sequence 1. Move the Sequence slider in the Pathway tab to 1 to describe "
                            "them.");
@@ -181,7 +217,7 @@ void uniquenessSection(WindowState& w, Character& c) {
 
     ImGui::Indent();
     if (p && !p->uniqueness.empty()) {
-        ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
         ImGui::TextWrapped("This pathway's Uniqueness: %s", p->uniqueness.c_str());
         ImGui::PopStyleColor();
         if (c.uniquenessForm != p->uniqueness && ImGui::SmallButton("Start from this description")) {
@@ -290,7 +326,7 @@ void statsTab(WindowState& w, Character& c) {
             ImGui::TableNextColumn();
             ImGui::Text("%d", totals[i]);
             ImGui::TableNextColumn();
-            ImGui::TextColored(kGold, "%s", signedNumber(abilityModifier(totals[i])).c_str());
+            ImGui::TextColored(palette().gold, "%s", signedNumber(abilityModifier(totals[i])).c_str());
             ImGui::PopID();
         }
         ImGui::EndTable();
@@ -314,7 +350,7 @@ void statsTab(WindowState& w, Character& c) {
     if (pointBuy) {
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
-        ImGui::TextColored(spent > kPointBuyBudget ? kDanger : kMuted, "Point buy: %d of %d points used", spent,
+        ImGui::TextColored(spent > kPointBuyBudget ? palette().danger : palette().muted, "Point buy: %d of %d points used", spent,
                            kPointBuyBudget);
     }
 
@@ -508,23 +544,38 @@ void drawCharactersScreen(WindowState& w) {
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGui::InputTextWithHint("##search", "Search names", &s.search);
     ImGui::Separator();
-    if (draft.open && draft.isNew) ImGui::Selectable("(new character)", true);
+    if (draft.open && draft.isNew) {
+        listCard(w, "new", true, pathwayColour(w.app.db, draft.value.pathwayId), initials(draft.value.name),
+                 draft.value.name.empty() ? "(new character)" : draft.value.name, "Not saved yet");
+    }
     if (w.app.db.characters.empty()) ImGui::TextDisabled("No characters yet.");
     for (const auto& c : w.app.db.characters) {
         if (!s.search.empty() && !containsIgnoreCase(c.name, s.search)) continue;
         const bool selected = draft.open && !draft.isNew && draft.value.id == c.id;
-        const std::string label = c.name + "##" + std::to_string(c.id);
-        if (ImGui::Selectable(label.c_str(), selected) && !selected) {
+        const Pathway* pathway = w.app.db.findPathway(c.pathwayId);
+        // The medallion shows the Sequence; the line below names it and the pathway.
+        std::string subtitle = "Mortal";
+        if (!c.pathwayId.empty()) {
+            const SequenceInfo* seq = pathway ? pathway->findSequence(c.sequence) : nullptr;
+            subtitle = (seq && !seq->name.empty() ? seq->name : "Sequence " + std::to_string(c.sequence)) +
+                       (pathway ? ", " + pathway->name : "");
+        }
+        const std::string badge = c.pathwayId.empty() ? "-" : std::to_string(c.sequence);
+        if (listCard(w, "c" + std::to_string(c.id), selected, pathwayColour(w.app.db, c.pathwayId), badge, c.name,
+                     subtitle) &&
+            !selected) {
             const int id = c.id;
             whenSaved(w, draft.dirty(), saveThis, [&w, id] {
                 if (const Character* found = w.app.db.findCharacter(id)) open(w, *found, false);
             });
         }
-        ImGui::Indent();
-        ImGui::TextDisabled("%s, %s", characterCode(c.id).c_str(),
-                            c.pathwayId.empty() ? "mortal"
-                                                : sequenceLabel(w.app.db.findPathway(c.pathwayId), c.sequence).c_str());
-        ImGui::Unindent();
+        if (ImGui::BeginItemTooltip()) {
+            ImGui::TextUnformatted((characterCode(c.id) + ", " +
+                                    (c.pathwayId.empty() ? std::string("ordinary mortal") : sequenceLabel(pathway, c.sequence)))
+                                       .c_str());
+            if (!c.shortDescription.empty()) ImGui::TextDisabled("%s", c.shortDescription.c_str());
+            ImGui::EndTooltip();
+        }
     }
     ImGui::Spacing();
     if (ImGui::TextLink("Add the Tarot Club or other samples")) {
@@ -545,13 +596,7 @@ void drawCharactersScreen(WindowState& w) {
     }
     Character& c = draft.value;
     const Sheet sheet = buildCharacterSheet(c, w.app.db);
-    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.6f);
-    ImGui::TextUnformatted(c.name.empty() ? "(unnamed)" : c.name.c_str());
-    ImGui::PopFont();
-    ImGui::SameLine();
-    ImGui::TextDisabled("%s", draft.isNew ? "new" : characterCode(c.id).c_str());
-    ImGui::TextColored(kMuted, "%s", sheet.subtitle.c_str());
-
+    header(w, c, draft.isNew, sheet.subtitle);
     EditorButtons buttons;
     buttons.dirty = draft.dirty();
     buttons.isNew = draft.isNew;

@@ -94,7 +94,8 @@ if(LOTM_BUILD_WINDOW)
         src/window/artifacts_screen.cpp
         src/window/pathways_screen.cpp
         src/window/settings_screen.cpp
-        src/window/compare_screen.cpp)
+        src/window/compare_screen.cpp
+        src/window/theme.cpp)
     target_link_libraries(lotm_window PRIVATE lotm_core imgui)
     if(WIN32)
         # A normal Windows program: no black console window behind it.

@@ -1,4 +1,6 @@
 // Sealed Artifacts tab: the list on the left, the artifact being edited on the right.
+#include <algorithm>
+
 #include "records.hpp"
 #include "storage.hpp"
 #include "ui.hpp"
@@ -89,21 +91,30 @@ void drawArtifactsScreen(WindowState& w) {
     ImGui::SetNextItemWidth(-FLT_MIN);
     ImGui::InputTextWithHint("##search", "Search names", &s.search);
     ImGui::Separator();
-    if (draft.open && draft.isNew) ImGui::Selectable("(new Sealed Artifact)", true);
+    auto badge = [](const Artifact& a) {
+        return a.sequenceLevel == kUnknownSequence ? std::string("?") : std::to_string(a.sequenceLevel);
+    };
+    if (draft.open && draft.isNew) {
+        listCard(w, "new", true, pathwayColour(w.app.db, draft.value.pathwayId), badge(draft.value),
+                 draft.value.name.empty() ? "(new Sealed Artifact)" : draft.value.name, "Not saved yet");
+    }
     if (w.app.db.artifacts.empty()) ImGui::TextDisabled("No Sealed Artifacts yet.");
     for (const auto& a : w.app.db.artifacts) {
         if (!s.search.empty() && ui::toLower(a.name).find(ui::toLower(s.search)) == std::string::npos) continue;
         const bool selected = draft.open && !draft.isNew && draft.value.id == a.id;
-        if (ImGui::Selectable((a.name + "##" + std::to_string(a.id)).c_str(), selected) && !selected) {
+        const Pathway* pathway = w.app.db.findPathway(a.pathwayId);
+        const std::string subtitle = artifactCode(a.id) + ", " + (pathway ? pathway->name : std::string("unknown pathway"));
+        if (listCard(w, "a" + std::to_string(a.id), selected, pathwayColour(w.app.db, a.pathwayId), badge(a), a.name,
+                     subtitle) &&
+            !selected) {
             const int id = a.id;
             whenSaved(w, draft.dirty(), saveThis, [&w, id] {
                 if (const Artifact* found = w.app.db.findArtifact(id)) open(w, *found, false);
             });
         }
-        ImGui::Indent();
-        ImGui::TextDisabled("%s, %s", artifactCode(a.id).c_str(),
-                            a.pathwayId.empty() ? "unknown pathway" : pathwayLabel(w.app.db, a.pathwayId).c_str());
-        ImGui::Unindent();
+        ImGui::SetItemTooltip("%s", a.sequenceLevel == kUnknownSequence
+                                        ? "Sequence level unknown"
+                                        : ("Sequence " + std::to_string(a.sequenceLevel) + " level").c_str());
     }
     ImGui::EndChild();
     ImGui::SameLine();
@@ -117,11 +128,34 @@ void drawArtifactsScreen(WindowState& w) {
     }
     Artifact& a = draft.value;
     const Sheet sheet = buildArtifactSheet(a, w.app.db);
-    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.6f);
+    const ImVec4 colour = pathwayColour(w.app.db, a.pathwayId);
+    const float font = ImGui::GetFontSize();
+    medallion(w, a.sequenceLevel == kUnknownSequence ? "?" : std::to_string(a.sequenceLevel), colour, font * 2.1f);
+    ImGui::SameLine(0.0f, font * 0.9f);
+    ImGui::BeginGroup();
+    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.9f);
     ImGui::TextUnformatted(a.name.empty() ? "(unnamed)" : a.name.c_str());
     ImGui::PopFont();
     ImGui::SameLine();
+    ImGui::AlignTextToFramePadding();
     ImGui::TextDisabled("%s", draft.isNew ? "new" : artifactCode(a.id).c_str());
+    ImGui::TextColored(palette().muted, "%s", sheet.subtitle.c_str());
+    chip(a.pathwayId.empty() ? "Unknown pathway" : pathwayLabel(w.app.db, a.pathwayId), colour);
+    ImGui::SameLine();
+    chip(a.sequenceLevel == kUnknownSequence ? "Sequence unknown" : "Sequence " + std::to_string(a.sequenceLevel) + " level",
+         colour);
+    std::vector<std::string> holders;
+    for (const auto& c : w.app.db.characters) {
+        if (std::find(c.artifactIds.begin(), c.artifactIds.end(), a.id) != c.artifactIds.end()) holders.push_back(c.name);
+    }
+    if (!holders.empty()) {
+        std::string text = "Held by " + holders[0];
+        if (holders.size() > 1) text += " and " + std::to_string(holders.size() - 1) + " more";
+        ImGui::SameLine();
+        chip(text, palette().muted);
+    }
+    ImGui::EndGroup();
+    ImGui::Spacing();
 
     EditorButtons buttons;
     buttons.dirty = draft.dirty();

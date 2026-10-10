@@ -217,6 +217,35 @@ void sequencesTab(Pathway& p) {
     }
 }
 
+// The top of one of your own pathways: a medallion in its group's colour, the name and god, and
+// chips for its stats, speed and group.
+void pathwayHeader(const WindowState& w, const Pathway& p) {
+    const float font = ImGui::GetFontSize();
+    const ImVec4 colour = pathwayColour(w.app.db, p.id);
+    medallion(w, initials(p.name.empty() ? "?" : p.name), colour, font * 2.1f);
+    ImGui::SameLine(0.0f, font * 0.9f);
+    ImGui::BeginGroup();
+    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.9f);
+    ImGui::TextUnformatted(p.name.empty() ? "(unnamed pathway)" : (p.name + " pathway").c_str());
+    ImGui::PopFont();
+    ImGui::TextColored(palette().muted, "%s", p.god.empty() ? "No god named yet" : ("Leads to " + p.god).c_str());
+    if (!p.primaryStat.empty()) {
+        chip("Primary " + p.primaryStat, colour);
+        ImGui::SameLine();
+    }
+    if (!p.secondaryStat.empty()) {
+        chip("Secondary " + p.secondaryStat, colour);
+        ImGui::SameLine();
+    }
+    chip("Speed: " + p.speedGrade, colour);
+    if (!p.group.empty()) {
+        ImGui::SameLine();
+        chip(p.group, palette().muted);
+    }
+    ImGui::EndGroup();
+    ImGui::Spacing();
+}
+
 void drawBuiltIn(WindowState& w, const Pathway& p) {
     const Sheet sheet = buildPathwaySheet(p);
     if (ImGui::Button("Copy into a new pathway of your own")) openCopy(w, p);
@@ -272,6 +301,7 @@ void drawPathwaysScreen(WindowState& w) {
                 if (!(draft.open && draft.isNew && custom)) ImGui::SeparatorText(group.c_str());
             }
             const bool selected = custom ? (draft.open && !draft.isNew && draft.value.id == p.id) : s.viewingId == p.id;
+            statusDot(pathwayColour(w.app.db, p.id));
             if (ImGui::Selectable((label + "##" + p.id).c_str(), selected) && !selected) {
                 const std::string id = p.id;
                 whenSaved(w, draft.dirty(), saveThis, [&w, id, custom] {
@@ -304,13 +334,7 @@ void drawPathwaysScreen(WindowState& w) {
     }
 
     Pathway& p = draft.value;
-    ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.6f);
-    ImGui::TextUnformatted(p.name.empty() ? "(unnamed pathway)" : (p.name + " pathway").c_str());
-    ImGui::PopFont();
-    if (!p.god.empty()) {
-        ImGui::SameLine();
-        ImGui::TextDisabled("%s", p.god.c_str());
-    }
+    pathwayHeader(w, p);
 
     EditorButtons buttons;
     buttons.dirty = draft.dirty();

@@ -50,5 +50,6 @@ inline const std::vector<std::string> kStatuses = {"Active", "At large", "Under 
 inline const std::vector<std::string> kSpeedGrades = {"Slow", "Average", "Fast", "Very fast"};
 inline const std::vector<std::string> kHpModes = {"ask", "always", "never"};
 inline const std::vector<std::string> kExportThemes = {"auto", "light", "dark"};
+inline const std::vector<std::string> kWindowThemes = {"night", "parchment"};
 
 }  // namespace lotm

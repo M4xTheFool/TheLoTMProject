@@ -19,59 +19,6 @@ ImU32 colour(const ImVec4& c, float alpha = 1.0f) { return ImGui::GetColorU32(Im
 // The highest score shown on a stat chart or bar: 20, or more when someone goes past it.
 int scaleFor(int highest) { return std::max(20, (highest + 4) / 5 * 5); }
 
-// Chart rings every 5 points, or every 10 once the scale goes past 30.
-int ringStep(int scale) { return scale > 30 ? 10 : 5; }
-
-// Six spokes, one per stat, with one outline per character.
-void statChart(const WindowState& w, const std::vector<const Character*>& characters, float size) {
-    std::vector<std::array<int, kStatCount>> totals;
-    int highest = 0;
-    for (const Character* c : characters) {
-        totals.push_back(statTotals(*c, w.app.db.findPathway(c->pathwayId)));
-        highest = std::max(highest, *std::max_element(totals.back().begin(), totals.back().end()));
-    }
-    const int step = ringStep(scaleFor(highest));
-    const int scale = (scaleFor(highest) + step - 1) / step * step;
-
-    ImDrawList* draw = ImGui::GetWindowDrawList();
-    const ImVec2 origin = ImGui::GetCursorScreenPos();
-    const ImVec2 centre(origin.x + size * 0.5f, origin.y + size * 0.5f);
-    const float labelRoom = ImGui::GetFontSize() * 1.6f;
-    const float radius = size * 0.5f - labelRoom;
-    auto point = [&](int axis, float fraction) {
-        const float angle = -1.5707963f + static_cast<float>(axis) * 1.0471976f;  // from the top, clockwise
-        return ImVec2(centre.x + std::cos(angle) * radius * fraction, centre.y + std::sin(angle) * radius * fraction);
-    };
-
-    const ImU32 grid = ImGui::GetColorU32(ImGuiCol_Border);
-    for (int ring = step; ring <= scale; ring += step) {
-        ImVec2 corners[kStatCount];
-        for (int axis = 0; axis < kStatCount; ++axis) {
-            corners[axis] = point(axis, static_cast<float>(ring) / static_cast<float>(scale));
-        }
-        draw->AddPolyline(corners, kStatCount, grid, ImDrawFlags_Closed, 1.0f);
-    }
-    for (int axis = 0; axis < kStatCount; ++axis) {
-        draw->AddLine(centre, point(axis, 1.0f), grid);
-        const char* code = kStatCodes[static_cast<size_t>(axis)];
-        const ImVec2 textSize = ImGui::CalcTextSize(code);
-        const ImVec2 at = point(axis, 1.0f + labelRoom * 0.55f / radius);
-        draw->AddText(ImVec2(at.x - textSize.x * 0.5f, at.y - textSize.y * 0.5f), colour(kMuted), code);
-    }
-    for (size_t i = 0; i < totals.size(); ++i) {
-        ImVec2 corners[kStatCount];
-        for (int axis = 0; axis < kStatCount; ++axis) {
-            const float fraction = static_cast<float>(totals[i][static_cast<size_t>(axis)]) / static_cast<float>(scale);
-            corners[axis] = point(axis, std::clamp(fraction, 0.0f, 1.0f));
-        }
-        draw->AddConcavePolyFilled(corners, kStatCount, colour(kSeries[i], 0.14f));
-        draw->AddPolyline(corners, kStatCount, colour(kSeries[i]), ImDrawFlags_Closed, 2.0f);
-        for (const ImVec2& corner : corners) draw->AddCircleFilled(corner, 3.0f, colour(kSeries[i]));
-    }
-    ImGui::Dummy(ImVec2(size, size));
-    ImGui::TextDisabled("Totals with pathway bonuses. A ring every %d points, up to %d.", step, scale);
-}
-
 // A thin bar under a number, filled in the character's colour.
 void bar(float fraction, const ImVec4& tint) {
     const ImVec2 at = ImGui::GetCursorScreenPos();
@@ -113,14 +60,14 @@ void sectionTable(const WindowState& w, const CompareSection& section, const cha
         const int scale = isStat ? scaleFor(highestStat) : row.label == "Speed" ? scaleFor(highestSpeed) : 0;
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        ImGui::TextColored(kMuted, "%s", row.label.c_str());
+        ImGui::TextColored(palette().muted, "%s", row.label.c_str());
         for (size_t i = 0; i < row.values.size(); ++i) {
             ImGui::TableNextColumn();
             // The highest value in a row is in bold, in that character's colour.
             const bool top = row.ranked && row.highest[i];
             if (top) {
                 ImGui::PushFont(w.fonts.bold, 0.0f);
-                ImGui::PushStyleColor(ImGuiCol_Text, kSeries[i]);
+                ImGui::PushStyleColor(ImGuiCol_Text, palette().series[i]);
             }
             ImGui::TextWrapped("%s", row.values[i].empty() ? "-" : row.values[i].c_str());
             if (top) {
@@ -128,7 +75,7 @@ void sectionTable(const WindowState& w, const CompareSection& section, const cha
                 ImGui::PopFont();
                 ImGui::SetItemTooltip("Highest of the characters compared");
             }
-            if (scale > 0) bar(static_cast<float>(row.numbers[i]) / static_cast<float>(scale), kSeries[i]);
+            if (scale > 0) bar(static_cast<float>(row.numbers[i]) / static_cast<float>(scale), palette().series[i]);
         }
     }
     ImGui::EndTable();
@@ -139,7 +86,7 @@ void abilitiesTable(const WindowState& w, const std::vector<const Character*>& c
     if (!beginColumns("abilities", characters.size())) return;
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
-    ImGui::TextColored(kMuted, "By Sequence");
+    ImGui::TextColored(palette().muted, "By Sequence");
     for (size_t i = 0; i < characters.size(); ++i) {
         ImGui::TableNextColumn();
         ImGui::PushID(static_cast<int>(i));
@@ -147,7 +94,7 @@ void abilitiesTable(const WindowState& w, const std::vector<const Character*>& c
         const Pathway* pathway = w.app.db.findPathway(c.pathwayId);
         if (!pathway) ImGui::TextDisabled("No pathway");
         for (const SequenceInfo* seq : pathway ? abilitiesUpTo(*pathway, c.sequence) : std::vector<const SequenceInfo*>{}) {
-            ImGui::TextColored(kSeries[i], "Sequence %d: %s", seq->sequence, seq->name.c_str());
+            ImGui::TextColored(palette().series[i], "Sequence %d: %s", seq->sequence, seq->name.c_str());
             for (const std::string& ability : seq->abilities) {
                 const auto [name, description] = splitAbility(ability);
                 ImGui::Bullet();
@@ -161,7 +108,7 @@ void abilitiesTable(const WindowState& w, const std::vector<const Character*>& c
             }
         }
         if (!c.uniquenessAbilities.empty()) {
-            ImGui::TextColored(kSeries[i], "From the Uniqueness");
+            ImGui::TextColored(palette().series[i], "From the Uniqueness");
             for (const std::string& ability : c.uniquenessAbilities) {
                 ImGui::Bullet();
                 ImGui::TextWrapped("%s", splitAbility(ability).first.empty() ? ability.c_str()
@@ -197,7 +144,7 @@ void drawCompareScreen(WindowState& w) {
         const bool wasTicked = found != s.ids.end();
         bool ticked = wasTicked;
         ImGui::BeginDisabled(!ticked && s.ids.size() >= kMaxCompared);
-        if (wasTicked) ImGui::PushStyleColor(ImGuiCol_CheckMark, kSeries[static_cast<size_t>(found - s.ids.begin())]);
+        if (wasTicked) ImGui::PushStyleColor(ImGuiCol_CheckMark, palette().series[static_cast<size_t>(found - s.ids.begin())]);
         if (ImGui::Checkbox((c.name + "##" + std::to_string(c.id)).c_str(), &ticked)) {
             if (ticked) s.ids.push_back(c.id);
             else s.ids.erase(std::remove(s.ids.begin(), s.ids.end(), c.id), s.ids.end());
@@ -235,15 +182,19 @@ void drawCompareScreen(WindowState& w) {
         for (size_t i = 0; i < characters.size(); ++i) {
             ImGui::TableNextColumn();
             ImGui::PushID(static_cast<int>(i));
-            ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.35f);
-            ImGui::PushStyleColor(ImGuiCol_Text, kSeries[i]);
-            ImGui::TextWrapped("%s", characters[i]->name.c_str());
+            const Character& c = *characters[i];
+            medallion(w, initials(c.name), palette().series[i], ImGui::GetFontSize() * 1.25f);
+            ImGui::SameLine();
+            ImGui::BeginGroup();
+            ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.45f);
+            ImGui::PushStyleColor(ImGuiCol_Text, palette().series[i]);
+            ImGui::TextWrapped("%s", c.name.c_str());
             ImGui::PopStyleColor();
             ImGui::PopFont();
-            const int id = characters[i]->id;
-            if (ImGui::TextLink("Open")) openCharacter(w, id);
+            if (ImGui::TextLink("Open")) openCharacter(w, c.id);
             ImGui::SameLine();
-            ImGui::TextDisabled("%s", characterCode(id).c_str());
+            ImGui::TextDisabled("%s", characterCode(c.id).c_str());
+            ImGui::EndGroup();
             ImGui::PopID();
         }
         ImGui::EndTable();
@@ -257,8 +208,10 @@ void drawCompareScreen(WindowState& w) {
             const float chartSize = std::min(ImGui::GetFontSize() * 17.0f, ImGui::GetContentRegionAvail().x);
             const float tableWidth = ImGui::GetFontSize() * (10.0f + 7.0f * static_cast<float>(characters.size()));
             const bool beside = ImGui::GetContentRegionAvail().x > chartSize + tableWidth;
+            std::vector<std::array<int, kStatCount>> totals;
+            for (const Character* c : characters) totals.push_back(statTotals(*c, w.app.db.findPathway(c->pathwayId)));
             ImGui::BeginGroup();
-            statChart(w, characters, chartSize);
+            statChart(totals, chartSize);
             ImGui::EndGroup();
             if (beside) ImGui::SameLine(0.0f, ImGui::GetFontSize());
             ImGui::BeginGroup();
