@@ -160,19 +160,25 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
     };
 
     CompareSection overview{"Overview", {}};
-    overview.rows.push_back(textRow("Pathway", each([&](const Character& c, const Pathway* p) -> std::string {
+    overview.rows.push_back(textRow("Pathway", each([&](const Character& c, const Pathway*) -> std::string {
         if (c.pathwayId.empty()) return "Ordinary mortal";
-        if (!p) return c.pathwayId;
-        return p->god.empty() ? p->name : p->name + " (" + p->god + ")";
+        std::string text = pathwayLabel(db, c.pathwayId);
+        if (isDualPathwayGod(c)) text += " and " + pathwayLabel(db, c.secondPathway.pathwayId);
+        return text;
     })));
     overview.rows.push_back(rankedRow(
         "Sequence",
         each([](const Character& c, const Pathway* p) -> std::string {
             if (c.pathwayId.empty()) return "-";
+            if (c.aboveSequence) return "Above the Sequence";
             const SequenceInfo* seq = p ? p->findSequence(c.sequence) : nullptr;
             return std::to_string(c.sequence) + (seq && !seq->name.empty() ? ": " + seq->name : "");
         }),
-        numbers([](const Character& c, const Pathway*) { return c.pathwayId.empty() ? 0 : 10 - c.sequence; })));
+        // Stronger counts higher: Sequence 9 is 1, Sequence 0 is 10, Above the Sequence 11.
+        numbers([](const Character& c, const Pathway*) {
+            if (c.pathwayId.empty()) return 0;
+            return c.aboveSequence ? 11 : 10 - c.sequence;
+        })));
     overview.rows.push_back(rankedRow("Power tier", each([](const Character& c, const Pathway*) {
                                           return speedTierOf(c).name;
                                       }),
@@ -183,6 +189,9 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
             const auto it = std::find(kThreatLevels.begin(), kThreatLevels.end(), threatLevelOf(c));
             return it == kThreatLevels.end() ? kMissing : static_cast<int>(it - kThreatLevels.begin());
         })));
+    overview.rows.push_back(textRow("Sefirah", each([&](const Character& c, const Pathway*) {
+        return c.sefirahId.empty() ? std::string() : sefirahLabel(db, c.sefirahId);
+    })));
     overview.rows.push_back(textRow("Affiliation", each([](const Character& c, const Pathway*) {
         const Affiliation& a = c.affiliation;
         if (a.rank.empty()) return a.organization;
@@ -221,17 +230,10 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
         })));
     out.sections.push_back(stats);
 
-    auto abilityCount = [](const Character& c, const Pathway* p) {
-        int n = 0;
-        if (p) {
-            for (const SequenceInfo* seq : abilitiesUpTo(*p, c.sequence)) n += static_cast<int>(seq->abilities.size());
-        }
-        return n + static_cast<int>(c.uniquenessAbilities.size());
-    };
     CompareSection powers{"Powers", {}};
     powers.rows.push_back(rankedRow(
-        "Abilities", each([&](const Character& c, const Pathway* p) { return std::to_string(abilityCount(c, p)); }),
-        numbers(abilityCount)));
+        "Abilities", each([&](const Character& c, const Pathway*) { return std::to_string(abilityCount(c, db)); }),
+        numbers([&](const Character& c, const Pathway*) { return abilityCount(c, db); })));
     powers.rows.push_back(rankedRow(
         "Sealed Artifacts", each([&](const Character& c, const Pathway*) {
             std::vector<std::string> names;

@@ -48,6 +48,48 @@ Pathway* Database::findPathway(const std::string& id) {
     return const_cast<Pathway*>(static_cast<const Database&>(*this).findPathway(id));
 }
 
+const Sefirah* Database::findSefirah(const std::string& id) const {
+    if (id.empty()) return nullptr;
+    for (const auto& s : sefirot) {
+        if (s.id == id) return &s;
+    }
+    return nullptr;
+}
+
+const Sefirah* Database::sefirahForPathway(const std::string& pathwayId) const {
+    if (pathwayId.empty()) return nullptr;
+    for (const auto& s : sefirot) {
+        if (std::find(s.pathwayIds.begin(), s.pathwayIds.end(), pathwayId) != s.pathwayIds.end()) return &s;
+    }
+    return nullptr;
+}
+
+std::vector<const Pathway*> Database::pathwayGroup(const std::string& pathwayId) const {
+    std::vector<const Pathway*> group;
+    const Pathway* own = findPathway(pathwayId);
+    if (!own) return group;
+    group.push_back(own);
+    if (const Sefirah* s = sefirahForPathway(pathwayId)) {
+        for (const auto& id : s->pathwayIds) {
+            if (const Pathway* p = findPathway(id); p && p != own) group.push_back(p);
+        }
+        return group;
+    }
+    if (own->group.empty()) return group;
+    for (const auto& p : pathways) {
+        if (&p != own && p.group == own->group) group.push_back(&p);
+    }
+    return group;
+}
+
+std::vector<const Character*> Database::sefirahHolders(const std::string& sefirahId) const {
+    std::vector<const Character*> holders;
+    for (const auto& c : characters) {
+        if (!sefirahId.empty() && c.sefirahId == sefirahId) holders.push_back(&c);
+    }
+    return holders;
+}
+
 Character* Database::findCharacter(int id) {
     for (auto& c : characters) {
         if (c.id == id) return &c;
@@ -150,6 +192,14 @@ std::string sequenceLabel(const Pathway* pathway, int sequence) {
         }
     }
     return label;
+}
+
+std::string sefirahLabel(const Database& db, const std::string& sefirahId) {
+    if (sefirahId.empty()) return "None";
+    const Sefirah* s = db.findSefirah(sefirahId);
+    if (!s) return sefirahId + " (Sefirah not found)";
+    if (s->greatOldOne.empty() || s->greatOldOne == s->name) return s->name;
+    return s->name + " (" + s->greatOldOne + ")";
 }
 
 std::pair<std::string, std::string> splitAbility(const std::string& ability) {

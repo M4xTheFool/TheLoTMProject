@@ -62,7 +62,7 @@ void runSettingsMenu(App& app) {
                               {"HP: " + s.hpMode + " (ask per character, always include, or never include)",
                                "Export theme: " + s.exportTheme + " (auto follows your system, or light / dark)",
                                "Backups kept per file: " + std::to_string(s.backupsToKeep),
-                               "Add a sample set (the Tarot Club and canon Sealed Artifacts)"},
+                               "Add a sample set (the Tarot Club, Adam and Amon)"},
                               "Back to the main menu");
         if (pick == 0) {
             int m = ui::choose("HP mode:", kHpModes, "Cancel");

@@ -176,17 +176,80 @@ bool pathwayCombo(const char* text, const Database& db, std::string& pathwayId, 
     return changed;
 }
 
-bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence) {
-    int climbed = 9 - sequence;  // the slider runs left to right, from Sequence 9 up to Sequence 0
-    const std::string shown = escapePercent(sequenceLabel(pathway, sequence));
+bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence, bool* above) {
+    // The slider runs left to right, from Sequence 9 up to Sequence 0, then Above the Sequence.
+    const bool isAbove = above && *above;
+    int climbed = isAbove ? 10 : 9 - sequence;
+    const std::string shown = isAbove ? "Above the Sequence" : escapePercent(sequenceLabel(pathway, sequence));
     ImGui::SetNextItemWidth(-FLT_MIN);
-    const bool changed = ImGui::SliderInt(id, &climbed, 0, 9, shown.c_str(), ImGuiSliderFlags_NoInput);
-    if (changed) sequence = 9 - climbed;
+    const bool changed = ImGui::SliderInt(id, &climbed, 0, above ? 10 : 9, shown.c_str(), ImGuiSliderFlags_NoInput);
+    if (changed) {
+        if (above) *above = climbed == 10;
+        sequence = climbed == 10 ? 0 : 9 - climbed;
+    }
     ImGui::TextDisabled("Sequence 9: weakest");
-    const char* right = "Sequence 0: a god";
+    const char* right = above ? "Above the Sequence: a Great Old One" : "Sequence 0: a god";
     ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(right).x);
     ImGui::TextDisabled("%s", right);
     return changed;
+}
+
+bool sefirahCombo(const char* text, const Database& db, std::string& sefirahId, const char* noneLabel) {
+    label(text);
+    const std::string preview = sefirahId.empty() ? noneLabel : sefirahLabel(db, sefirahId);
+    bool changed = false;
+    if (ImGui::BeginCombo(hidden(text).c_str(), preview.c_str(), ImGuiComboFlags_HeightLarge)) {
+        if (ImGui::Selectable(noneLabel, sefirahId.empty())) {
+            sefirahId.clear();
+            changed = true;
+        }
+        for (const auto& s : db.sefirot) {
+            const std::string name = sefirahLabel(db, s.id) + "##" + s.id;
+            if (ImGui::Selectable(name.c_str(), s.id == sefirahId)) {
+                sefirahId = s.id;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    return changed;
+}
+
+int savedCharacterList(const WindowState& w, std::string& search, int excludeId) {
+    const Database& db = w.app.db;
+    const float font = ImGui::GetFontSize();
+    ImGui::SetNextItemWidth(font * 20.0f);
+    if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+    ImGui::InputTextWithHint("##search", "Search names", &search);
+    auto lower = [](std::string text) {
+        for (char& ch : text) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        return text;
+    };
+    std::vector<const Character*> shown;
+    for (const auto& c : db.characters) {
+        if (c.id != excludeId && lower(c.name).find(lower(search)) != std::string::npos) shown.push_back(&c);
+    }
+    if (shown.empty()) {
+        ImGui::TextDisabled(db.characters.size() <= 1 ? "No other saved characters yet." : "Nobody by that name.");
+        return 0;
+    }
+    // Up to eight cards show at once; the list scrolls past that.
+    const float card = ImGui::GetTextLineHeight() * 2.0f + font * 0.8f + ImGui::GetStyle().ItemSpacing.y;
+    const float height = card * static_cast<float>(std::min<size_t>(shown.size(), 8)) + ImGui::GetStyle().WindowPadding.y;
+    int picked = 0;
+    ImGui::BeginChild("cards", ImVec2(font * 20.0f, height));
+    for (const Character* c : shown) {
+        const Pathway* p = db.findPathway(c->pathwayId);
+        const std::string subtitle = (c->pathwayId.empty() ? "Mortal" : levelName(*c) + (p ? ", " + p->name : "")) +
+                                     "  \xC2\xB7  " + characterCode(c->id);
+        ImGui::PushID(c->id);
+        if (listCard(w, "pick", false, pathwayColour(db, c->pathwayId), initials(c->name), c->name, subtitle)) {
+            picked = c->id;
+        }
+        ImGui::PopID();
+    }
+    ImGui::EndChild();
+    return picked;
 }
 
 void heading(const WindowState& w, const std::string& text) {

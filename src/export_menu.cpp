@@ -61,13 +61,22 @@ void exportPathway(App& app, const std::string& id) {
     exportSheets(app, exportName(*p), *format, {buildPathwaySheet(*p)}, p->name + " pathway");
 }
 
+void exportSefirah(App& app, const std::string& id) {
+    const Sefirah* s = app.db.findSefirah(id);
+    if (!s) return;
+    auto format = chooseFormat();
+    if (!format) return;
+    exportSheets(app, exportName(*s), *format, {buildSefirahSheet(*s, app.db)}, s->name);
+}
+
 void runExportMenu(App& app) {
     while (true) {
         ui::header("Export");
         ui::info("Files go to: " + app.storage.exportsDir().string());
         int pick = ui::choose("",
-                              {"One character", "One Sealed Artifact", "One pathway",
-                               "Everything (characters, Sealed Artifacts and your own pathways in one file)"},
+                              {"One character", "One Sealed Artifact", "One pathway", "One Sefirah",
+                               "Everything (characters, Sealed Artifacts, your own pathways and the Sefirot "
+                               "your characters hold, in one file)"},
                               "Back to the main menu");
         if (pick == 0) {
             if (app.db.characters.empty()) { ui::info("No characters yet."); continue; }
@@ -85,6 +94,12 @@ void runExportMenu(App& app) {
             int which = choosePathway(app, "Which pathway?", "Cancel", false);
             if (which >= 0) exportPathway(app, app.db.pathways[which].id);
         } else if (pick == 3) {
+            if (app.db.sefirot.empty()) { ui::info("No Sefirot found (sefirot.json is missing)."); continue; }
+            std::vector<std::string> names;
+            for (const auto& s : app.db.sefirot) names.push_back(sefirahLabel(app.db, s.id));
+            int which = ui::choose("Which Sefirah?", names, "Cancel");
+            if (which >= 0) exportSefirah(app, app.db.sefirot[which].id);
+        } else if (pick == 4) {
             if (app.db.characters.empty() && app.db.artifacts.empty()) { ui::info("The catalogue is empty."); continue; }
             auto format = chooseFormat();
             if (format) exportSheets(app, catalogueExportName(), *format, catalogueSheets(app.db), "The Catalogue");

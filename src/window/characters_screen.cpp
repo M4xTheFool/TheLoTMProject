@@ -103,6 +103,14 @@ void header(WindowState& w, const Character& c, bool isNew, const std::string& s
         chip(speedTierOf(c).name, pathway);
         ImGui::SameLine();
     }
+    if (isDualPathwayGod(c)) {
+        chip("Dual-pathway god", pathwayColour(w.app.db, c.secondPathway.pathwayId));
+        ImGui::SameLine();
+    }
+    if (const Sefirah* s = w.app.db.findSefirah(c.sefirahId)) {
+        chip(s->name, palette().gold);
+        ImGui::SameLine();
+    }
     const std::string threat = threatLevelOf(c);
     chip("Threat: " + threat, threatColour(threat));
     if (!c.affiliation.organization.empty()) {
@@ -148,6 +156,95 @@ void looksTab(Character& c) {
     multilineField("Their look in your own words", a.description, 5);
 }
 
+// Checkboxes for the pathway's Sequence 0 powers a Uniqueness grants, plus powers typed in by hand.
+void uniquenessPowers(const char* id, const Pathway* p, std::vector<std::string>& held) {
+    ImGui::PushID(id);
+    ImGui::TextUnformatted("Sequence 0 powers it grants");
+    const SequenceInfo* god = p ? p->findSequence(0) : nullptr;
+    std::vector<std::string> offered = god ? god->abilities : std::vector<std::string>{};
+    for (const auto& ability : offered) {
+        bool on = std::find(held.begin(), held.end(), ability) != held.end();
+        const std::string name = splitAbility(ability).first;
+        if (ImGui::Checkbox(((name.empty() ? ability : name) + "##" + ability).c_str(), &on)) {
+            if (on) held.push_back(ability);
+            else held.erase(std::remove(held.begin(), held.end(), ability), held.end());
+        }
+        ImGui::SetItemTooltip("%s", ability.c_str());
+    }
+    // Powers typed in by hand: everything picked that isn't one of the listed ones.
+    std::vector<std::string> own;
+    for (const auto& a : held) {
+        if (std::find(offered.begin(), offered.end(), a) == offered.end()) own.push_back(a);
+    }
+    ImGui::TextDisabled("Your own, written as \"Name: what it does\":");
+    if (listEditor("ownUniqueness", own, "add a power of your own")) {
+        std::vector<std::string> picked;
+        for (const auto& a : held) {
+            if (std::find(offered.begin(), offered.end(), a) != offered.end()) picked.push_back(a);
+        }
+        picked.insert(picked.end(), own.begin(), own.end());
+        held = picked;
+    }
+    ImGui::PopID();
+}
+
+// A Sequence 0 god's second pathway: its Sequence 1 characteristic(s) and, usually, its Uniqueness.
+void secondPathwaySection(WindowState& w, Character& c) {
+    const Database& db = w.app.db;
+    ImGui::SeparatorText("Second pathway (dual-pathway god)");
+    if (!dualPathwayEligible(c)) {
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        ImGui::TextWrapped("%s", c.aboveSequence
+                                     ? "Above the Sequence they hold every Uniqueness of their group, so there is no "
+                                       "second pathway to add."
+                                     : "A Sequence 0 god can take a second pathway: its Sequence 1 Beyonder characteristic "
+                                       "and, usually, its Uniqueness. Move the slider to Sequence 0 to choose one.");
+        ImGui::PopStyleColor();
+        return;
+    }
+    SecondPathway& second = c.secondPathway;
+    std::string picked = second.pathwayId;
+    if (pathwayCombo("Second pathway", db, picked, "None (one pathway)") && picked != second.pathwayId) {
+        if (picked == c.pathwayId) {
+            setStatus(w, "The second pathway has to be a different one from their own.", true);
+        } else {
+            second = SecondPathway{};
+            second.pathwayId = picked;
+        }
+    }
+    if (second.empty()) {
+        ImGui::TextDisabled("Amon, Sequence 0 Error, took the Door Uniqueness and a Key of Stars characteristic this way.");
+        return;
+    }
+    const Pathway* other = db.findPathway(second.pathwayId);
+    const auto group = db.pathwayGroup(c.pathwayId);
+    if (other && std::find(group.begin(), group.end(), other) == group.end()) {
+        ImGui::TextColored(palette().warning, "Not a neighbour of their pathway: canon dual-pathway gods combine "
+                                              "neighbouring pathways.");
+    }
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Characteristics");
+    ImGui::SameLine(ImGui::GetFontSize() * 9.5f);
+    ImGui::RadioButton("One##second", &second.beyonderCharacteristics, 1);
+    ImGui::SameLine();
+    ImGui::RadioButton(("Two of " + sequenceLabel(other, 1)).c_str(), &second.beyonderCharacteristics, 2);
+    ImGui::Checkbox("Holds its Uniqueness too", &second.hasUniqueness);
+    if (!second.hasUniqueness) return;
+    ImGui::Indent();
+    if (other && !other->uniqueness.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        ImGui::TextWrapped("The %s Uniqueness: %s", other->name.c_str(), other->uniqueness.c_str());
+        ImGui::PopStyleColor();
+        if (second.uniquenessForm != other->uniqueness && ImGui::SmallButton("Start from this description##second")) {
+            second.uniquenessForm = other->uniqueness;
+        }
+    }
+    multilineField("What that Uniqueness looks like and the shape it takes", second.uniquenessForm, 3);
+    ImGui::Spacing();
+    uniquenessPowers("second", other, second.uniquenessAbilities);
+    ImGui::Unindent();
+}
+
 void pathwayTab(WindowState& w, Character& c) {
     const Database& db = w.app.db;
     pathwayCombo("Pathway", db, c.pathwayId, "No pathway (ordinary mortal)");
@@ -159,7 +256,10 @@ void pathwayTab(WindowState& w, Character& c) {
     }
     ImGui::Spacing();
     ImGui::TextUnformatted("Sequence");
-    sequenceSlider("##sequence", p, c.sequence);
+    const bool wasAbove = c.aboveSequence;
+    sequenceSlider("##sequence", p, c.sequence, &c.aboveSequence);
+    const Sefirah* groupSefirah = db.sefirahForPathway(c.pathwayId);
+    if (c.aboveSequence && !wasAbove && c.sefirahId.empty() && groupSefirah) c.sefirahId = groupSefirah->id;
 
     ImGui::Spacing();
     const auto bonus = statBonuses(c, p);
@@ -173,28 +273,51 @@ void pathwayTab(WindowState& w, Character& c) {
     ImGui::TextWrapped("Speed tier %d, %s. Speed grade %s. Stat bonuses at this Sequence: %s.", tier.tier,
                        tier.name.c_str(), p->speedGrade.c_str(), bonuses.empty() ? "none" : bonuses.c_str());
 
-    if (const SequenceInfo* s = p->findSequence(c.sequence)) {
+    if (c.aboveSequence) {
+        ImGui::SeparatorText("Above the Sequence");
+        const auto group = db.pathwayGroup(c.pathwayId);
+        std::string names;
+        for (size_t i = 0; i < group.size(); ++i) {
+            names += (i == 0 ? "" : i + 1 == group.size() ? " and " : ", ") + group[i]->name;
+        }
+        ImGui::TextWrapped("A Great Old One: past Sequence 0, holding %s and every Uniqueness of the %s %s, with all "
+                           "their Sequence 0 powers.",
+                           groupSefirah ? groupSefirah->name.c_str() : "their group's Sefirah", names.c_str(),
+                           group.size() == 1 ? "pathway" : "pathways");
+        if (groupSefirah && !groupSefirah->greatOldOne.empty()) {
+            ImGui::TextColored(palette().gold, "%s", groupSefirah->greatOldOne.c_str());
+            ImGui::SameLine();
+            ImGui::TextDisabled("the Great Old One of this group");
+        }
+        if (groupSefirah && c.sefirahId != groupSefirah->id) {
+            ImGui::TextColored(palette().warning, "They don't hold %s.", groupSefirah->name.c_str());
+            ImGui::SameLine();
+            if (ImGui::SmallButton(("Give them " + groupSefirah->name).c_str())) c.sefirahId = groupSefirah->id;
+        }
+    } else if (const SequenceInfo* s = p->findSequence(c.sequence)) {
         ImGui::SeparatorText((sequenceLabel(p, c.sequence) + " adds").c_str());
         if (s->abilities.empty()) ImGui::TextDisabled("No abilities written for this Sequence yet.");
         for (const auto& a : s->abilities) ImGui::BulletText("%s", a.c_str());
     }
-    const auto all = abilitiesUpTo(*p, c.sequence);
-    size_t count = 0;
-    for (const SequenceInfo* s : all) count += s->abilities.size();
-    const std::string header = "Every ability from Sequence 9 down (" + std::to_string(count) + ")";
+    const std::string header = "Every ability they have (" + std::to_string(abilityCount(c, db)) + ")";
     if (ImGui::CollapsingHeader(header.c_str())) {
-        for (const SequenceInfo* s : all) {
-            ImGui::TextColored(palette().gold, "%s", sequenceLabel(p, s->sequence).c_str());
-            for (const auto& a : s->abilities) ImGui::BulletText("%s", a.c_str());
+        for (const AbilityGroup& group : abilityGroups(c, db)) {
+            ImGui::TextColored(palette().gold, "%s", group.heading.c_str());
+            for (const auto& a : group.abilities) ImGui::BulletText("%s", a.c_str());
         }
     }
+
+    secondPathwaySection(w, c);
 }
 
 void uniquenessSection(WindowState& w, Character& c) {
     const Pathway* p = w.app.db.findPathway(c.pathwayId);
     ImGui::SeparatorText("Beyonder characteristics and the Uniqueness");
     if (absorbedUniqueness(c)) {
-        ImGui::TextWrapped("At Sequence 0 the Uniqueness has been absorbed, so every Sequence 0 power is theirs.");
+        ImGui::TextWrapped("%s", c.aboveSequence
+                                     ? "Above the Sequence they have absorbed every Uniqueness of their pathway group."
+                                     : "At Sequence 0 the Uniqueness has been absorbed, so every Sequence 0 power is "
+                                       "theirs.");
         multilineField("How the absorbed Uniqueness looks and shows itself now (optional)", c.uniquenessForm, 4);
         return;
     }
@@ -227,34 +350,7 @@ void uniquenessSection(WindowState& w, Character& c) {
     multilineField("What the Uniqueness looks like and what shape it takes", c.uniquenessForm, 5);
 
     ImGui::Spacing();
-    ImGui::TextUnformatted("Sequence 0 powers it grants");
-    const SequenceInfo* god = p ? p->findSequence(0) : nullptr;
-    std::vector<std::string> offered = god ? god->abilities : std::vector<std::string>{};
-    for (const auto& ability : offered) {
-        bool held = std::find(c.uniquenessAbilities.begin(), c.uniquenessAbilities.end(), ability) !=
-                    c.uniquenessAbilities.end();
-        const std::string name = splitAbility(ability).first;
-        if (ImGui::Checkbox(((name.empty() ? ability : name) + "##" + ability).c_str(), &held)) {
-            auto& list = c.uniquenessAbilities;
-            if (held) list.push_back(ability);
-            else list.erase(std::remove(list.begin(), list.end(), ability), list.end());
-        }
-        ImGui::SetItemTooltip("%s", ability.c_str());
-    }
-    // Powers typed in by hand: everything picked that isn't one of the listed ones.
-    std::vector<std::string> own;
-    for (const auto& a : c.uniquenessAbilities) {
-        if (std::find(offered.begin(), offered.end(), a) == offered.end()) own.push_back(a);
-    }
-    ImGui::TextDisabled("Your own, written as \"Name: what it does\":");
-    if (listEditor("ownUniqueness", own, "add a power of your own")) {
-        std::vector<std::string> picked;
-        for (const auto& a : c.uniquenessAbilities) {
-            if (std::find(offered.begin(), offered.end(), a) != offered.end()) picked.push_back(a);
-        }
-        picked.insert(picked.end(), own.begin(), own.end());
-        c.uniquenessAbilities = picked;
-    }
+    uniquenessPowers("own", p, c.uniquenessAbilities);
     ImGui::Unindent();
 }
 
@@ -288,6 +384,10 @@ void customizationTab(WindowState& w, Character& c) {
     }
 
     uniquenessSection(w, c);
+
+    ImGui::SeparatorText("Sefirah");
+    sefirahCombo("Holds", w.app.db, c.sefirahId, "None");
+    ImGui::TextDisabled("A source of power that gathers a pathway group's Uniquenesses. See the Sefirot tab.");
 }
 
 void statsTab(WindowState& w, Character& c) {
@@ -423,8 +523,8 @@ void relationshipsTab(WindowState& w, Character& c) {
     if (!c.affiliation.organization.empty()) textField("Rank or role", c.affiliation.rank);
 
     ImGui::SeparatorText("Relationships");
-    ImGui::TextWrapped("Type anyone's name. If it matches a saved character, the two are linked when you save, "
-                       "and they get the relationship back.");
+    ImGui::TextWrapped("Pick one of your saved characters, or type anyone's name. Saved characters are linked when "
+                       "you save, and they get the relationship back.");
     int removeIndex = -1;
     if (!c.relationships.empty() &&
         ImGui::BeginTable("relationships", 4, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg)) {
@@ -438,11 +538,27 @@ void relationshipsTab(WindowState& w, Character& c) {
             ImGui::PushID(static_cast<int>(i));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
+            const float pickWidth = ImGui::GetFrameHeight();
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - pickWidth - ImGui::GetStyle().ItemInnerSpacing.x);
             ImGui::InputTextWithHint("##name", "name", &r.name);
             const auto matches = w.app.db.findCharactersByName(r.name, c.id);
             const bool willLink = matches.size() == 1 && ui::toLower(matches[0]->name) == ui::toLower(r.name);
             if (willLink) ImGui::SetItemTooltip("Linked to the saved character %s", characterCode(matches[0]->id).c_str());
+            ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+            if (ImGui::BeginCombo("##pick", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft |
+                                                         ImGuiComboFlags_HeightLarge)) {
+                for (const auto& other : w.app.db.characters) {
+                    if (other.id == c.id) continue;
+                    const std::string item = other.name + "  (" + characterCode(other.id) + ")##" + std::to_string(other.id);
+                    if (ImGui::Selectable(item.c_str(), other.id == r.characterId)) {
+                        r.characterId = other.id;
+                        r.name = other.name;
+                    }
+                }
+                if (w.app.db.characters.size() <= 1) ImGui::TextDisabled("No other saved characters yet.");
+                ImGui::EndCombo();
+            }
+            ImGui::SetItemTooltip("Pick one of your saved characters");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             if (ImGui::BeginCombo("##type", r.type.c_str(), ImGuiComboFlags_HeightLarge)) {
@@ -462,7 +578,18 @@ void relationshipsTab(WindowState& w, Character& c) {
         ImGui::EndTable();
     }
     if (removeIndex >= 0) c.relationships.erase(c.relationships.begin() + removeIndex);
-    if (ImGui::Button("+ Add a relationship")) c.relationships.push_back({0, "", "Friend", ""});
+    if (ImGui::Button("+ Add a saved character")) ImGui::OpenPopup("pickCharacter");
+    if (ImGui::BeginPopup("pickCharacter")) {
+        static std::string search;
+        if (const int id = savedCharacterList(w, search, c.id)) {
+            if (const Character* other = w.app.db.findCharacter(id)) c.relationships.push_back({id, other->name, "Friend", ""});
+            search.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("+ Add someone by name")) c.relationships.push_back({0, "", "Friend", ""});
 }
 
 void dossierTab(Character& c) {
@@ -555,12 +682,16 @@ void drawCharactersScreen(WindowState& w) {
         const Pathway* pathway = w.app.db.findPathway(c.pathwayId);
         // The medallion shows the Sequence; the line below names it and the pathway.
         std::string subtitle = "Mortal";
-        if (!c.pathwayId.empty()) {
+        if (c.aboveSequence && !c.pathwayId.empty()) {
+            subtitle = "Above the Sequence" + (pathway ? ", " + pathway->name : "");
+        } else if (!c.pathwayId.empty()) {
             const SequenceInfo* seq = pathway ? pathway->findSequence(c.sequence) : nullptr;
             subtitle = (seq && !seq->name.empty() ? seq->name : "Sequence " + std::to_string(c.sequence)) +
                        (pathway ? ", " + pathway->name : "");
         }
-        const std::string badge = c.pathwayId.empty() ? "-" : std::to_string(c.sequence);
+        // The badge is the Sequence; Above the Sequence it is an infinity sign.
+        const std::string badge =
+            c.pathwayId.empty() ? "-" : c.aboveSequence ? "\xE2\x88\x9E" : std::to_string(c.sequence);
         if (listCard(w, "c" + std::to_string(c.id), selected, pathwayColour(w.app.db, c.pathwayId), badge, c.name,
                      subtitle) &&
             !selected) {
@@ -571,7 +702,9 @@ void drawCharactersScreen(WindowState& w) {
         }
         if (ImGui::BeginItemTooltip()) {
             ImGui::TextUnformatted((characterCode(c.id) + ", " +
-                                    (c.pathwayId.empty() ? std::string("ordinary mortal") : sequenceLabel(pathway, c.sequence)))
+                                    (c.pathwayId.empty() ? std::string("ordinary mortal")
+                                     : c.aboveSequence   ? std::string("Above the Sequence")
+                                                         : sequenceLabel(pathway, c.sequence)))
                                        .c_str());
             if (!c.shortDescription.empty()) ImGui::TextDisabled("%s", c.shortDescription.c_str());
             ImGui::EndTooltip();

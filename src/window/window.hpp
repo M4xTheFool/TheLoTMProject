@@ -1,4 +1,4 @@
-// The app window: the same characters, Sealed Artifacts and pathways as the console program,
+// The app window: the same characters, Sealed Artifacts, pathways and Sefirot as the console program,
 // edited with text boxes, dropdowns and sliders. Built with Dear ImGui, which redraws the whole
 // window many times a second: every draw* function below runs once per frame.
 #pragma once
@@ -95,12 +95,16 @@ struct PathwayScreen {
     std::string search;
 };
 
+struct SefirotScreen {
+    std::string selectedId;  // the Sefirah shown on the right
+};
+
 struct CompareScreen {
     std::vector<int> ids;  // the characters being compared, in the order they were ticked (up to four)
     std::string search;
 };
 
-enum class Tab { Characters, Compare, Artifacts, Pathways, Settings };
+enum class Tab { Characters, Compare, Artifacts, Pathways, Sefirot, Settings };
 
 struct WindowState {
     App app{Database{}, Storage{std::filesystem::path()}, Dice{}};  // loaded once the window is open
@@ -112,6 +116,7 @@ struct WindowState {
     CompareScreen compare;
     ArtifactScreen artifacts;
     PathwayScreen pathways;
+    SefirotScreen sefirot;
 
     // Sample sets in data/samples, read the first time the Settings tab shows them.
     std::optional<std::vector<SampleSet>> sampleSets;
@@ -135,6 +140,7 @@ void drawCharactersScreen(WindowState& w);
 void drawCompareScreen(WindowState& w);
 void drawArtifactsScreen(WindowState& w);
 void drawPathwaysScreen(WindowState& w);
+void drawSefirotScreen(WindowState& w);
 void drawSettingsScreen(WindowState& w);
 
 // Save the record open on each screen. On failure they return false and say why on the status line.
@@ -170,8 +176,14 @@ bool presetField(const char* label, std::string& value, const std::vector<std::s
 bool listEditor(const char* id, std::vector<std::string>& items, const char* addHint);
 // Pathways grouped under their neighbouring pathways. noneLabel names the empty choice.
 bool pathwayCombo(const char* label, const Database& db, std::string& pathwayId, const char* noneLabel);
-// A slider from Sequence 9 (left) to Sequence 0 (right), labelled with the Sequence's name.
-bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence);
+// A slider from Sequence 9 (left) to Sequence 0 (right), labelled with the Sequence's name. Given
+// `above`, it has one more step past Sequence 0: Above the Sequence.
+bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence, bool* above = nullptr);
+// Sefirot from sefirot.json. noneLabel names the empty choice.
+bool sefirahCombo(const char* label, const Database& db, std::string& sefirahId, const char* noneLabel);
+// The saved characters, to pick one without typing its name: a list with each one's
+// medallion, under a search box. Returns the picked character's id, or 0.
+int savedCharacterList(const WindowState& w, std::string& search, int excludeId);
 
 // A section heading in the title font, with a gold rule running to the right.
 void heading(const WindowState& w, const std::string& text);

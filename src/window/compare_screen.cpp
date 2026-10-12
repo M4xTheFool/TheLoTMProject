@@ -81,7 +81,7 @@ void sectionTable(const WindowState& w, const CompareSection& section, const cha
     ImGui::EndTable();
 }
 
-// Every ability each character has, by Sequence; hover a name for what it does.
+// Every ability each character has, grouped as on their sheet; hover a name for what it does.
 void abilitiesTable(const WindowState& w, const std::vector<const Character*>& characters) {
     if (!beginColumns("abilities", characters.size())) return;
     ImGui::TableNextRow();
@@ -91,11 +91,13 @@ void abilitiesTable(const WindowState& w, const std::vector<const Character*>& c
         ImGui::TableNextColumn();
         ImGui::PushID(static_cast<int>(i));
         const Character& c = *characters[i];
-        const Pathway* pathway = w.app.db.findPathway(c.pathwayId);
-        if (!pathway) ImGui::TextDisabled("No pathway");
-        for (const SequenceInfo* seq : pathway ? abilitiesUpTo(*pathway, c.sequence) : std::vector<const SequenceInfo*>{}) {
-            ImGui::TextColored(palette().series[i], "Sequence %d: %s", seq->sequence, seq->name.c_str());
-            for (const std::string& ability : seq->abilities) {
+        const auto groups = abilityGroups(c, w.app.db);
+        if (groups.empty()) ImGui::TextDisabled("No pathway");
+        for (const AbilityGroup& group : groups) {
+            ImGui::PushStyleColor(ImGuiCol_Text, palette().series[i]);
+            ImGui::TextWrapped("%s", group.heading.c_str());
+            ImGui::PopStyleColor();
+            for (const std::string& ability : group.abilities) {
                 const auto [name, description] = splitAbility(ability);
                 ImGui::Bullet();
                 ImGui::TextWrapped("%s", name.empty() ? description.c_str() : name.c_str());
@@ -105,14 +107,6 @@ void abilitiesTable(const WindowState& w, const std::vector<const Character*>& c
                     ImGui::PopTextWrapPos();
                     ImGui::EndTooltip();
                 }
-            }
-        }
-        if (!c.uniquenessAbilities.empty()) {
-            ImGui::TextColored(palette().series[i], "From the Uniqueness");
-            for (const std::string& ability : c.uniquenessAbilities) {
-                ImGui::Bullet();
-                ImGui::TextWrapped("%s", splitAbility(ability).first.empty() ? ability.c_str()
-                                                                              : splitAbility(ability).first.c_str());
             }
         }
         ImGui::PopID();

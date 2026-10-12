@@ -1,0 +1,151 @@
+{
+  "about": [
+    "The Sefirot of Lord of the Mysteries: sources of power and authority, each gathering the",
+    "Uniquenesses of a group of neighbouring pathways. A being who holds a Sefirah and every one of",
+    "its group's Uniquenesses is a Great Old One, Above the Sequence.",
+    "The program reads this file but never writes it; edit it by hand like pathways.json.",
+    "A character's sefirahId in characters.json is the id of the Sefirah they hold.",
+    "Facts come from the novels and the Lord of the Mysteries wiki; notes say what is sequel lore or a guess."
+  ],
+  "version": 1,
+  "sefirot": [
+    {
+      "id": "sefirah_castle",
+      "name": "Sefirah Castle",
+      "alsoKnownAs": [
+        "The palace above the gray fog"
+      ],
+      "greatOldOne": "Lord of Mysteries",
+      "pathwayIds": [
+        "seer",
+        "apprentice",
+        "marauder"
+      ],
+      "description": "An ancient castle floating above an endless gray fog. Whoever controls it can pull others' spirit bodies into it, hear prayers addressed to it and keep what happens there hidden from divination. Klein Moretti met the Tarot Club there. It is one of the Pillar-level Sefirot.",
+      "knownHolders": [
+        "Klein Moretti, the Fool, who controls it from the start of the story to its end"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "chaos_sea",
+      "name": "Chaos Sea",
+      "alsoKnownAs": [],
+      "greatOldOne": "God Almighty",
+      "pathwayIds": [
+        "spectator",
+        "bard",
+        "sailor",
+        "reader",
+        "secrets_supplicant"
+      ],
+      "description": "A sea of chaos left by the Original Creator, the source of matter and energy. It is the only Sefirah that merges the real and the illusory and can be entered from the physical world. It is one of the Pillar-level Sefirot.",
+      "knownHolders": [
+        "The Primordial God Almighty (the Original Creator), its first holder",
+        "The Ancient Sun God, who inherited it and rose Above the Sequence",
+        "Adam, who drew on it after fusing with the True Creator (about Ch. 1375) to become a Half Great Old One for a time"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "river_of_eternal_darkness",
+      "name": "River of Eternal Darkness",
+      "alsoKnownAs": [
+        "Netherworld",
+        "Yellow Springs"
+      ],
+      "greatOldOne": "Eternal Darkness",
+      "pathwayIds": [
+        "sleepless",
+        "corpse_collector",
+        "warrior"
+      ],
+      "description": "A river of darkness with many tributaries, running through the underworld where the dead go. With the City of Calamity it is one of the two symbols of the hidden Fourth Pillar.",
+      "knownHolders": [],
+      "notes": ""
+    },
+    {
+      "id": "city_of_calamity",
+      "name": "City of Calamity",
+      "alsoKnownAs": [],
+      "greatOldOne": "Calamity of Destruction",
+      "pathwayIds": [
+        "hunter",
+        "assassin"
+      ],
+      "description": "With the River of Eternal Darkness it is one of the two symbols of the hidden Fourth Pillar. Its will is called the Malevolent Dragon.",
+      "knownHolders": [],
+      "notes": ""
+    },
+    {
+      "id": "knowledge_moor",
+      "name": "Knowledge Moor",
+      "alsoKnownAs": [],
+      "greatOldOne": "Demon of Knowledge",
+      "pathwayIds": [
+        "mystery_pryer",
+        "savant"
+      ],
+      "description": "The Sefirah of knowledge, sought by the Hermit and Paragon pathways.",
+      "knownHolders": [],
+      "notes": ""
+    },
+    {
+      "id": "key_of_light",
+      "name": "Key of Light",
+      "alsoKnownAs": [
+        "Buddhist Kingdom of Light"
+      ],
+      "greatOldOne": "Key of Light",
+      "pathwayIds": [
+        "monster"
+      ],
+      "description": "The Sefirah of the Wheel of Fortune pathway. Its will, called the Golden Buddha, was never shattered.",
+      "knownHolders": [],
+      "notes": ""
+    },
+    {
+      "id": "brood_hive",
+      "name": "Brood Hive",
+      "alsoKnownAs": [
+        "Mother Nest"
+      ],
+      "greatOldOne": "Goddess of Origin",
+      "pathwayIds": [
+        "planter",
+        "apothecary"
+      ],
+      "description": "The Sefirah of the Mother and Moon pathways. Its will is called the Unborn Ancient Mother, and part of the Mother Goddess of Depravity's Sefirah was torn away into it.",
+      "knownHolders": [],
+      "notes": ""
+    },
+    {
+      "id": "tenebrous_world",
+      "name": "Tenebrous World",
+      "alsoKnownAs": [],
+      "greatOldOne": "Father of Devils",
+      "pathwayIds": [
+        "criminal",
+        "prisoner"
+      ],
+      "description": "The Sefirah of the Abyss and Chained pathways.",
+      "knownHolders": [],
+      "notes": ""
+    },
+    {
+      "id": "nation_of_disorder",
+      "name": "Nation of Disorder",
+      "alsoKnownAs": [
+        "Heavenly Court"
+      ],
+      "greatOldOne": "The Anarchy",
+      "pathwayIds": [
+        "lawyer",
+        "arbiter"
+      ],
+      "description": "The Sefirah of the Black Emperor and Justiciar pathways. It corrupted the Justiciar Uniqueness, which became the Trunsoest Brass Book. Its will is called the Celestial Thearch.",
+      "knownHolders": [],
+      "notes": ""
+    }
+  ]
+}

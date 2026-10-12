@@ -240,6 +240,16 @@ void Storage::loadAll(Database& db) const {
                   [](const SequenceInfo& a, const SequenceInfo& b) { return a.sequence > b.sequence; });
     }
 
+    // The Sefirot are reference data like pathways.json: edited by hand, never written by the program.
+    db.sefirot = readList<Sefirah>(dataDir_ / "sefirot.json", "sefirot");
+    std::set<std::string> sefirahIds;
+    for (const auto& s : db.sefirot) {
+        if (s.id.empty() || s.name.empty()) throw StorageError("sefirot.json: every Sefirah needs an id and a name.");
+        if (!sefirahIds.insert(s.id).second) {
+            throw StorageError("sefirot.json: the id \"" + s.id + "\" is used twice. Give one of them a new id.");
+        }
+    }
+
     db.characters = readList<Character>(dataDir_ / "characters.json", "characters");
     db.artifacts = readList<Artifact>(dataDir_ / "artifacts.json", "artifacts");
 

@@ -18,17 +18,20 @@ void mainMenu(lotm::App& app) {
         lotm::ui::header("LoTM Creator Suite");
         lotm::ui::info(std::to_string(app.db.characters.size()) + " characters, " +
                        std::to_string(app.db.artifacts.size()) + " Sealed Artifacts, " +
-                       std::to_string(app.db.pathways.size()) + " pathways loaded.");
+                       std::to_string(app.db.pathways.size()) + " pathways and " +
+                       std::to_string(app.db.sefirot.size()) + " Sefirot loaded.");
         int pick = lotm::ui::choose("", {"Create a character", "Create a Sealed Artifact", "Open the Catalogue",
-                                         "Pathways (look through them, or add your own)", "Export", "Settings"},
+                                         "Pathways (look through them, or add your own)",
+                                         "Sefirot (the sources of power, and who holds them)", "Export", "Settings"},
                                     "Quit");
         switch (pick) {
             case 0: lotm::runCharacterCreator(app); break;
             case 1: lotm::runArtifactCreator(app); break;
             case 2: lotm::runCatalogue(app); break;
             case 3: lotm::runPathwayMenu(app); break;
-            case 4: lotm::runExportMenu(app); break;
-            case 5: lotm::runSettingsMenu(app); break;
+            case 4: lotm::runSefirotMenu(app); break;
+            case 5: lotm::runExportMenu(app); break;
+            case 6: lotm::runSettingsMenu(app); break;
             default: return;
         }
     }
