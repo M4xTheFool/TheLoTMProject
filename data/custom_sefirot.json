@@ -1,0 +1,24 @@
+{
+  "about": [
+    "Your own Sefirot. The Sefirot tab (or menu) in the program creates, edits and deletes them,",
+    "and you can also edit this file by hand. It uses the same layout as sefirot.json, and every id",
+    "must be different from the ids in both files."
+  ],
+  "version": 1,
+  "sefirot": [
+    {
+      "id": "everstage",
+      "name": "Everstage",
+      "alsoKnownAs": [
+        "Phantom"
+      ],
+      "greatOldOne": "Sovereign of Strings",
+      "pathwayIds": [
+        "maestro"
+      ],
+      "description": "The Everstage, the Sefirah of Art and Creation. The Maestro is its only Standard Pathway, just as the Wheel of Fortune is the only pathway beneath the Key of Light. No one unravels on the Everstage, even though it stands inside The Scripts. It's a secret Seifrah of the 4th Pillar.",
+      "knownHolders": [],
+      "notes": ""
+    }
+  ]
+}
