@@ -148,6 +148,84 @@ bool listEditor(const char* id, std::vector<std::string>& items, const char* add
     return changed;
 }
 
+// An ability with only a name, or only a description, is stored as that text alone. While it is
+// being edited, the box it was typed into is remembered so the text doesn't jump to the other box.
+enum AbilityShape { kGuess = 0, kNameOnly = 1, kDescriptionOnly = 2 };
+
+std::pair<std::string, std::string> splitForEditing(const std::string& ability, int shape) {
+    if (ability.find(": ") == std::string::npos) {
+        if (shape == kNameOnly) return {ability, ""};
+        if (shape == kDescriptionOnly) return {"", ability};
+        // A short phrase with no full stop is most likely a name.
+        const bool looksLikeName = !ability.empty() && ability.size() <= 48 &&
+                                   ability.find_first_of(".!?") == std::string::npos;
+        if (looksLikeName) return {ability, ""};
+    }
+    return splitAbility(ability);
+}
+
+bool abilityListEditor(std::vector<std::string>& list) {
+    ImGuiStorage* storage = ImGui::GetStateStorage();
+    bool changed = false;
+    int moveUp = -1, moveDown = -1, remove = -1;
+    const ImGuiID focusRow = ImGui::GetID("focusRow");
+    for (size_t i = 0; i < list.size(); ++i) {
+        ImGui::PushID(static_cast<int>(i));
+        const ImGuiID shapeId = ImGui::GetID("shape");
+        auto [name, description] = splitForEditing(list[i], storage->GetInt(shapeId, kGuess));
+        const float buttons = ImGui::GetFrameHeight() * 3.0f + ImGui::GetStyle().ItemInnerSpacing.x * 3.0f;
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttons);
+        if (storage->GetInt(focusRow, -1) == static_cast<int>(i)) {
+            ImGui::SetKeyboardFocusHere();
+            storage->SetInt(focusRow, -1);
+        }
+        const bool nameChanged = ImGui::InputTextWithHint("##name", "ability name", &name);
+        const ImVec2 square(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+        if (ImGui::Button("^", square)) moveUp = static_cast<int>(i);
+        ImGui::SetItemTooltip("Move up");
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+        if (ImGui::Button("v", square)) moveDown = static_cast<int>(i);
+        ImGui::SetItemTooltip("Move down");
+        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+        if (ImGui::Button("x", square)) remove = static_cast<int>(i);
+        ImGui::SetItemTooltip("Remove");
+        const float lines = description.size() > 300 ? 6.0f : 3.0f;
+        const bool descriptionChanged = ImGui::InputTextMultiline(
+            "##what", &description,
+            ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * lines + ImGui::GetStyle().FramePadding.y * 2.0f),
+            ImGuiInputTextFlags_WordWrap);
+        if (nameChanged || descriptionChanged) {
+            changed = true;
+            list[i] = joinAbility(name, description);
+            const int shape = !description.empty() && name.empty() ? kDescriptionOnly
+                              : !name.empty() && description.empty() ? kNameOnly
+                                                                      : kGuess;
+            storage->SetInt(shapeId, shape);
+        }
+        ImGui::Spacing();
+        ImGui::PopID();
+    }
+    const size_t before = list.size();
+    if (moveUp > 0) std::swap(list[moveUp], list[moveUp - 1]);
+    if (moveDown >= 0 && moveDown + 1 < static_cast<int>(list.size())) std::swap(list[moveDown], list[moveDown + 1]);
+    if (remove >= 0) list.erase(list.begin() + remove);
+    if (ImGui::Button("+ Add an ability")) {
+        list.push_back("");
+        storage->SetInt(focusRow, static_cast<int>(list.size()) - 1);
+    }
+    if (moveUp > 0 || moveDown >= 0 || list.size() != before) {
+        changed = true;
+        // Rows changed places, so the remembered boxes no longer match them.
+        for (size_t i = 0; i < std::max(before, list.size()); ++i) {
+            ImGui::PushID(static_cast<int>(i));
+            storage->SetInt(ImGui::GetID("shape"), kGuess);
+            ImGui::PopID();
+        }
+    }
+    return changed;
+}
+
 bool pathwayCombo(const char* text, const Database& db, std::string& pathwayId, const char* noneLabel) {
     label(text);
     const std::string preview = pathwayId.empty() ? noneLabel : pathwayLabel(db, pathwayId);

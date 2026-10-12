@@ -3,6 +3,8 @@
     "The Sefirot of Lord of the Mysteries: sources of power and authority, each gathering the",
     "Uniquenesses of a group of neighbouring pathways. A being who holds a Sefirah, every Uniqueness of",
     "its group and a Sequence 1 characteristic of each pathway is a Great Old One, Above the Sequence.",
+    "symbolism and abilities describe that step past Sequence 0: what the Great Old One stands for and",
+    "what it can do (\"Name: what it does\").",
     "The program reads this file but never writes it; edit it by hand like pathways.json.",
     "A character's sefirahId in characters.json is the id of the Sefirah they hold.",
     "Descriptions and holders are first-novel facts with chapter numbers; notes say what is sequel lore",
@@ -17,6 +19,13 @@
         "The palace above the gray fog"
       ],
       "greatOldOne": "Lord of the Mysteries",
+      "symbolism": "Mysteries, the gray fog above reality, the Spirit World, and space and time.",
+      "abilities": [
+        "Lord of the Mysteries: Holds authority over every mystery, everything hidden and everything unknown.",
+        "Dominator of the Spirit World: Rules the Spirit World and the spirit bodies that drift through it.",
+        "King of Space-Time: Commands space and time, as the full title on the Second Blasphemy Slate says.",
+        "Castle above the Gray Fog: Pulls spirit bodies into Sefirah Castle, hears every prayer addressed to it and hides what happens there from divination."
+      ],
       "pathwayIds": [
         "seer",
         "apprentice",
@@ -27,7 +36,7 @@
         "The Lord of the Mysteries, also called the Celestial Worthy of Heaven and Earth for Blessings, in an earlier age (Ch. 1369)",
         "Klein Moretti, the Fool, its owner from the start of the story to its end"
       ],
-      "notes": "Full title on the Second Blasphemy Slate: Lord of the Mysteries, King of Space-Time, Embodiment of Sefirah Castle, Dominator of the Spirit World (Ch. 1345). Its Great Old One also needs the Attendant of Mysteries, Worm of Time and Key of Stars characteristics. After Amon's defeat the Error and Door Uniquenesses gather to Klein, who is called equivalent to half a Lord of the Mysteries (Ch. 1387, 1392)."
+      "notes": "Full title on the Second Blasphemy Slate: Lord of the Mysteries, King of Space-Time, Embodiment of Sefirah Castle, Dominator of the Spirit World (Ch. 1345). Its Great Old One also needs the Attendant of Mysteries, Worm of Time and Key of Stars characteristics. After Amon's defeat the Error and Door Uniquenesses gather to Klein, who is called equivalent to half a Lord of the Mysteries (Ch. 1387, 1392). The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "chaos_sea",
@@ -36,6 +45,12 @@
         "Sea of Chaos"
       ],
       "greatOldOne": "God Almighty",
+      "symbolism": "Creation, the source of matter and energy, and the place where the real and the illusory merge.",
+      "abilities": [
+        "Omnipotent and Omniscient: Sees and can do almost anything within the Chaos Sea's reach, as the full title says.",
+        "Source of Matter and Energy: Draws matter and energy out of the Chaos Sea to make whatever it needs.",
+        "Real and Illusory: Merges the real and the imagined, so what it pictures can become real."
+      ],
       "pathwayIds": [
         "spectator",
         "bard",
@@ -49,7 +64,7 @@
         "Sasrir, made from part of the Ancient Sun God's personality to control it, and corrupted by it (wiki)",
         "Adam, who with the True Creator drew on it to become Half a Great Old One for a while (Ch. 1376)"
       ],
-      "notes": "Full title on the Second Blasphemy Slate: God Almighty, Omnipotent and Omniscient (Ch. 1345). Sequel: in Circle of Inevitability, Grisha Adam accommodates it and merges with the Primordial God Almighty."
+      "notes": "Full title on the Second Blasphemy Slate: God Almighty, Omnipotent and Omniscient (Ch. 1345). Sequel: in Circle of Inevitability, Grisha Adam accommodates it and merges with the Primordial God Almighty. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "river_of_eternal_darkness",
@@ -59,6 +74,12 @@
         "Yellow Springs"
       ],
       "greatOldOne": "Eternal Darkness",
+      "symbolism": "Darkness, death, the underworld, and space and time folded into one.",
+      "abilities": [
+        "Eternal Darkness: Covers everything in a darkness that swallows light, sound and life.",
+        "River of the Dead: Rules the underworld where the dead go, through the river's many tributaries.",
+        "Space-Time-in-One: Folds space and time into a single point, as the full title says."
+      ],
       "pathwayIds": [
         "sleepless",
         "corpse_collector",
@@ -66,33 +87,43 @@
       ],
       "description": "A river of darkness with many tributaries, running through the underworld where the dead go. With the City of Calamity it is one of the two symbols of the hidden Fourth Pillar.",
       "knownHolders": [],
-      "notes": "Full title: Eternal Darkness, Singularity of All, Space-Time-in-One (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). It was the first to leak, with a distributary since the Second Epoch, and the Evernight Goddess uses its water (Ch. 1379); no one is named as holding all of it. The names Netherworld and Yellow Springs come from the sequel, Circle of Inevitability."
+      "notes": "Full title: Eternal Darkness, Singularity of All, Space-Time-in-One (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). It was the first to leak, with a distributary since the Second Epoch, and the Evernight Goddess uses its water (Ch. 1379); no one is named as holding all of it. The names Netherworld and Yellow Springs come from the sequel, Circle of Inevitability. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "city_of_calamity",
       "name": "City of Calamity",
       "alsoKnownAs": [],
       "greatOldOne": "Calamity of Destruction",
+      "symbolism": "Destruction, disaster and catastrophe.",
+      "abilities": [
+        "Origins of Disaster: Is the source of disasters and calls catastrophes down on cities and nations.",
+        "Calamity of Destruction: Destroys on the scale of a natural disaster wherever it turns."
+      ],
       "pathwayIds": [
         "hunter",
         "assassin"
       ],
       "description": "With the River of Eternal Darkness it is one of the two symbols of the hidden Fourth Pillar (Ch. 1347). A reflection of it waits behind a door in Bansy Harbor (Ch. 1369).",
       "knownHolders": [],
-      "notes": "Full title: Calamity of Destruction, Origins of Disaster (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: its will is called the Malevolent Dragon."
+      "notes": "Full title: Calamity of Destruction, Origins of Disaster (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: its will is called the Malevolent Dragon. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "knowledge_moor",
       "name": "Knowledge Moor",
       "alsoKnownAs": [],
       "greatOldOne": "Demon of Knowledge",
+      "symbolism": "Knowledge, and the madness that comes with knowing too much.",
+      "abilities": [
+        "Demon of Knowledge: Knows, and grants, any knowledge, always at a price.",
+        "Arcana of Madness: Knowledge taken from it drives the one who takes it toward madness."
+      ],
       "pathwayIds": [
         "mystery_pryer",
         "savant"
       ],
       "description": "The Sefirah of knowledge, sought by the Hermit and Paragon pathways.",
       "knownHolders": [],
-      "notes": "Full title: Demon of Knowledge, Arcana of Madness (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: tied to the Celestial Master's sect and the Hidden Sage."
+      "notes": "Full title: Demon of Knowledge, Arcana of Madness (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: tied to the Celestial Master's sect and the Hidden Sage. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "key_of_light",
@@ -101,12 +132,17 @@
         "Buddhist Kingdom of Light"
       ],
       "greatOldOne": "Key of Light",
+      "symbolism": "Fate, fortune and endless change.",
+      "abilities": [
+        "Incarnation of Fate: Embodies fate itself, seeing its course and bending it.",
+        "Endless Disorder: Turns fortune into misfortune and back again, without end."
+      ],
       "pathwayIds": [
         "monster"
       ],
       "description": "The Sefirah of the Wheel of Fortune pathway, the only group with a single pathway.",
       "knownHolders": [],
-      "notes": "Full title: Key of Light, Endless Disorder, Incarnation of Fate (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: the Buddhist Kingdom of Light, whose will, the Golden Buddha, was never shattered."
+      "notes": "Full title: Key of Light, Endless Disorder, Incarnation of Fate (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: the Buddhist Kingdom of Light, whose will, the Golden Buddha, was never shattered. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "brood_hive",
@@ -115,26 +151,36 @@
         "Mother Nest"
       ],
       "greatOldOne": "Goddess of Origins",
+      "symbolism": "Life, birth and growth, and the filth and decay that come with them.",
+      "abilities": [
+        "Mother of All: Gives birth to and shapes life of every kind.",
+        "Brood Hive of Filth: Spreads corruption, rot and decay through living things."
+      ],
       "pathwayIds": [
         "planter",
         "apothecary"
       ],
       "description": "The Sefirah of the Mother and Moon pathways, torn from the Mother Goddess of Depravity's own Sefirah (Ch. 1271, per the wiki). The Mother Goddess of Depravity is one of the Three Pillars (Ch. 1347).",
       "knownHolders": [],
-      "notes": "Full title: Goddess of Origins, Mother of All, Brood Hive of Filth (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: its will, the Unborn Ancient Mother, is worshipped by the Luo Sect."
+      "notes": "Full title: Goddess of Origins, Mother of All, Brood Hive of Filth (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: its will, the Unborn Ancient Mother, is worshipped by the Luo Sect. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "tenebrous_world",
       "name": "Tenebrous World",
       "alsoKnownAs": [],
       "greatOldOne": "Father of Devils",
+      "symbolism": "Evil, desire, curses and everything deviant.",
+      "abilities": [
+        "Source of Curses: Curses are born from it and answer to it.",
+        "Lord of Deviants: Rules devils, the depraved and everything that strays from what is right."
+      ],
       "pathwayIds": [
         "criminal",
         "prisoner"
       ],
       "description": "The Sefirah of the Abyss and Chained pathways.",
       "knownHolders": [],
-      "notes": "Full title: Father of Devils, Lord of Deviants, Source of Curses (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: tied to the Shadow Cottage sect."
+      "notes": "Full title: Father of Devils, Lord of Deviants, Source of Curses (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: tied to the Shadow Cottage sect. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     },
     {
       "id": "nation_of_disorder",
@@ -143,13 +189,18 @@
         "Heavenly Court"
       ],
       "greatOldOne": "The Anarchy",
+      "symbolism": "Order and its shadow: laws, rules, and the chaos they hide.",
+      "abilities": [
+        "Shadow of Order: Twists laws and rules into their opposite, so order breeds disorder.",
+        "The Anarchy: Brings rules, nations and order itself crashing down."
+      ],
       "pathwayIds": [
         "lawyer",
         "arbiter"
       ],
       "description": "The Sefirah of the Black Emperor and Justiciar pathways. It corrupted the Justiciar Uniqueness, which became the Trunsoest Brass Book (Ch. 1288, per the wiki).",
       "knownHolders": [],
-      "notes": "Full title: The Anarchy, Shadow of Order (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: the Heavenly Court, whose will is called the Celestial Thearch."
+      "notes": "Full title: The Anarchy, Shadow of Order (Ch. 1347). Sealed in the Western Continent in an earlier age, like every Sefirah except Sefirah Castle and the Chaos Sea (Ch. 1369). Sequel: the Heavenly Court, whose will is called the Celestial Thearch. The symbolism and Great Old One abilities are an interpretation of the full title and the description; the novel never lists them."
     }
   ]
 }

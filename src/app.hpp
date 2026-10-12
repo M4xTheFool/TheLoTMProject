@@ -24,6 +24,8 @@ void runExportMenu(App& app);
 void runSettingsMenu(App& app);
 void runPathwayMenu(App& app);
 void runSefirotMenu(App& app);
+// Lists abilities ("Name: what it does") and lets you add, change, move and remove them.
+void editAbilityList(std::vector<std::string>& abilities, const std::string& whose);
 
 // Shared helpers used by several screens.
 int choosePathway(const App& app, const std::string& title, const std::string& zeroLabel, bool allowKeep);

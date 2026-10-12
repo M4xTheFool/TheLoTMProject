@@ -181,6 +181,8 @@ ordered_json sefirahToJson(const Sefirah& s) {
     j["name"] = s.name;
     j["alsoKnownAs"] = s.alsoKnownAs;
     j["greatOldOne"] = s.greatOldOne;
+    j["symbolism"] = s.symbolism;
+    j["abilities"] = s.abilities;
     j["pathwayIds"] = s.pathwayIds;
     j["description"] = s.description;
     j["knownHolders"] = s.knownHolders;

@@ -64,8 +64,14 @@ struct AbilityGroup {
     // Its abilities stay unlisted; wholePathwayCount is how many it has.
     std::string summary;
     int wholePathwayCount = 0;
+    std::string symbolism;  // Above the Sequence: what the Great Old One symbolizes
 };
 std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db);
+// The Sefirah whose Great Old One a character Above the Sequence is: the one they hold when it gathers
+// their pathway, otherwise their pathway group's. Null when no Sefirah gathers their pathway.
+const Sefirah* greatOldOneSefirah(const Character& c, const Database& db);
+// "Above the Sequence: Lord of the Mysteries", or just "Above the Sequence" without a Great Old One.
+std::string aboveSequenceLabel(const Sefirah* sefirah);
 int abilityCount(const Character& c, const Database& db);  // abilities only, not movement
 
 // Threat level, added up from three things:

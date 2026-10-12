@@ -153,6 +153,10 @@ bool saveSefirahDraft(WindowState& w);
 
 // Opens a saved character on the Characters tab (asking first about unsaved changes there).
 void openCharacter(WindowState& w, int id);
+// Shows a Sefirah on the Sefirot tab, in the editor when it is one of your own.
+void openSefirah(WindowState& w, const std::string& id);
+// Starts a new Sefirah of your own on the Sefirot tab, gathering this pathway.
+void openNewSefirah(WindowState& w, const std::string& pathwayId);
 
 // Shows the saved version of the open character again, after something else changed it on disk
 // (adding a sample set can add relationships to it). Does nothing while it has unsaved changes.
@@ -178,6 +182,9 @@ bool presetField(const char* label, std::string& value, const std::vector<std::s
 // Short entries (titles, aliases): one text box each, with a remove button, plus an "Add" box.
 bool listEditor(const char* id, std::vector<std::string>& items, const char* addHint);
 // Pathways grouped under their neighbouring pathways. noneLabel names the empty choice.
+// Abilities as rows of a name box and a description box, with buttons to move and remove each one,
+// and "+ Add an ability". Stored as "Name: what it does". Returns true when the list changed.
+bool abilityListEditor(std::vector<std::string>& abilities);
 bool pathwayCombo(const char* label, const Database& db, std::string& pathwayId, const char* noneLabel);
 // A slider from Sequence 9 (left) to Sequence 0 (right), labelled with the Sequence's name. Given
 // `above`, it has one more step past Sequence 0: Above the Sequence.

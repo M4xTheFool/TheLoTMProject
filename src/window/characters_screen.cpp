@@ -283,15 +283,33 @@ void pathwayTab(WindowState& w, Character& c) {
                            "every ability of those pathways.",
                            groupSefirah ? groupSefirah->name.c_str() : "their group's Sefirah", names.c_str(),
                            group.size() == 1 ? "pathway" : "pathways");
-        if (groupSefirah && !groupSefirah->greatOldOne.empty()) {
-            ImGui::TextColored(palette().gold, "%s", groupSefirah->greatOldOne.c_str());
+        const Sefirah* goo = greatOldOneSefirah(c, db);
+        if (goo && !goo->greatOldOne.empty()) {
+            ImGui::TextColored(palette().gold, "%s", goo->greatOldOne.c_str());
             ImGui::SameLine();
-            ImGui::TextDisabled("the Great Old One of this group");
+            ImGui::TextDisabled("the Great Old One of %s", goo->name.c_str());
         }
-        if (groupSefirah && c.sefirahId != groupSefirah->id) {
-            ImGui::TextColored(palette().warning, "They don't hold %s.", groupSefirah->name.c_str());
+        if (goo && c.sefirahId != goo->id) {
+            ImGui::TextColored(palette().warning, "They don't hold %s.", goo->name.c_str());
             ImGui::SameLine();
-            if (ImGui::SmallButton(("Give them " + groupSefirah->name).c_str())) c.sefirahId = groupSefirah->id;
+            if (ImGui::SmallButton(("Give them " + goo->name).c_str())) c.sefirahId = goo->id;
+        }
+        ImGui::SeparatorText((aboveSequenceLabel(goo) + " adds").c_str());
+        if (!goo) {
+            ImGui::TextDisabled("No Sefirah gathers this pathway yet. Make one in the Sefirot tab to give it a "
+                                "Great Old One.");
+        } else {
+            if (!goo->symbolism.empty()) {
+                ImGui::TextColored(palette().muted, "Symbolism");
+                ImGui::SameLine();
+                ImGui::TextWrapped("%s", goo->symbolism.c_str());
+            }
+            if (goo->abilities.empty()) ImGui::TextDisabled("No Great Old One abilities written yet.");
+            for (const auto& a : goo->abilities) ImGui::BulletText("%s", a.c_str());
+            ImGui::TextDisabled("%s", goo->custom ? "They are written on the Sefirah, in the Sefirot tab."
+                                                  : "Copy the Sefirah into one of your own to write your own.");
+            ImGui::SameLine();
+            if (ImGui::TextLink(("Open " + goo->name).c_str())) openSefirah(w, goo->id);
         }
     } else if (const SequenceInfo* s = p->findSequence(c.sequence)) {
         ImGui::SeparatorText((sequenceLabel(p, c.sequence) + " adds").c_str());
@@ -303,6 +321,7 @@ void pathwayTab(WindowState& w, Character& c) {
         for (const AbilityGroup& group : abilityGroups(c, db)) {
             ImGui::TextColored(palette().gold, "%s", group.heading.c_str());
             if (!group.summary.empty()) ImGui::TextWrapped("%s.", group.summary.c_str());
+            if (!group.symbolism.empty()) ImGui::TextWrapped("Symbolism: %s", group.symbolism.c_str());
             for (const auto& a : group.abilities) ImGui::BulletText("%s", a.c_str());
         }
     }

@@ -61,6 +61,10 @@ struct Sefirah {
     std::string name;         // "Sefirah Castle"
     std::vector<std::string> alsoKnownAs;
     std::string greatOldOne;  // the Great Old One it belongs to, e.g. "Lord of the Mysteries"
+    // Above the Sequence, the step past Sequence 0 that this Sefirah's Great Old One stands on:
+    // what it symbolizes, and the abilities a Great Old One of this Sefirah has ("Name: what it does").
+    std::string symbolism;
+    std::vector<std::string> abilities;
     std::vector<std::string> pathwayIds;  // the pathway group, e.g. seer, apprentice, marauder
     std::string description;
     std::vector<std::string> knownHolders;  // who held it in the story, one line each

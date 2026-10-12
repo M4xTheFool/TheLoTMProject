@@ -350,6 +350,45 @@ static void testAboveTheSequence() {
     const Comparison result = buildComparison({&db.characters[0], &db.characters[1]}, db);
     const CompareRow& sequence = result.sections[0].rows[1];
     CHECK(sequence.values[0] == "Above the Sequence" && sequence.highest == std::vector<bool>({true, false}));
+
+    // Above the Sequence is one more step, written on the Sefirah: its symbolism and the Great Old
+    // One's abilities come right after Sequence 0.
+    db.sefirot[0].symbolism = "Mysteries and the gray fog";
+    db.sefirot[0].abilities = {"Lord of the Mysteries: Rules every mystery.", "Gray Fog: Hides anything."};
+    c.sefirahId = "sefirah_castle";
+    CHECK(greatOldOneSefirah(c, db) == &db.sefirot[0]);
+    const auto withGoo = abilityGroups(c, db);
+    CHECK(withGoo.size() == 13);
+    CHECK(withGoo[10].heading == "Above the Sequence: Lord of the Mysteries");
+    CHECK(withGoo[10].symbolism == "Mysteries and the gray fog" && withGoo[10].abilities.size() == 2);
+    CHECK(withGoo[11].heading == "Apprentice (Door)");
+    CHECK(abilityCount(c, db) == 32);
+    const std::string gooText = renderText(buildCharacterSheet(c, db));
+    CHECK(gooText.find("Symbolism: Mysteries and the gray fog") != std::string::npos);
+    CHECK(gooText.find("Gray Fog: Hides anything.") != std::string::npos);
+    // A Sefirah of their own that gathers their pathway wins over the group's; one that doesn't, doesn't.
+    Sefirah own;
+    own.id = "theatre";
+    own.name = "Grand Theatre";
+    own.greatOldOne = "The Ringmaster";
+    own.pathwayIds = {"seer"};
+    own.abilities = {"Curtain Call: Ends any act."};
+    own.custom = true;
+    db.sefirot.push_back(own);
+    c.sefirahId = "theatre";
+    CHECK(greatOldOneSefirah(c, db)->id == "theatre");
+    CHECK(abilityGroups(c, db)[10].heading == "Above the Sequence: The Ringmaster");
+    db.sefirot.back().pathwayIds = {"acrobat"};
+    CHECK(greatOldOneSefirah(c, db)->id == "sefirah_castle");
+    // A god at Sequence 0 doesn't get it.
+    CHECK(abilityGroups(god, db).size() == 10);
+    // The pathway sheet shows the step after Sequence 0.
+    const std::string pathwayText = renderText(buildPathwaySheet(*seer, db));
+    CHECK(pathwayText.find("Above the Sequence: Lord of the Mysteries") != std::string::npos);
+    CHECK(pathwayText.find("Lord of the Mysteries: Rules every mystery.") != std::string::npos);
+    CHECK(renderText(buildPathwaySheet(*db.findPathway("acrobat"), db)).find("No Sefirah gathers this pathway yet") ==
+          std::string::npos);  // the Grand Theatre gathers it now
+    CHECK(renderText(buildSefirahSheet(db.sefirot[0], db)).find("Symbolism: Mysteries and the gray fog") != std::string::npos);
 }
 
 static void testDualPathway() {
@@ -477,6 +516,8 @@ static void testCustomSefirot() {
     masks.greatOldOne = "The Faceless";
     masks.pathwayIds = {"spectator", "seer"};
     masks.knownHolders = {"The first Faceless"};
+    masks.symbolism = "Faces and lies";
+    masks.abilities = {"Thousand Faces: Wears any face."};
     saveCustomSefirah(app, masks, true);
     CHECK(masks.id == "sefirah_of_masks" && masks.custom);
     CHECK(fs::exists(temp / "custom_sefirot.json"));
@@ -496,6 +537,7 @@ static void testCustomSefirot() {
     app.storage.loadAll(reloaded);
     const Sefirah* loaded = reloaded.findSefirah("sefirah_of_masks");
     CHECK(reloaded.sefirot.size() == 10 && loaded && loaded->custom && loaded->greatOldOne == "The Faceless");
+    CHECK(loaded && loaded->symbolism == "Faces and lies" && loaded->abilities.size() == 1);
     CHECK(!reloaded.findSefirah("sefirah_castle")->custom);
     CHECK(sefirahLabel(reloaded, ada.sefirahId) == "Sefirah of Masks (The Faceless)");
     CHECK(buildSefirahSheet(*loaded, reloaded).footer == "Stored in custom_sefirot.json");
@@ -860,7 +902,7 @@ static void testCustomPathways() {
     CHECK(refused);
 
     // The pathway sheet lists every Sequence and its abilities.
-    const std::string text = renderText(buildPathwaySheet(*loaded));
+    const std::string text = renderText(buildPathwaySheet(*loaded, reloaded));
     CHECK(text.find("NIGHT WEAVER PATHWAY") != std::string::npos);
     CHECK(text.find("one of your own pathways") != std::string::npos);
     CHECK(text.find("Thread Sight: Sees the threads between people.") != std::string::npos);

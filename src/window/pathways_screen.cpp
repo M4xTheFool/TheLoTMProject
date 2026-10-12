@@ -4,6 +4,7 @@
 
 #include "presets.hpp"
 #include "records.hpp"
+#include "rules.hpp"
 #include "storage.hpp"
 #include "ui.hpp"
 #include "window.hpp"
@@ -11,22 +12,6 @@
 namespace lotm::window {
 
 namespace {
-
-// An ability with only a name, or only a description, is stored as that text alone. While it is
-// being edited, the box it was typed into is remembered so the text doesn't jump to the other box.
-enum AbilityShape { kGuess = 0, kNameOnly = 1, kDescriptionOnly = 2 };
-
-std::pair<std::string, std::string> splitForEditing(const std::string& ability, int shape) {
-    if (ability.find(": ") == std::string::npos) {
-        if (shape == kNameOnly) return {ability, ""};
-        if (shape == kDescriptionOnly) return {"", ability};
-        // A short phrase with no full stop is most likely a name.
-        const bool looksLikeName = !ability.empty() && ability.size() <= 48 &&
-                                   ability.find_first_of(".!?") == std::string::npos;
-        if (looksLikeName) return {ability, ""};
-    }
-    return splitAbility(ability);
-}
 
 void open(WindowState& w, const Pathway& p, bool isNew) {
     w.pathways.viewingId.clear();
@@ -132,9 +117,39 @@ void overviewTab(WindowState& w, Pathway& p) {
     ImGui::TextDisabled("A Sequence 1 character who holds the Uniqueness can start from this description.");
 }
 
-void sequencesTab(Pathway& p) {
+// One more step past Sequence 0. It belongs to the whole pathway group, so it is written on the
+// Sefirah that gathers the pathway rather than here.
+void aboveTheSequence(WindowState& w, const Pathway& p) {
+    const Sefirah* sefirah = p.id.empty() ? nullptr : w.app.db.sefirahForPathway(p.id);
+    const size_t count = sefirah ? sefirah->abilities.size() : 0;
+    const std::string header = aboveSequenceLabel(sefirah) + "  -  " + std::to_string(count) +
+                               (count == 1 ? " ability" : " abilities") + "###above";
+    if (!ImGui::CollapsingHeader(header.c_str())) return;
+    ImGui::Indent();
+    if (p.id.empty()) {
+        ImGui::TextDisabled("Save the pathway first, then make a Sefirah that gathers it.");
+    } else if (!sefirah) {
+        ImGui::TextWrapped("Above the Sequence is written on the Sefirah that gathers this pathway: its Great Old "
+                           "One, what it symbolizes and its abilities. No Sefirah gathers it yet.");
+        if (ImGui::Button("+ Make a Sefirah for this pathway")) openNewSefirah(w, p.id);
+    } else {
+        ImGui::TextWrapped("Written on %s, which gathers this pathway. A Great Old One holds it and the "
+                           "Uniqueness of every pathway it gathers.", sefirah->name.c_str());
+        if (!sefirah->symbolism.empty()) {
+            ImGui::TextColored(palette().muted, "Symbolism");
+            ImGui::SameLine();
+            ImGui::TextWrapped("%s", sefirah->symbolism.c_str());
+        }
+        for (const auto& a : sefirah->abilities) ImGui::BulletText("%s", a.c_str());
+        if (ImGui::Button(((sefirah->custom ? "Edit " : "Open ") + sefirah->name).c_str())) {
+            openSefirah(w, sefirah->id);
+        }
+    }
+    ImGui::Unindent();
+}
+
+void sequencesTab(WindowState& w, Pathway& p) {
     ImGui::TextDisabled("Open a Sequence to name it and write its abilities.");
-    ImGuiStorage* storage = ImGui::GetStateStorage();
     for (int seq = 9; seq >= 0; --seq) {
         SequenceInfo* s = nullptr;
         for (auto& candidate : p.sequences) {
@@ -155,66 +170,13 @@ void sequencesTab(Pathway& p) {
         if (ImGui::CollapsingHeader(header.c_str())) {
             ImGui::Indent();
             textField("Sequence name", s->name);
-            int moveUp = -1, moveDown = -1, remove = -1;
-            const ImGuiID focusRow = ImGui::GetID("focusRow");
-            for (size_t i = 0; i < s->abilities.size(); ++i) {
-                ImGui::PushID(static_cast<int>(i));
-                const ImGuiID shapeId = ImGui::GetID("shape");
-                auto [name, description] = splitForEditing(s->abilities[i], storage->GetInt(shapeId, kGuess));
-                const float buttons = ImGui::GetFrameHeight() * 3.0f + ImGui::GetStyle().ItemInnerSpacing.x * 3.0f;
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - buttons);
-                if (storage->GetInt(focusRow, -1) == static_cast<int>(i)) {
-                    ImGui::SetKeyboardFocusHere();
-                    storage->SetInt(focusRow, -1);
-                }
-                const bool nameChanged = ImGui::InputTextWithHint("##name", "ability name", &name);
-                const ImVec2 square(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
-                ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-                if (ImGui::Button("^", square)) moveUp = static_cast<int>(i);
-                ImGui::SetItemTooltip("Move up");
-                ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-                if (ImGui::Button("v", square)) moveDown = static_cast<int>(i);
-                ImGui::SetItemTooltip("Move down");
-                ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-                if (ImGui::Button("x", square)) remove = static_cast<int>(i);
-                ImGui::SetItemTooltip("Remove");
-                const float lines = description.size() > 300 ? 6.0f : 3.0f;
-                const bool descriptionChanged = ImGui::InputTextMultiline(
-                    "##what", &description,
-                    ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * lines + ImGui::GetStyle().FramePadding.y * 2.0f),
-                    ImGuiInputTextFlags_WordWrap);
-                if (nameChanged || descriptionChanged) {
-                    s->abilities[i] = joinAbility(name, description);
-                    const int shape = !description.empty() && name.empty() ? kDescriptionOnly
-                                      : !name.empty() && description.empty() ? kNameOnly
-                                                                              : kGuess;
-                    storage->SetInt(shapeId, shape);
-                }
-                ImGui::Spacing();
-                ImGui::PopID();
-            }
-            auto& list = s->abilities;
-            const size_t before = list.size();
-            if (moveUp > 0) std::swap(list[moveUp], list[moveUp - 1]);
-            if (moveDown >= 0 && moveDown + 1 < static_cast<int>(list.size())) std::swap(list[moveDown], list[moveDown + 1]);
-            if (remove >= 0) list.erase(list.begin() + remove);
-            if (ImGui::Button("+ Add an ability")) {
-                list.push_back("");
-                storage->SetInt(focusRow, static_cast<int>(list.size()) - 1);
-            }
-            if (moveUp > 0 || moveDown >= 0 || list.size() != before) {
-                // Rows changed places, so the remembered boxes no longer match them.
-                for (size_t i = 0; i < std::max(before, list.size()); ++i) {
-                    ImGui::PushID(static_cast<int>(i));
-                    storage->SetInt(ImGui::GetID("shape"), kGuess);
-                    ImGui::PopID();
-                }
-            }
+            abilityListEditor(s->abilities);
             ImGui::Unindent();
             ImGui::Spacing();
         }
         ImGui::PopID();
     }
+    aboveTheSequence(w, p);
 }
 
 // The top of one of your own pathways: a medallion in its group's colour, the name and god, and
@@ -247,7 +209,7 @@ void pathwayHeader(const WindowState& w, const Pathway& p) {
 }
 
 void drawBuiltIn(WindowState& w, const Pathway& p) {
-    const Sheet sheet = buildPathwaySheet(p);
+    const Sheet sheet = buildPathwaySheet(p, w.app.db);
     if (ImGui::Button("Copy into a new pathway of your own")) openCopy(w, p);
     ImGui::SetItemTooltip("Built-in pathways are read-only here. A copy can be changed freely.");
     ImGui::SameLine();
@@ -345,7 +307,7 @@ void drawPathwaysScreen(WindowState& w) {
         for (const auto& name : users) buttons.deleteBlockedReason += "\n  " + name;
         buttons.deleteBlockedReason += "\nGive them another pathway first.";
     }
-    const Sheet sheet = buildPathwaySheet(p);
+    const Sheet sheet = buildPathwaySheet(p, w.app.db);
     const std::string title = p.name + " pathway";
     switch (drawEditorButtons(buttons)) {
         case EditorAction::Save: saveImpl(w); break;
@@ -386,7 +348,7 @@ void drawPathwaysScreen(WindowState& w) {
         }
         if (ImGui::BeginTabItem("Sequences")) {
             ImGui::BeginChild("tab");
-            sequencesTab(p);
+            sequencesTab(w, p);
             ImGui::EndChild();
             ImGui::EndTabItem();
         }

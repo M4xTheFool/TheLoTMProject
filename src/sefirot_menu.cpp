@@ -105,6 +105,10 @@ void editOwnSefirah(App& app, Sefirah s, bool isNew) {
     s.greatOldOne = ui::readText("Its Great Old One (optional)", s.greatOldOne);
     ui::editList("Other names it goes by", s.alsoKnownAs);
     choosePathways(app, s);
+    ui::blank();
+    ui::info("Above the Sequence: a character past Sequence 0 who holds this Sefirah is its Great Old One.");
+    s.symbolism = ui::readText("What the Great Old One symbolizes (optional)", s.symbolism);
+    editAbilityList(s.abilities, s.greatOldOne.empty() ? "its Great Old One" : s.greatOldOne);
     s.description = ui::readMultiline("What it is (optional)", s.description);
     ui::editList("Known holders in your story, one line each", s.knownHolders);
     s.notes = ui::readMultiline("Notes (optional)", s.notes);

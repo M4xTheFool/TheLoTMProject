@@ -55,7 +55,7 @@ struct Sheet {
 
 Sheet buildCharacterSheet(const Character& c, const Database& db);
 Sheet buildArtifactSheet(const Artifact& a, const Database& db);
-Sheet buildPathwaySheet(const Pathway& p);
+Sheet buildPathwaySheet(const Pathway& p, const Database& db);  // db: for its Sefirah, Above the Sequence
 Sheet buildSefirahSheet(const Sefirah& s, const Database& db);
 
 }  // namespace lotm
