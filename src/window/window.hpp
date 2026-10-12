@@ -16,6 +16,7 @@
 
 #include "app.hpp"
 #include "exporter.hpp"
+#include "list_filter.hpp"
 #include "model_json.hpp"
 #include "sheet.hpp"
 
@@ -79,14 +80,14 @@ struct Draft {
 
 struct CharacterScreen {
     Draft<Character> draft;
-    std::string search;
+    RecordFilter filter = RecordFilter::inIdOrder();  // the order they were made in until sorted
     std::array<std::string, kStatCount> lastRolls;  // "6, 4, 3, (1) = 13" shown next to each stat
     std::string lastSpeedRoll;
 };
 
 struct ArtifactScreen {
     Draft<Artifact> draft;
-    std::string search;
+    RecordFilter filter = RecordFilter::inIdOrder();
 };
 
 struct PathwayScreen {
@@ -186,6 +187,12 @@ bool sefirahCombo(const char* label, const Database& db, std::string& sefirahId,
 // The saved characters, to pick one without typing its name: a list with each one's
 // medallion, under a search box. Returns the picked character's id, or 0.
 int savedCharacterList(const WindowState& w, std::string& search, int excludeId);
+
+// The search box over a character or Sealed Artifact list, and a "Filter and sort" button for power,
+// first letter, pathway and sort order. hint is the search box's grey text, bands are the power bands offered, names the list's names
+// (for the letters in use). Under it, "Showing 3 of 12" while a filter is on.
+void listFilterControls(const WindowState& w, RecordFilter& filter, const char* hint, const std::vector<int>& bands,
+                        const std::vector<std::string>& names, size_t shown, size_t total);
 
 // A section heading in the title font, with a gold rule running to the right.
 void heading(const WindowState& w, const std::string& text);

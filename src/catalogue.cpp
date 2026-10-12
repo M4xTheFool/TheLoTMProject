@@ -1,9 +1,12 @@
 #include <algorithm>
+#include <cctype>
+#include <iterator>
 #include <iostream>
 #include <optional>
 
 #include "app.hpp"
 #include "compare.hpp"
+#include "list_filter.hpp"
 #include "records.hpp"
 #include "render.hpp"
 #include "sheet.hpp"
@@ -18,48 +21,53 @@ std::string pad(std::string text, size_t width) {
     return text + std::string(width - text.size(), ' ');
 }
 
-bool containsIgnoreCase(const std::string& haystack, const std::string& needle) {
-    return ui::toLower(haystack).find(ui::toLower(needle)) != std::string::npos;
+// The filter and sort commands both lists share. Returns false when the input was not one of them.
+bool handleFilterCommand(const App& app, RecordFilter& filter, const std::string& input,
+                         const std::vector<int>& bands, const std::vector<std::string>& names) {
+    if (!input.empty() && input[0] == '/') {
+        filter.search = input.size() > 1 ? ui::trim(input.substr(1)) : ui::readLine("Search names, aliases or IDs for: ");
+        return true;
+    }
+    const std::string command = ui::toLower(input);
+    if (command == "f") {
+        int pick = choosePathway(app, "Show only this pathway:", "All pathways", false);
+        filter.pathwayId = pick >= 0 ? app.db.pathways[pick].id : "";
+        return true;
+    }
+    if (command == "p") {
+        std::vector<std::string> options;
+        for (int band : bands) options.push_back(powerBandName(band));
+        const int pick = ui::choose("Show only this power:", options, "Any power");
+        filter.power = pick >= 0 ? bands[static_cast<size_t>(pick)] : kAnyPower;
+        return true;
+    }
+    if (command == "l" || (command.size() == 2 && command[0] == 'l' && std::isalpha(static_cast<unsigned char>(command[1])))) {
+        std::string letter = command.size() == 2 ? command.substr(1) : "";
+        if (letter.empty()) {
+            std::string used;
+            for (char ch : firstLetters(names)) used += std::string(used.empty() ? "" : " ") + ch;
+            letter = ui::readLine("First letter (" + (used.empty() ? std::string("none yet") : used) +
+                                  "), Enter for any: ");
+        }
+        filter.letter = letter.empty() ? 0 : firstLetter(letter);
+        return true;
+    }
+    if (command == "s") {
+        const auto next = (static_cast<int>(filter.sort) + 1) % static_cast<int>(std::size(kSortOrders));
+        filter.sort = kSortOrders[next];
+        return true;
+    }
+    if (command == "c") {
+        filter.clear();
+        filter.sort = SortOrder::Name;
+        return true;
+    }
+    return false;
 }
 
-// Shared list state: search text, pathway filter, sort order.
-struct ListFilter {
-    std::string search;
-    std::string pathwayId;
-    int sort = 0;  // 0 name, 1 pathway, 2 sequence (strongest first)
-    static constexpr const char* kSortNames[3] = {"name", "pathway", "sequence"};
-
-    std::string describe(const App& app) const {
-        std::string text = "Sorted by " + std::string(kSortNames[sort]);
-        if (!search.empty()) text += ", name contains \"" + search + "\"";
-        if (!pathwayId.empty()) text += ", pathway " + pathwayLabel(app.db, pathwayId);
-        return text;
-    }
-
-    // Handles the shared commands. Returns false when the input was not one of them.
-    bool handle(const App& app, const std::string& input) {
-        if (input == "/" || (!input.empty() && input[0] == '/')) {
-            search = input.size() > 1 ? ui::trim(input.substr(1)) : ui::readLine("Search names for: ");
-            return true;
-        }
-        if (input == "f" || input == "F") {
-            int pick = choosePathway(app, "Show only this pathway:", "All pathways", false);
-            pathwayId = pick >= 0 ? app.db.pathways[pick].id : "";
-            return true;
-        }
-        if (input == "s" || input == "S") {
-            sort = (sort + 1) % 3;
-            return true;
-        }
-        if (input == "c" || input == "C") {
-            search.clear();
-            pathwayId.clear();
-            sort = 0;
-            return true;
-        }
-        return false;
-    }
-};
+const char* kListCommands =
+    "\nNumber to open, / search (name, alias or ID), F pathway, P power, L first letter (or LA, LB ...), S sort,\n"
+    "C clear, Enter back: ";
 
 std::optional<int> parseIndex(const std::string& input, size_t count) {
     try {
@@ -108,39 +116,25 @@ void viewCharacter(App& app, int id) {
 }
 
 void browseCharacters(App& app) {
-    ListFilter filter;
+    RecordFilter filter;
     while (true) {
-        std::vector<const Character*> rows;
-        for (const auto& c : app.db.characters) {
-            if (!filter.search.empty() && !containsIgnoreCase(c.name, filter.search)) continue;
-            if (!filter.pathwayId.empty() && c.pathwayId != filter.pathwayId) continue;
-            rows.push_back(&c);
-        }
-        std::stable_sort(rows.begin(), rows.end(), [&](const Character* a, const Character* b) {
-            if (filter.sort == 1 && a->pathwayId != b->pathwayId) {
-                return pathwayLabel(app.db, a->pathwayId) < pathwayLabel(app.db, b->pathwayId);
-            }
-            if (filter.sort == 2) {
-                const int sa = a->pathwayId.empty() ? 10 : a->sequence;
-                const int sb = b->pathwayId.empty() ? 10 : b->sequence;
-                if (sa != sb) return sa < sb;
-            }
-            return ui::toLower(a->name) < ui::toLower(b->name);
-        });
+        const std::vector<const Character*> rows = filterCharacters(app.db, filter);
+        std::vector<std::string> names;
+        for (const auto& c : app.db.characters) names.push_back(c.name);
 
         ui::header("Characters (" + std::to_string(rows.size()) + " of " + std::to_string(app.db.characters.size()) + ")");
-        ui::info(filter.describe(app));
+        ui::info(filter.describe(app.db));
         if (rows.empty()) ui::info("Nothing to show.");
         for (size_t i = 0; i < rows.size(); ++i) {
             const Character& c = *rows[i];
             const Pathway* p = app.db.findPathway(c.pathwayId);
-            std::string path = p ? p->name + ", Seq " + std::to_string(c.sequence) : "Mortal";
+            std::string path = !p ? "Mortal" : c.aboveSequence ? p->name + ", Above" : p->name + ", Seq " + std::to_string(c.sequence);
             std::cout << "  " << pad(std::to_string(i + 1) + ")", 5) << pad(characterCode(c.id), 7) << pad(c.name, 26)
                       << pad(path, 26) << c.alignment << "\n";
         }
-        std::string input = ui::readLine("\nNumber to open, / search, F filter by pathway, S sort, C clear, Enter back: ");
+        std::string input = ui::readLine(kListCommands);
         if (input.empty()) return;
-        if (filter.handle(app, input)) continue;
+        if (handleFilterCommand(app, filter, input, characterPowerBands(), names)) continue;
         if (auto index = parseIndex(input, rows.size())) {
             viewCharacter(app, rows[*index]->id);
             continue;
@@ -176,28 +170,14 @@ void viewArtifact(App& app, int id) {
 }
 
 void browseArtifacts(App& app) {
-    ListFilter filter;
+    RecordFilter filter;
     while (true) {
-        std::vector<const Artifact*> rows;
-        for (const auto& a : app.db.artifacts) {
-            if (!filter.search.empty() && !containsIgnoreCase(a.name, filter.search)) continue;
-            if (!filter.pathwayId.empty() && a.pathwayId != filter.pathwayId) continue;
-            rows.push_back(&a);
-        }
-        std::stable_sort(rows.begin(), rows.end(), [&](const Artifact* a, const Artifact* b) {
-            if (filter.sort == 1 && a->pathwayId != b->pathwayId) {
-                return pathwayLabel(app.db, a->pathwayId) < pathwayLabel(app.db, b->pathwayId);
-            }
-            if (filter.sort == 2) {
-                const int sa = a->sequenceLevel == kUnknownSequence ? 10 : a->sequenceLevel;
-                const int sb = b->sequenceLevel == kUnknownSequence ? 10 : b->sequenceLevel;
-                if (sa != sb) return sa < sb;
-            }
-            return ui::toLower(a->name) < ui::toLower(b->name);
-        });
+        const std::vector<const Artifact*> rows = filterArtifacts(app.db, filter);
+        std::vector<std::string> names;
+        for (const auto& a : app.db.artifacts) names.push_back(a.name);
 
         ui::header("Sealed Artifacts (" + std::to_string(rows.size()) + " of " + std::to_string(app.db.artifacts.size()) + ")");
-        ui::info(filter.describe(app));
+        ui::info(filter.describe(app.db));
         if (rows.empty()) ui::info("Nothing to show.");
         for (size_t i = 0; i < rows.size(); ++i) {
             const Artifact& a = *rows[i];
@@ -206,9 +186,9 @@ void browseArtifacts(App& app) {
             std::cout << "  " << pad(std::to_string(i + 1) + ")", 5) << pad(artifactCode(a.id), 7) << pad(a.name, 30)
                       << pad(p ? p->name : "Unknown", 22) << level << "\n";
         }
-        std::string input = ui::readLine("\nNumber to open, / search, F filter by pathway, S sort, C clear, Enter back: ");
+        std::string input = ui::readLine(kListCommands);
         if (input.empty()) return;
-        if (filter.handle(app, input)) continue;
+        if (handleFilterCommand(app, filter, input, artifactPowerBands(), names)) continue;
         if (auto index = parseIndex(input, rows.size())) {
             viewArtifact(app, rows[*index]->id);
             continue;

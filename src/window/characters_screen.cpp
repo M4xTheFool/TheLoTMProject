@@ -13,10 +13,6 @@ namespace lotm::window {
 
 namespace {
 
-bool containsIgnoreCase(const std::string& text, const std::string& part) {
-    return ui::toLower(text).find(ui::toLower(part)) != std::string::npos;
-}
-
 void removeEmpty(std::vector<std::string>& items) {
     items.erase(std::remove_if(items.begin(), items.end(), [](const std::string& s) { return ui::trim(s).empty(); }),
                 items.end());
@@ -672,16 +668,21 @@ void drawCharactersScreen(WindowState& w) {
     if (ImGui::Button("+ New character", ImVec2(-FLT_MIN, 0))) {
         whenSaved(w, draft.dirty(), saveThis, [&w] { openNew(w); });
     }
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::InputTextWithHint("##search", "Search names", &s.search);
+    const auto rows = filterCharacters(w.app.db, s.filter);
+    {
+        std::vector<std::string> names;
+        for (const auto& c : w.app.db.characters) names.push_back(c.name);
+        listFilterControls(w, s.filter, "Search names, aliases or IDs", characterPowerBands(), names, rows.size(), w.app.db.characters.size());
+    }
     ImGui::Separator();
     if (draft.open && draft.isNew) {
         listCard(w, "new", true, pathwayColour(w.app.db, draft.value.pathwayId), initials(draft.value.name),
                  draft.value.name.empty() ? "(new character)" : draft.value.name, "Not saved yet");
     }
     if (w.app.db.characters.empty()) ImGui::TextDisabled("No characters yet.");
-    for (const auto& c : w.app.db.characters) {
-        if (!s.search.empty() && !containsIgnoreCase(c.name, s.search)) continue;
+    else if (rows.empty()) ImGui::TextDisabled("None match the filters.");
+    for (const Character* row : rows) {
+        const Character& c = *row;
         const bool selected = draft.open && !draft.isNew && draft.value.id == c.id;
         const Pathway* pathway = w.app.db.findPathway(c.pathwayId);
         // The medallion shows the Sequence; the line below names it and the pathway.

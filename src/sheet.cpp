@@ -314,7 +314,7 @@ Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
     sheet.anchor = "s-" + s.id;
     sheet.kind = "Sefirah";
     sheet.title = s.name;
-    sheet.subtitle = "Sefirah";
+    sheet.subtitle = s.custom ? "Your own Sefirah" : "Sefirah";
 
     Section overview{"Overview"};
     overview.field("Also known as", join(s.alsoKnownAs));
@@ -339,7 +339,7 @@ Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
     notes.paragraph(s.notes);
     addSection(sheet, notes);
 
-    sheet.footer = "Stored in sefirot.json";
+    sheet.footer = s.custom ? "Stored in custom_sefirot.json" : "Stored in sefirot.json";
     return sheet;
 }
 

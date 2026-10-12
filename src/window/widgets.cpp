@@ -176,6 +176,64 @@ bool pathwayCombo(const char* text, const Database& db, std::string& pathwayId, 
     return changed;
 }
 
+void listFilterControls(const WindowState& w, RecordFilter& filter, const char* hint, const std::vector<int>& bands,
+                        const std::vector<std::string>& names, size_t shown, size_t total) {
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::InputTextWithHint("##search", hint, &filter.search);
+    const int set = (filter.letter != 0) + (filter.power != kAnyPower) + !filter.pathwayId.empty();
+    const std::string button = set == 0 ? "Filter and sort" : "Filter and sort (" + std::to_string(set) + ")";
+    if (ImGui::SmallButton(button.c_str())) ImGui::OpenPopup("filters");
+    if (filter.active()) {
+        ImGui::SameLine();
+        if (ImGui::TextLink("Clear")) filter.clear();
+        ImGui::SameLine();
+        ImGui::TextDisabled("%zu of %zu", shown, total);
+    }
+    ImGui::SetNextWindowSize(ImVec2(ImGui::GetFontSize() * 27.0f, 0.0f));
+    if (!ImGui::BeginPopup("filters")) return;
+
+    label("Power");
+    if (ImGui::BeginCombo("##power", powerBandName(filter.power).c_str())) {
+        if (ImGui::Selectable("Any power", filter.power == kAnyPower)) filter.power = kAnyPower;
+        for (int band : bands) {
+            if (ImGui::Selectable(powerBandName(band).c_str(), filter.power == band)) filter.power = band;
+        }
+        ImGui::EndCombo();
+    }
+
+    label("First letter");
+    ImGui::BeginGroup();
+    const float wrap = ImGui::GetContentRegionAvail().x;
+    float used = 0.0f;
+    auto letterButton = [&](const std::string& text, char letter) {
+        const float width = ImGui::CalcTextSize(text.c_str()).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+        if (used > 0.0f && used + width <= wrap) ImGui::SameLine();
+        else if (used > 0.0f) used = 0.0f;
+        used += width + ImGui::GetStyle().ItemSpacing.x;
+        const bool on = filter.letter == letter;
+        if (on) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+        if (ImGui::SmallButton((text + "##letter").c_str())) filter.letter = letter;
+        if (on) ImGui::PopStyleColor();
+    };
+    letterButton("Any", 0);
+    for (char letter : firstLetters(names)) letterButton(std::string(1, letter), letter);
+    ImGui::EndGroup();
+
+    pathwayCombo("Pathway", w.app.db, filter.pathwayId, "Any pathway");
+
+    static constexpr const char* kSortLabels[] = {"Name", "ID", "Power, strongest first", "Pathway"};
+    label("Sort by");
+    if (ImGui::BeginCombo("##sort", kSortLabels[static_cast<int>(filter.sort)])) {
+        for (SortOrder order : kSortOrders) {
+            if (ImGui::Selectable(kSortLabels[static_cast<int>(order)], filter.sort == order)) filter.sort = order;
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::Spacing();
+    if (ImGui::Button("Clear the filters")) filter.clear();
+    ImGui::EndPopup();
+}
+
 bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence, bool* above) {
     // The slider runs left to right, from Sequence 9 up to Sequence 0, then Above the Sequence.
     const bool isAbove = above && *above;

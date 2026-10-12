@@ -240,7 +240,7 @@ void drawEditor(WindowState& w) {
             ImGui::SeparatorText("Known holders in the story");
             listEditor("holders", s.knownHolders, "add a holder, one line each");
             ImGui::SeparatorText("Notes");
-            multilineField("Notes##notes", s.notes, 3);
+            multilineField("Guesses, sources, ideas ...", s.notes, 3);
             if (!draft.isNew) {
                 ImGui::Spacing();
                 yourHolders(w, s);

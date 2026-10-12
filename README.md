@@ -23,8 +23,10 @@ It comes as two programs that share the same saves:
   one from a copy of a built-in pathway, and export a pathway as a sheet. The Acrobat pathway from the
   book is already in as one of your own.
 - **Sefirot:** the nine Sefirot, the pathways each one gathers, its Great Old One and who has held it.
-  Make one of your characters its holder, and export a Sefirah as a sheet.
-- **Catalogue:** browse, search, filter by pathway, sort, edit, duplicate, delete.
+  Create, edit and delete Sefirot of your own, make one of your characters a holder, and export a
+  Sefirah as a sheet.
+- **Catalogue:** browse, search by name, alias or ID, filter by power, first letter and pathway, sort,
+  edit, duplicate, delete.
 - **Compare:** two to four characters side by side, with their stats on one chart and the highest value
   in each row marked.
 - **Sample sets:** the members of the Tarot Club, the brothers Adam and Amon, and a few canon Sealed
@@ -119,6 +121,10 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - The tabs at the top are **Characters**, **Compare**, **Sealed Artifacts**, **Pathways**, **Sefirot**
   and **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
   the right. Drag the list's right edge to make it wider.
+- **Filters:** the search box over the Characters and Sealed Artifacts lists finds names, aliases and IDs
+  (`C-012`, `c12` or just `12`). **Filter and sort** under it narrows the list by power (Mortal,
+  Sequence 9-8 up to Above the Sequence; "Level unknown" for artifacts), first letter and pathway, and
+  sorts by name, ID, power or pathway. **Clear** takes the filters off and the list says how many it shows.
 - A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Sealed Artifacts,
   Relationships, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
 - The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
@@ -138,6 +144,11 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - **Sefirot** lists the nine Sefirot. Pick one to read what it is, which pathways it gathers, its Great Old
   One and who has held it. **+ Make one of your characters its holder** links a saved character to it. A
   character holds one Sefirah at a time; you can also pick it in their Customization tab.
+- **Your own Sefirot:** **+ New Sefirah** in the Sefirot tab makes one: give it a name, its Great Old One,
+  other names, the pathways it gathers (ticked by group; it warns when another Sefirah already gathers a
+  pathway), a description, known holders and notes. Your own show under "Your own Sefirot" in the list
+  and can be edited or deleted; a canon Sefirah has **Copy into a new Sefirah of your own** to start
+  from it.
 - Nothing is saved until you click **Save** (or press **Ctrl+S**, **Cmd+S** on a Mac). The Save button
   turns gold when there are changes. If you open something else first, the window asks whether to save
   them, throw them away, or keep editing. Closing the window asks the same.
@@ -168,8 +179,12 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - In the stat block, `R` rolls 4d6 and drops the lowest die; roll again as often as you like or type a value.
 - The Sequence question takes 9 to 0, and a Sequence 0 is then asked whether they are Above the Sequence
   and whether they are a dual-pathway god with a second pathway.
-- **Sefirot** in the main menu lists the nine Sefirot; open one to read it, make a saved character its
-  holder or take it away, or export it.
+- **Sefirot** in the main menu lists the nine Sefirot and your own; open one to read it, make a saved
+  character its holder or take it away, or export it. **Create a new Sefirah of your own** asks for its
+  details step by step; your own can be edited or deleted, and a canon one can be copied into a new one.
+- In the catalogue's lists, type `/` and a name, alias or ID to search (`/sparrow`, `/C-012`), `F` to pick
+  a pathway, `P` a power, `L` a first letter (or straight away: `LA`, `LK`), `S` to change the sort order
+  and `C` to clear it all.
 - **Open the Catalogue**, then **Compare characters side by side**, picks two to four characters and
   prints them as a table, with the highest value in each row marked `*`.
 
@@ -180,6 +195,7 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 | The 22 built-in pathways | `data/pathways.json` |
 | Your own pathways (the Acrobat and any you create) | `data/custom_pathways.json` |
 | The nine Sefirot | `data/sefirot.json` |
+| Your own Sefirot | `data/custom_sefirot.json` |
 | Your characters | `data/characters.json` |
 | Your Sealed Artifacts | `data/artifacts.json` |
 | Settings (HP mode, export theme, backups, window text size and theme) | `data/settings.json` |
@@ -189,7 +205,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 Your own characters, artifacts and exports are **not** uploaded to GitHub (see `.gitignore`); they stay on
 your computer. Copy the `data` folder to back them up or move them to another PC. Your own pathways are
 different: GitHub Desktop shows `custom_pathways.json` as changed after you edit a pathway, and committing
-it shares your pathways with anyone else who uses the repository.
+it shares your pathways with anyone else who uses the repository. Your own Sefirot work the same way, in
+`custom_sefirot.json`.
 
 ### Sample sets: the Tarot Club, Adam and Amon
 
@@ -284,12 +301,14 @@ src/*_creator.cpp     the two creators
 src/pathway_menu.cpp  the Pathways menu (your own pathways)
 src/catalogue.cpp     the catalogue
 src/compare.*         comparing characters side by side, shared by both programs
+src/list_filter.*     searching, filtering and sorting the lists, shared by both programs
 src/sefirot_menu.cpp  the console's Sefirot menu
 src/export_menu.cpp   exports
 tests/tests.cpp       automatic checks
 data/pathways.json    the 22 built-in pathways
 data/custom_pathways.json  your own pathways
 data/sefirot.json     the nine Sefirot
+data/custom_sefirot.json  your own Sefirot (made when you save the first one)
 data/samples/         sample sets (the Tarot Club, Adam and Amon)
 ```
 

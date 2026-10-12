@@ -11,6 +11,7 @@
 #include "compare.hpp"
 #include "dice.hpp"
 #include "exporter.hpp"
+#include "list_filter.hpp"
 #include "model_json.hpp"
 #include "presets.hpp"
 #include "records.hpp"
@@ -497,6 +498,8 @@ static void testCustomSefirot() {
     CHECK(reloaded.sefirot.size() == 10 && loaded && loaded->custom && loaded->greatOldOne == "The Faceless");
     CHECK(!reloaded.findSefirah("sefirah_castle")->custom);
     CHECK(sefirahLabel(reloaded, ada.sefirahId) == "Sefirah of Masks (The Faceless)");
+    CHECK(buildSefirahSheet(*loaded, reloaded).footer == "Stored in custom_sefirot.json");
+    CHECK(buildSefirahSheet(*reloaded.findSefirah("sefirah_castle"), reloaded).footer == "Stored in sefirot.json");
     CHECK(reloaded.sefirahHolders("sefirah_of_masks").size() == 1);
 
     masks.description = "Every face it has worn.";
@@ -531,6 +534,82 @@ static void testCustomSefirot() {
     }
     CHECK(refused);
     fs::remove_all(temp);
+}
+
+static void testListFilters() {
+    Database db;
+    db.pathways.push_back(warrior());
+    Character klein;
+    klein.id = 12;
+    klein.name = "Klein Moretti";
+    klein.aliases = {"Sherlock Moriarty", "Gehrman Sparrow"};
+    Character dunn;
+    dunn.id = 3;
+    dunn.name = "Dunn Smith";
+    dunn.pathwayId = "warrior";
+    dunn.sequence = 5;
+    Character god;
+    god.id = 7;
+    god.name = "Adam";
+    god.pathwayId = "warrior";
+    god.sequence = 0;
+    db.characters = {klein, dunn, god};
+
+    auto names = [](const std::vector<const Character*>& rows) {
+        std::string out;
+        for (const Character* c : rows) out += (out.empty() ? "" : ",") + c->name;
+        return out;
+    };
+    RecordFilter f;
+    CHECK(!f.active());
+    CHECK(names(filterCharacters(db, f)) == "Adam,Dunn Smith,Klein Moretti");
+    f.search = "sparrow";
+    CHECK(names(filterCharacters(db, f)) == "Klein Moretti");
+    f.search = "C-012";
+    CHECK(names(filterCharacters(db, f)) == "Klein Moretti");
+    f.search = "c3";
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith");
+    f.search = "7";
+    CHECK(names(filterCharacters(db, f)) == "Adam");
+    CHECK(f.active());
+    f.clear();
+    f.letter = 'D';
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith");
+    f.clear();
+    f.power = 2;  // Sequence 7-5
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith");
+    f.power = 0;
+    CHECK(names(filterCharacters(db, f)) == "Klein Moretti");
+    f.clear();
+    f.pathwayId = "warrior";
+    CHECK(names(filterCharacters(db, f)) == "Adam,Dunn Smith");
+    f.clear();
+    f.sort = SortOrder::Id;
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith,Adam,Klein Moretti");
+    f.sort = SortOrder::Power;
+    CHECK(names(filterCharacters(db, f)) == "Adam,Dunn Smith,Klein Moretti");
+    f.letter = 'K';
+    f.clear();
+    CHECK(f.sort == SortOrder::Power);  // clearing keeps the sort order
+    CHECK(firstLetters({"klein", "Adam", "Amon", "42"}) == std::vector<char>({'A', 'K'}));
+
+    Artifact a1;
+    a1.id = 1;
+    a1.name = "Creeping Hunger";
+    a1.sequenceLevel = 5;
+    Artifact a2;
+    a2.id = 2;
+    a2.name = "Blasphemy Slate";
+    db.artifacts = {a1, a2};
+    RecordFilter af;
+    af.power = kUnknownPower;
+    auto rows = filterArtifacts(db, af);
+    CHECK(rows.size() == 1 && rows[0]->name == "Blasphemy Slate");
+    af.clear();
+    af.search = "A-001";
+    rows = filterArtifacts(db, af);
+    CHECK(rows.size() == 1 && rows[0]->name == "Creeping Hunger");
+    CHECK(powerBandName(kUnknownPower) == "Level unknown");
 }
 
 static void testPointBuy() {
@@ -1180,6 +1259,7 @@ int main() {
     testSharedRecords();
     testSampleImport();
     testComparison();
+    testListFilters();
     testShippedSamples();
     testSefirot();
     testCustomSefirot();
