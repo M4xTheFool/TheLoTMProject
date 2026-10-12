@@ -1,5 +1,5 @@
 // LoTM Creator Suite, app window version. Opens a window with tabs for characters,
-// Sealed Artifacts, pathways and settings; everything is saved to the same data folder
+// Sealed Artifacts, pathways, Sefirot and settings; everything is saved to the same data folder
 // as the console program (lotm_creator), so both can be used side by side.
 #include <algorithm>
 #include <cstdio>
@@ -78,6 +78,7 @@ void drawWindow(WindowState& w) {
                                                     {Tab::Compare, "Compare"},
                                                     {Tab::Artifacts, "Sealed Artifacts"},
                                                     {Tab::Pathways, "Pathways"},
+                                                    {Tab::Sefirot, "Sefirot"},
                                                     {Tab::Settings, "Settings"}};
         for (const auto& [tab, name] : tabs) {
             const ImGuiTabItemFlags flags = w.switchTo == tab ? ImGuiTabItemFlags_SetSelected : 0;
@@ -95,6 +96,7 @@ void drawWindow(WindowState& w) {
                 case Tab::Compare: drawCompareScreen(w); break;
                 case Tab::Artifacts: drawArtifactsScreen(w); break;
                 case Tab::Pathways: drawPathwaysScreen(w); break;
+                case Tab::Sefirot: drawSefirotScreen(w); break;
                 case Tab::Settings: drawSettingsScreen(w); break;
             }
             ImGui::EndChild();

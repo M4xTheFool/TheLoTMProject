@@ -1,0 +1,273 @@
+{
+  "title": "Adam and Amon",
+  "description": "Adam and Amon, sons of the Ancient Sun God and two of the eight Kings of Angels, with the two Blasphemy Slates they carried. Adam is shown at the end of the first novel; Amon at his peak as a dual-pathway true god, before his defeat. Add the Tarot Club too and their relationships link to Klein. Stats and alignments are an interpretation; each character's Notes say what is canon, with chapter numbers, and what is a guess.",
+  "characters": [
+    {
+      "id": 1,
+      "name": "Adam",
+      "appearance": {
+        "hair": "",
+        "hairLength": "",
+        "hairStyle": "",
+        "eyes": "",
+        "skin": "",
+        "face": "Gentle and pious, with a pale golden beard",
+        "voice": "",
+        "build": "",
+        "height": "",
+        "clothing": "A simple white robe, with a silver cross on a chain around his neck",
+        "distinguishingMark": "Limpid eyes with a childlike innocence and purity",
+        "description": "A pious-looking priest with a golden beard, a simple white robe and a silver cross around his neck. His limpid eyes show a childlike innocence and purity (Ch. 1266, 1345). As Half a Great Old One he becomes a giant shadow standing on a chaotic sea (Ch. 1376)."
+      },
+      "age": "Ancient (exact age unknown)",
+      "gender": "Male",
+      "shortDescription": "The Angel of Imagination: a son of the Ancient Sun God and a Sequence 0 Visionary who looks like a gentle, pious priest.",
+      "backstory": "Adam is a son of the Ancient Sun God, the Angel of Imagination and one of the eight Kings of Angels. He wears the face of a gentle, devout priest, and he and his brother Amon call themselves brothers who cooperate easily. Klein Moretti makes a deal with him (Ch. 1262), and near the end of the story a golden-bearded priest, almost certainly Adam, drinks the Visionary potion in a small cathedral outside Backlund (Ch. 1266). In the Corpse Cathedral he pins Klein with a cross-shaped wooden stake, shows him the Second Blasphemy Slate and explains the Great Old Ones and the Pillars, hinting that he once hoped his father would awaken in his body (Ch. 1345-1347). He interferes when Klein advances to Attendant of Mysteries (Ch. 1351). In the final battle he merges with a five-headed shadow, cries 'Let there be light!' and, using himself and the True Creator as a pillar and drawing on the Chaos Sea, becomes Half a Great Old One. He holds the Eternal Blazing Sun, the Lord of Storms and the God of Knowledge and Wisdom inside their divine kingdoms and makes two prophecies before he can make no more (Ch. 1375-1380). Holding that state slows his fusion with the True Creator, which has only just begun, so he withdraws behind the shadow screen (Ch. 1381).",
+      "pathwayId": "spectator",
+      "sequence": 0,
+      "alignment": "Lawful Neutral",
+      "titles": [
+        "Angel of Imagination",
+        "Visionary",
+        "King of Angels"
+      ],
+      "aliases": [],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "aboveSequence": false,
+      "secondPathway": {
+        "pathwayId": "",
+        "beyonderCharacteristics": 1,
+        "hasUniqueness": true,
+        "uniquenessForm": "",
+        "uniquenessAbilities": []
+      },
+      "sefirahId": "chaos_sea",
+      "stats": {
+        "base": [
+          8,
+          10,
+          10,
+          15,
+          15,
+          13
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [
+        1
+      ],
+      "affiliation": {
+        "organization": "Twilight Hermit Order",
+        "rank": "Leader"
+      },
+      "relationships": [
+        {
+          "characterId": 2,
+          "name": "Amon",
+          "type": "Sibling",
+          "note": "His younger brother; they call themselves brothers who cooperate easily (Ch. 1345)"
+        },
+        {
+          "characterId": 0,
+          "name": "Ancient Sun God",
+          "type": "Parent",
+          "note": "His father, whom he once hoped to awaken in his own body (Ch. 1346)"
+        },
+        {
+          "characterId": 0,
+          "name": "Sasrir",
+          "type": "Sibling",
+          "note": "A brother the Ancient Sun God made from part of his own personality to control the Chaos Sea (wiki)"
+        },
+        {
+          "characterId": 0,
+          "name": "Zaratul",
+          "type": "Ally",
+          "note": "Struck a deal with him to capture Klein (Ch. 1345)"
+        },
+        {
+          "characterId": 0,
+          "name": "Klein Moretti",
+          "type": "Enemy",
+          "note": "Made a deal with him (Ch. 1262), then trapped him in the Corpse Cathedral and called him a potential marionette (Ch. 1345-1346)"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "Violent incidents",
+        "recentActionsNote": "Trapped Klein in the Corpse Cathedral and held three gods inside their divine kingdoms during the final battle",
+        "threatLevel": "",
+        "status": "Active",
+        "lastSeen": "Behind the shadow screen, after the final battle (Ch. 1381)",
+        "remarks": "Absent from the epilogue (Ch. 1388-1394)."
+      },
+      "notes": "Snapshot: the end of the first novel, Sequence 0 Visionary. Canon: his look (Ch. 1266, 1345), the titles Angel of Imagination (Ch. 1262), Visionary (Ch. 1347) and King of Angels, the Corpse Cathedral (Ch. 1345-1347), Half a Great Old One (Ch. 1376), the two prophecies (Ch. 1379-1380) and his withdrawal (Ch. 1381). Likely but not stated outright: that the priest who drinks the Visionary potion in Ch. 1266 is Adam, that he is the eldest son, and that he leads the Twilight Hermit Order (the wiki says so; not checked against the chapters). Sefirah: he doesn't own the Chaos Sea outright. He draws on it with the True Creator, and his fusion with the True Creator has only just begun. The program has no Half Great Old One level, so he is set at Sequence 0 with the Chaos Sea; move the slider to Above the Sequence to play his Ch. 1376 form. The three Uniquenesses he 'Envisioned' then were imagined copies, so they aren't listed. A guess: age, alignment and stats (a 27-point buy before pathway bonuses). No honorific name is given for him in the first novel. Left out: Grisha Adam, his name in the sequel, and his later full merge with the Chaos Sea. Sealed Artifact 0-08 isn't his; Ch. 1346 ties the quill to the Dragon of Imagination Ankewelt.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 2,
+      "name": "Amon",
+      "appearance": {
+        "hair": "Black",
+        "hairLength": "",
+        "hairStyle": "",
+        "eyes": "Black",
+        "skin": "",
+        "face": "Young and thin, with a broad forehead",
+        "voice": "",
+        "build": "",
+        "height": "1.85 m",
+        "clothing": "A classic black robe and a pointed hat",
+        "distinguishingMark": "A crystal monocle, which every one of his avatars wears too",
+        "description": "A young-looking man with black hair, black eyes, a broad forehead and a thin face, in a classic black robe and a pointed hat (Ch. 1374, 1387). He always wears a crystal monocle, and so do his countless avatars, whether they are postmen, birds or microbes (Ch. 1377)."
+      },
+      "age": "Ancient (exact age unknown)",
+      "gender": "Male",
+      "shortDescription": "The Angel of Time and God of Mischief: a Sequence 0 Error who also took the Door pathway's Uniqueness, a dual-pathway true god.",
+      "backstory": "Amon is a son of the Ancient Sun God, the Angel of Time and one of the eight Kings of Angels, a trickster known as the God of Mischief and the Blasphemer. His father called him the light at the dawn of the apocalypse (Ch. 1063). He spreads through avatars that each believe they are Amon and lodges himself inside others; a parasitic link with Klein Moretti let him read Klein's thoughts (Ch. 1152). He stole the First Blasphemy Slate as Sasrir's shadow palace collapsed (Ch. 1265). In Fall 1352 he completed the Error ritual, replacing someone during their apotheosis: Mr. Door turned into Amon, holding a key of pure starlight (Ch. 1353). He went on to accommodate the Door Uniqueness and its authority, becoming a dual-pathway true god (Ch. 1375, 1377). In the final battle he spread countless monocled avatars, stole moments of lucidity and froze time (Ch. 1377-1385), until, inside Sefirah Castle, a supernova shattered his monocle and destroyed his true body (Ch. 1386-1387). Klein took in his Error and Door Uniquenesses. One avatar that had been sleeping at Adam's place survived, found it could no longer summon a monocle, and left to enter the cosmos (Ch. 1387).",
+      "pathwayId": "marauder",
+      "sequence": 0,
+      "alignment": "Chaotic Evil",
+      "titles": [
+        "Angel of Time",
+        "King of Angels",
+        "God of Mischief",
+        "God of Trickery",
+        "The Blasphemer"
+      ],
+      "aliases": [
+        "Mr. Error",
+        "God of Deceit"
+      ],
+      "honorificName": [],
+      "beyonderCharacteristics": 1,
+      "hasUniqueness": false,
+      "uniquenessForm": "",
+      "uniquenessAbilities": [],
+      "aboveSequence": false,
+      "secondPathway": {
+        "pathwayId": "apprentice",
+        "beyonderCharacteristics": 1,
+        "hasUniqueness": true,
+        "uniquenessForm": "",
+        "uniquenessAbilities": [
+          "Authority of Doors: Governs space, sealing, entrances, exits, boundaries and alternate worlds.",
+          "Instant Passage: Moves instantly between the physical, spirit and astral worlds.",
+          "Absolute Sealing: Seals, or breaks seals on, beings, abilities, connections and even rules."
+        ]
+      },
+      "sefirahId": "",
+      "stats": {
+        "base": [
+          8,
+          14,
+          10,
+          15,
+          12,
+          13
+        ],
+        "speedBase": 10,
+        "hpIncluded": false,
+        "hp": 0,
+        "spirituality": 0
+      },
+      "artifactIds": [
+        2
+      ],
+      "affiliation": {
+        "organization": "Independent",
+        "rank": ""
+      },
+      "relationships": [
+        {
+          "characterId": 1,
+          "name": "Adam",
+          "type": "Sibling",
+          "note": "His elder brother, 'my zealous brother' (Ch. 1154); they cooperate easily (Ch. 1345)"
+        },
+        {
+          "characterId": 0,
+          "name": "Ancient Sun God",
+          "type": "Parent",
+          "note": "His father, who called him the light at the dawn of the apocalypse (Ch. 1063)"
+        },
+        {
+          "characterId": 0,
+          "name": "Klein Moretti",
+          "type": "Enemy",
+          "note": "Parasitized him and read his thoughts (Ch. 1152); destroyed by him in Sefirah Castle (Ch. 1386-1387)"
+        },
+        {
+          "characterId": 0,
+          "name": "Zaratul",
+          "type": "Ally",
+          "note": "Worked with him and Adam against Klein (Ch. 1345, 1352)"
+        },
+        {
+          "characterId": 0,
+          "name": "Medici",
+          "type": "Ally",
+          "note": "Held the infant Amon and burned his hair (Ch. 1276); per the wiki they later lured Verdu Garcia into a ritual together (Ch. 1349)"
+        },
+        {
+          "characterId": 0,
+          "name": "Bethel Abraham",
+          "type": "Enemy",
+          "note": "Mr. Door: Amon replaced him during his return ritual to become Error (Ch. 1353)"
+        },
+        {
+          "characterId": 0,
+          "name": "Pallez Zoroast",
+          "type": "Enemy",
+          "note": "A Marauder-pathway angel who hid inside Leonard Mitchell to escape him (Ch. 876)"
+        }
+      ],
+      "dossier": {
+        "filedBy": "",
+        "recentActions": "Violent incidents",
+        "recentActionsNote": "Spread countless avatars and froze time during the final battle (Ch. 1377-1385)",
+        "threatLevel": "",
+        "status": "At large",
+        "lastSeen": "One surviving avatar left Adam's place to enter the cosmos (Ch. 1387)",
+        "remarks": "His true body was destroyed in Sefirah Castle (Ch. 1386-1387) and Klein holds his Error and Door Uniquenesses; the surviving avatar's Sequence isn't stated."
+      },
+      "notes": "Snapshot: Amon at his peak as a dual-pathway true god (Ch. 1375-1386), before his defeat. At the very end of the first novel his true body is gone, Klein holds the Error and Door Uniquenesses, and only an avatar of unknown Sequence survives (Ch. 1387). Canon: his look (Ch. 1374, 1377, 1387), his titles, the Error ritual (Ch. 1353), the Door Uniqueness (Ch. 1375), dual-pathway true god (Ch. 1377), and the Worm of Time and Key of Stars characteristics Klein takes from him (Ch. 1387), which is why the Door pathway here has one Key of Stars characteristic. A guess: which Door powers the Uniqueness gives him (the novel only says he obtained its authority), his age, alignment and stats (a 27-point buy before pathway bonuses). His height and his birthday, 3 January, come from character profiles quoted online, not from the chapters. No honorific name: the three-line versions on the wiki have no source, and the Ch. 1152 line about 'a trojan horse of fate, the slug of time' describes the Error pathway, not him. Left out: the sequel, Circle of Inevitability, where the surviving avatar replaces Termiboros and later becomes a Sequence 1 Angel of Redemption.",
+      "createdAt": "",
+      "updatedAt": ""
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 1,
+      "name": "Second Blasphemy Slate",
+      "visualDescription": "",
+      "pathwayId": "",
+      "sequenceLevel": -1,
+      "ability": "Records the Great Old Ones and the Sefirot, the pathway groups they gather and what each Great Old One needs: its Sefirah, every Uniqueness of the group and a Sequence 1 characteristic of each pathway (Ch. 1345, 1347).",
+      "drawback": "",
+      "notes": "Adam shows it to Klein in the Corpse Cathedral (Ch. 1345) and uses it to explain the Pillars (Ch. 1347). Its look and any drawback aren't described in the chapters checked for this set, so they're left blank.",
+      "createdAt": "",
+      "updatedAt": ""
+    },
+    {
+      "id": 2,
+      "name": "First Blasphemy Slate",
+      "visualDescription": "",
+      "pathwayId": "",
+      "sequenceLevel": -1,
+      "ability": "Records the twenty-two Beyonder pathways. Amon used it to seal the opening left by Mr. Door's return (Ch. 1376).",
+      "drawback": "",
+      "notes": "Amon stole it as Sasrir's shadow palace collapsed (Ch. 1265). That it records the twenty-two pathways is how the story describes it, but it wasn't rechecked against the chapters for this set; its look, any drawback and where it ends up after Amon's defeat aren't covered.",
+      "createdAt": "",
+      "updatedAt": ""
+    }
+  ]
+}

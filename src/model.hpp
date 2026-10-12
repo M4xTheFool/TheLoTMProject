@@ -1,4 +1,4 @@
-// The data the program works with: pathways, characters, Sealed Artifacts and settings.
+// The data the program works with: pathways, Sefirot, characters, Sealed Artifacts and settings.
 // Every struct here is saved to and loaded from JSON (see model.cpp).
 #pragma once
 
@@ -52,6 +52,21 @@ struct Pathway {
     const SequenceInfo* findSequence(int sequence) const;
 };
 
+// ---------- Sefirot (data/sefirot.json) ----------
+
+// A Sefirah: a source of power and authority that gathers the Uniquenesses of a group of
+// neighbouring pathways. Holding it and every one of those Uniquenesses makes a Great Old One.
+struct Sefirah {
+    std::string id;           // short key used in save files, e.g. "sefirah_castle"
+    std::string name;         // "Sefirah Castle"
+    std::vector<std::string> alsoKnownAs;
+    std::string greatOldOne;  // the Great Old One it belongs to, e.g. "Lord of the Mysteries"
+    std::vector<std::string> pathwayIds;  // the pathway group, e.g. seer, apprentice, marauder
+    std::string description;
+    std::vector<std::string> knownHolders;  // who held it in the story, one line each
+    std::string notes;                      // sources, and what is a guess
+};
+
 // ---------- Characters (data/characters.json) ----------
 
 struct Appearance {
@@ -102,6 +117,19 @@ struct StatBlock {
     int spirituality = 0;
 };
 
+// A dual-pathway god's second pathway: the Sequence 1 Beyonder characteristic(s) of another pathway
+// and, usually, its Uniqueness. Amon, Sequence 0 Error, took the Door Uniqueness and a Key of Stars
+// characteristic this way. Only a Sequence 0 god can have one (see dualPathwayEligible in rules.hpp).
+struct SecondPathway {
+    std::string pathwayId;            // empty = a single pathway
+    int beyonderCharacteristics = 1;  // its Sequence 1 characteristics: 1 or 2
+    bool hasUniqueness = true;        // holds that pathway's Uniqueness as well
+    std::string uniquenessForm;
+    std::vector<std::string> uniquenessAbilities;  // that pathway's Sequence 0 powers the Uniqueness grants
+
+    bool empty() const { return pathwayId.empty(); }
+};
+
 struct Character {
     int id = 0;
     std::string name;
@@ -120,6 +148,11 @@ struct Character {
     bool hasUniqueness = false;       // Sequence 1 only
     std::string uniquenessForm;
     std::vector<std::string> uniquenessAbilities;  // Sequence 0 abilities the Uniqueness grants
+    // Above the Sequence: a Great Old One, past Sequence 0 (which `sequence` stays at). It holds its
+    // group's Sefirah and every Uniqueness of the neighbouring pathways.
+    bool aboveSequence = false;
+    SecondPathway secondPathway;  // a dual-pathway god's second pathway (Sequence 0 only)
+    std::string sefirahId;        // the Sefirah they hold, if any
     StatBlock stats;
     std::vector<int> artifactIds;
     Affiliation affiliation;
@@ -160,12 +193,21 @@ struct Settings {
 // Everything loaded in memory while the program runs.
 struct Database {
     std::vector<Pathway> pathways;
+    std::vector<Sefirah> sefirot;
     std::vector<Character> characters;
     std::vector<Artifact> artifacts;
     Settings settings;
 
     const Pathway* findPathway(const std::string& id) const;
     Pathway* findPathway(const std::string& id);
+    const Sefirah* findSefirah(const std::string& id) const;
+    // The Sefirah that gathers this pathway's Uniqueness, or nullptr (your own pathways have none).
+    const Sefirah* sefirahForPathway(const std::string& pathwayId) const;
+    // The pathway and its neighbours, whose Uniquenesses a Great Old One holds: the pathways of its
+    // Sefirah, or else the pathways with the same group name. The pathway itself comes first.
+    std::vector<const Pathway*> pathwayGroup(const std::string& pathwayId) const;
+    // Saved characters who hold this Sefirah.
+    std::vector<const Character*> sefirahHolders(const std::string& sefirahId) const;
     Character* findCharacter(int id);
     const Character* findCharacter(int id) const;
     // Saved characters (other than excludeId) whose name contains the text, ignoring case.
@@ -186,6 +228,7 @@ std::string characterCode(int id);  // "C-001"
 std::string artifactCode(int id);   // "A-001"
 std::string pathwayLabel(const Database& db, const std::string& pathwayId);  // "Seer (The Fool)"
 std::string sequenceLabel(const Pathway* pathway, int sequence);             // "Sequence 7: Magician"
+std::string sefirahLabel(const Database& db, const std::string& sefirahId);   // "Sefirah Castle (Lord of the Mysteries)"
 std::string relationshipName(const Database& db, const Relationship& r);     // "Fors Wall (C-002)" or "Fors Wall"
 
 // Abilities are stored as "Name: what it does". splitAbility gives {"Name", "what it does"}; only a

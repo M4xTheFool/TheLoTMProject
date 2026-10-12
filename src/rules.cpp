@@ -30,12 +30,15 @@ SpeedTier speedTier(int tier) {
         case 3: return {3, "Saint", "Demigod; outruns sound, crosses a city fast"};
         case 4: return {4, "Angel", "Near-instant travel across regions"};
         case 5: return {5, "Divine", "Effectively unbounded within their domain"};
+        case kAboveSequenceTier:
+            return {kAboveSequenceTier, "Above the Sequence", "Beyond distance: present wherever their Sefirah reaches"};
         default: return {0, "Mortal", "Ordinary human"};
     }
 }
 
 SpeedTier speedTierOf(const Character& c) {
     if (c.pathwayId.empty()) return speedTier(0);
+    if (c.aboveSequence) return speedTier(kAboveSequenceTier);
     return speedTier(tierForSequence(c.sequence));
 }
 
@@ -45,7 +48,7 @@ int secondaryBonus(int tier) { return tier / 2; }
 std::array<int, kStatCount> statBonuses(const Character& c, const Pathway* pathway) {
     std::array<int, kStatCount> bonus{};
     if (!pathway || c.pathwayId.empty()) return bonus;
-    const int tier = tierForSequence(c.sequence);
+    const int tier = speedTierOf(c).tier;
     if (int i = statIndex(pathway->primaryStat); i >= 0) bonus[i] += primaryBonus(tier);
     if (int i = statIndex(pathway->secondaryStat); i >= 0) bonus[i] += secondaryBonus(tier);
     return bonus;
@@ -111,8 +114,66 @@ bool absorbedUniqueness(const Character& c) {
     return !c.pathwayId.empty() && c.sequence == 0;
 }
 
+bool aboveTheSequence(const Character& c) {
+    return !c.pathwayId.empty() && c.aboveSequence;
+}
+
+bool dualPathwayEligible(const Character& c) {
+    return !c.pathwayId.empty() && c.sequence == 0 && !c.aboveSequence;
+}
+
+bool isDualPathwayGod(const Character& c) {
+    return dualPathwayEligible(c) && !c.secondPathway.empty();
+}
+
+std::string levelName(const Character& c) {
+    if (c.pathwayId.empty()) return "Mortal";
+    if (c.aboveSequence) return "Above the Sequence";
+    return "Sequence " + std::to_string(c.sequence);
+}
+
+std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db) {
+    std::vector<AbilityGroup> groups;
+    const Pathway* pathway = db.findPathway(c.pathwayId);
+    if (!pathway) return groups;
+    for (const SequenceInfo* s : abilitiesUpTo(*pathway, c.sequence)) {
+        groups.push_back({sequenceLabel(pathway, s->sequence), s->abilities, movementUnlockedAt(*pathway, s->sequence)});
+    }
+    if (c.hasUniqueness && !c.uniquenessAbilities.empty()) {
+        groups.push_back({"From the Uniqueness: " + sequenceLabel(pathway, 0), c.uniquenessAbilities, {}});
+    }
+    // A Sequence 1 characteristic carries the powers of that pathway's Sequences 9 to 1.
+    if (const Pathway* second = isDualPathwayGod(c) ? db.findPathway(c.secondPathway.pathwayId) : nullptr) {
+        for (const SequenceInfo* s : abilitiesUpTo(*second, 1)) {
+            groups.push_back({second->name + " pathway, " + sequenceLabel(second, s->sequence), s->abilities,
+                              movementUnlockedAt(*second, s->sequence)});
+        }
+        const SecondPathway& held = c.secondPathway;
+        if (held.hasUniqueness && !held.uniquenessAbilities.empty()) {
+            groups.push_back({"From the " + second->name + " Uniqueness: " + sequenceLabel(second, 0),
+                              held.uniquenessAbilities, {}});
+        }
+    }
+    // A Great Old One holds every Uniqueness of its group, and with them every Sequence 0 power.
+    if (aboveTheSequence(c)) {
+        for (const Pathway* other : db.pathwayGroup(c.pathwayId)) {
+            const SequenceInfo* zero = other != pathway ? other->findSequence(0) : nullptr;
+            if (!zero) continue;
+            groups.push_back({"From the " + other->name + " Uniqueness: " + sequenceLabel(other, 0), zero->abilities,
+                              movementUnlockedAt(*other, 0)});
+        }
+    }
+    return groups;
+}
+
+int abilityCount(const Character& c, const Database& db) {
+    int count = 0;
+    for (const AbilityGroup& group : abilityGroups(c, db)) count += static_cast<int>(group.abilities.size());
+    return count;
+}
+
 ThreatAssessment assessThreat(const Character& c) {
-    static constexpr std::array<int, 6> kSequencePoints = {0, 1, 3, 5, 7, 10};  // by speed tier
+    static constexpr std::array<int, 7> kSequencePoints = {0, 1, 3, 5, 7, 10, 12};  // by speed tier
     const int tier = speedTierOf(c).tier;
     const int sequencePoints = kSequencePoints[static_cast<size_t>(tier)];
 
@@ -128,8 +189,7 @@ ThreatAssessment assessThreat(const Character& c) {
     const int t = result.total;
     result.level = kThreatLevels[t <= 2 ? 0 : t <= 4 ? 1 : t <= 6 ? 2 : t <= 8 ? 3 : 4];
 
-    result.explanation = tier == 0 ? "Mortal (0)" : "Sequence " + std::to_string(c.sequence) + " (" +
-                                                        std::to_string(sequencePoints) + ")";
+    result.explanation = tier == 0 ? "Mortal (0)" : levelName(c) + " (" + std::to_string(sequencePoints) + ")";
     if (action != kRecentActions.end() && actionPoints != 0) {
         std::string label = *action;
         label[0] = static_cast<char>(std::tolower(static_cast<unsigned char>(label[0])));
@@ -149,18 +209,19 @@ std::string threatLevelOf(const Character& c) {
 
 static int sequencesAdvanced(const Character& c) {
     if (c.pathwayId.empty()) return 1;
+    if (c.aboveSequence) return 11;
     return 10 - c.sequence;  // Sequence 9 = 1, Sequence 0 = 10
 }
 
 int suggestedHp(const Character& c, const Pathway* pathway) {
-    static constexpr std::array<int, 6> kBaseByTier = {10, 12, 20, 40, 80, 160};
+    static constexpr std::array<int, 7> kBaseByTier = {10, 12, 20, 40, 80, 160, 320};
     const int tier = speedTierOf(c).tier;
     const int con = statTotals(c, pathway)[2];
     return std::max(1, kBaseByTier[tier] + abilityModifier(con) * sequencesAdvanced(c));
 }
 
 int suggestedSpirituality(const Character& c, const Pathway* pathway) {
-    static constexpr std::array<int, 6> kBaseByTier = {5, 10, 20, 40, 80, 160};
+    static constexpr std::array<int, 7> kBaseByTier = {5, 10, 20, 40, 80, 160, 320};
     const int tier = speedTierOf(c).tier;
     const int wis = statTotals(c, pathway)[4];
     return std::max(1, kBaseByTier[tier] + abilityModifier(wis) * sequencesAdvanced(c));
@@ -174,7 +235,11 @@ int pointBuyCost(int score) {
 
 std::vector<std::string> normalizeCharacter(Character& c) {
     std::vector<std::string> notes;
-    if (c.pathwayId.empty()) c.sequence = 9;
+    if (c.pathwayId.empty()) {
+        c.sequence = 9;
+        c.aboveSequence = false;
+    }
+    if (c.aboveSequence) c.sequence = 0;  // a Great Old One is past Sequence 0 of its pathway
     c.sequence = std::clamp(c.sequence, 0, 9);
     if (!honorificEligible(c) && !c.honorificName.empty()) {
         c.honorificName.clear();
@@ -202,6 +267,30 @@ std::vector<std::string> normalizeCharacter(Character& c) {
             notes.push_back("Uniqueness details removed: the character no longer holds one.");
         }
     }
+
+    SecondPathway& second = c.secondPathway;
+    if (!second.empty()) {
+        if (aboveTheSequence(c)) {
+            notes.push_back("Second pathway removed: Above the Sequence they hold every Uniqueness of their group.");
+            second = SecondPathway{};
+        } else if (!dualPathwayEligible(c)) {
+            notes.push_back("Second pathway removed: only a Sequence 0 god can be a dual-pathway god.");
+            second = SecondPathway{};
+        } else if (second.pathwayId == c.pathwayId) {
+            notes.push_back("Second pathway removed: it was their own pathway.");
+            second = SecondPathway{};
+        }
+    }
+    if (second.empty()) {
+        second = SecondPathway{};
+    } else {
+        second.beyonderCharacteristics = std::clamp(second.beyonderCharacteristics, 1, 2);
+        if (!second.hasUniqueness) {
+            second.uniquenessForm.clear();
+            second.uniquenessAbilities.clear();
+        }
+    }
+
     if (!c.stats.hpIncluded) c.stats.hp = 0;
     return notes;
 }

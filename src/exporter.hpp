@@ -15,13 +15,16 @@ enum class ExportFormat { Html, Markdown, Text };
 // File-name-safe version of a name: "Klein Moretti" -> "klein-moretti".
 std::string fileSlug(const std::string& name);
 
-// "character-1-klein-moretti", "artifact-2-creeping-hunger", "pathway-maestro", "catalogue-20261009-140533".
+// "character-1-klein-moretti", "artifact-2-creeping-hunger", "pathway-maestro", "sefirah-chaos-sea",
+// "catalogue-20261009-140533".
 std::string exportName(const Character& c);
 std::string exportName(const Artifact& a);
 std::string exportName(const Pathway& p);
+std::string exportName(const Sefirah& s);
 std::string catalogueExportName();
 
-// Every character, every Sealed Artifact and your own pathways, for exporting everything at once.
+// Every character, every Sealed Artifact, your own pathways and the Sefirot your characters hold,
+// for exporting everything at once.
 std::vector<Sheet> catalogueSheets(const Database& db);
 
 // Writes the sheets to <exports folder>/<baseName>.html/.md/.txt and returns the file's full path.

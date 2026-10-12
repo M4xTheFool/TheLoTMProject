@@ -54,6 +54,12 @@ std::string describeHair(const Appearance& look) {
     return out;
 }
 
+// "Seer, Apprentice and Marauder"
+std::string joinAnd(const std::vector<std::string>& items) {
+    if (items.size() <= 1) return join(items);
+    return join(std::vector<std::string>(items.begin(), items.end() - 1)) + " and " + items.back();
+}
+
 std::string artifactLine(const Artifact& a, const Database& db) {
     std::string line = artifactCode(a.id);
     if (!a.pathwayId.empty()) line += ", " + pathwayLabel(db, a.pathwayId) + " pathway";
@@ -69,13 +75,23 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     sheet.anchor = "c-" + std::to_string(c.id);
     sheet.kind = "Character";
     sheet.title = c.name.empty() ? "(unnamed)" : c.name;
+    const Sefirah* groupSefirah = db.sefirahForPathway(c.pathwayId);
+    const Pathway* second = isDualPathwayGod(c) ? db.findPathway(c.secondPathway.pathwayId) : nullptr;
+    auto pathwayText = [&db](const Pathway* p, const std::string& id) {
+        if (!p) return pathwayLabel(db, id);
+        return p->name + " pathway" + (p->god.empty() ? "" : " (" + p->god + ")");
+    };
     if (c.pathwayId.empty()) {
         sheet.subtitle = "Ordinary mortal";
+    } else if (c.aboveSequence) {
+        const std::string goo = groupSefirah && !groupSefirah->greatOldOne.empty() ? groupSefirah->greatOldOne
+                                                                                  : "a Great Old One";
+        sheet.subtitle = "Above the Sequence: " + goo + ", " + pathwayText(pathway, c.pathwayId);
     } else {
         const SequenceInfo* seq = pathway ? pathway->findSequence(c.sequence) : nullptr;
-        sheet.subtitle = "Sequence " + std::to_string(c.sequence) + (seq && !seq->name.empty() ? " " + seq->name : "") + ", " +
-                         (pathway ? pathway->name + " pathway" : pathwayLabel(db, c.pathwayId));
-        if (pathway && !pathway->god.empty()) sheet.subtitle += " (" + pathway->god + ")";
+        sheet.subtitle = "Sequence " + std::to_string(c.sequence) + (seq && !seq->name.empty() ? " " + seq->name : "") +
+                         ", " + pathwayText(pathway, c.pathwayId);
+        if (isDualPathwayGod(c)) sheet.subtitle += " and " + pathwayText(second, c.secondPathway.pathwayId);
     }
 
     Section identity{"Identity"};
@@ -86,6 +102,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     identity.field("Age", c.age);
     identity.field("Gender", c.gender);
     if (sequenceOneChoices(c)) identity.field("Beyonder characteristics", std::to_string(c.beyonderCharacteristics));
+    if (!c.sefirahId.empty()) identity.field("Sefirah", sefirahLabel(db, c.sefirahId));
     if (!c.affiliation.organization.empty()) {
         std::string org = c.affiliation.organization;
         if (!c.affiliation.rank.empty()) org += " (" + c.affiliation.rank + ")";
@@ -136,6 +153,32 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         addSection(sheet, uniqueness);
     }
 
+    if (aboveTheSequence(c)) {
+        Section above{"Above the Sequence"};
+        above.paragraph("A Great Old One: past Sequence 0, holding a Sefirah and every Uniqueness of its pathway "
+                        "group, and embodying an aspect of the universe.");
+        if (groupSefirah) above.field("Great Old One", groupSefirah->greatOldOne);
+        std::vector<std::string> names;
+        for (const Pathway* p : db.pathwayGroup(c.pathwayId)) names.push_back(p->name);
+        above.field("Uniquenesses held", joinAnd(names) + (names.size() == 1 ? " pathway" : " pathways"));
+        if (groupSefirah && c.sefirahId != groupSefirah->id) above.field("Their group's Sefirah", groupSefirah->name);
+        addSection(sheet, above);
+    }
+
+    if (isDualPathwayGod(c)) {
+        const SecondPathway& held = c.secondPathway;
+        Section dual{"Second Pathway"};
+        dual.paragraph("A dual-pathway god: besides their own pathway they hold a second pathway's Sequence 1 "
+                       "Beyonder characteristic" + std::string(held.beyonderCharacteristics == 2 ? "s" : "") +
+                       (held.hasUniqueness ? " and its Uniqueness." : "."));
+        dual.field("Pathway", pathwayLabel(db, held.pathwayId));
+        dual.field("Beyonder characteristics", std::to_string(held.beyonderCharacteristics) + " of " +
+                                                   sequenceLabel(second, 1));
+        dual.field("Uniqueness", held.hasUniqueness ? "Holds it" : "Not held");
+        if (held.hasUniqueness) dual.paragraph(held.uniquenessForm);
+        addSection(sheet, dual);
+    }
+
     // Stat block
     Section stats{"Stat Block"};
     Block table{BlockKind::Stats, "", "", {}};
@@ -147,7 +190,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     }
     stats.blocks.push_back(table);
     if (pathway && (bonus != std::array<int, kStatCount>{})) {
-        const int tierNow = tierForSequence(c.sequence);
+        const int tierNow = speedTierOf(c).tier;
         std::string text = "+" + std::to_string(primaryBonus(tierNow)) + " " + pathway->primaryStat;
         if (secondaryBonus(tierNow) > 0) text += ", +" + std::to_string(secondaryBonus(tierNow)) + " " + pathway->secondaryStat;
         stats.field("Pathway bonus", text + " (" + pathway->name + " pathway, tier " + std::to_string(tierNow) + ")");
@@ -166,19 +209,13 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     stats.field("Spirituality", std::to_string(c.stats.spirituality));
     addSection(sheet, stats);
 
-    if (pathway) {
-        Section abilities{"Abilities"};
-        for (const SequenceInfo* s : abilitiesUpTo(*pathway, c.sequence)) {
-            abilities.subheading(sequenceLabel(pathway, s->sequence));
-            for (const auto& a : s->abilities) abilities.bullet(a);
-            for (const auto& mode : movementUnlockedAt(*pathway, s->sequence)) abilities.bullet("Movement: " + mode);
-        }
-        if (c.hasUniqueness && !c.uniquenessAbilities.empty()) {
-            abilities.subheading("From the Uniqueness: " + sequenceLabel(pathway, 0));
-            for (const auto& a : c.uniquenessAbilities) abilities.bullet(a);
-        }
-        addSection(sheet, abilities);
+    Section abilities{"Abilities"};
+    for (const AbilityGroup& group : abilityGroups(c, db)) {
+        abilities.subheading(group.heading);
+        for (const auto& a : group.abilities) abilities.bullet(a);
+        for (const auto& mode : group.movement) abilities.bullet("Movement: " + mode);
     }
+    addSection(sheet, abilities);
 
     Section artifacts{"Sealed Artifacts"};
     for (int id : c.artifactIds) {
@@ -267,6 +304,40 @@ Sheet buildArtifactSheet(const Artifact& a, const Database& db) {
         sheet.footer = "Created " + a.createdAt;
         if (!a.updatedAt.empty() && a.updatedAt != a.createdAt) sheet.footer += ", last edited " + a.updatedAt;
     }
+    return sheet;
+}
+
+Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
+    Sheet sheet;
+    sheet.anchor = "s-" + s.id;
+    sheet.kind = "Sefirah";
+    sheet.title = s.name;
+    sheet.subtitle = "Sefirah";
+
+    Section overview{"Overview"};
+    overview.field("Also known as", join(s.alsoKnownAs));
+    overview.field("Great Old One", s.greatOldOne);
+    std::vector<std::string> pathways;
+    for (const auto& id : s.pathwayIds) pathways.push_back(pathwayLabel(db, id));
+    overview.field("Pathways", join(pathways));
+    overview.paragraph(s.description);
+    addSection(sheet, overview);
+
+    Section canon{"Known Holders"};
+    for (const auto& line : s.knownHolders) canon.bullet(line);
+    addSection(sheet, canon);
+
+    Section holders{"Held By"};
+    for (const Character* c : db.sefirahHolders(s.id)) {
+        holders.bullet(c->name + " (" + characterCode(c->id) + "), " + levelName(*c));
+    }
+    addSection(sheet, holders);
+
+    Section notes{"Notes"};
+    notes.paragraph(s.notes);
+    addSection(sheet, notes);
+
+    sheet.footer = "Stored in sefirot.json";
     return sheet;
 }
 

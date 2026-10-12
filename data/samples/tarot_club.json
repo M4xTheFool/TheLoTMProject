@@ -49,6 +49,7 @@
       "hasUniqueness": false,
       "uniquenessForm": "",
       "uniquenessAbilities": [],
+      "sefirahId": "sefirah_castle",
       "stats": {
         "base": [
           10,

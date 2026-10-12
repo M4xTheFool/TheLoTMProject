@@ -42,6 +42,7 @@ public:
     std::filesystem::path customPathwaysFile() const;  // data/custom_pathways.json
     std::filesystem::path samplesDir() const;          // data/samples
 
+    // Reads pathways.json, custom_pathways.json, sefirot.json and the saves. Only pathways.json must exist.
     void loadAll(Database& db) const;
     void saveCharacters(const Database& db) const;
     void saveArtifacts(const Database& db) const;

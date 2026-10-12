@@ -23,11 +23,13 @@ void runCatalogue(App& app);
 void runExportMenu(App& app);
 void runSettingsMenu(App& app);
 void runPathwayMenu(App& app);
+void runSefirotMenu(App& app);
 
 // Shared helpers used by several screens.
 int choosePathway(const App& app, const std::string& title, const std::string& zeroLabel, bool allowKeep);
 void exportCharacter(App& app, int id);
 void exportArtifact(App& app, int id);
 void exportPathway(App& app, const std::string& id);
+void exportSefirah(App& app, const std::string& id);
 
 }  // namespace lotm

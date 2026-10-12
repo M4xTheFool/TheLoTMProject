@@ -55,6 +55,7 @@ std::string fileSlug(const std::string& name) {
 std::string exportName(const Character& c) { return "character-" + std::to_string(c.id) + "-" + fileSlug(c.name); }
 std::string exportName(const Artifact& a) { return "artifact-" + std::to_string(a.id) + "-" + fileSlug(a.name); }
 std::string exportName(const Pathway& p) { return "pathway-" + fileSlug(p.id); }
+std::string exportName(const Sefirah& s) { return "sefirah-" + fileSlug(s.id); }
 std::string catalogueExportName() { return "catalogue-" + compactTimestamp(); }
 
 std::vector<Sheet> catalogueSheets(const Database& db) {
@@ -63,6 +64,9 @@ std::vector<Sheet> catalogueSheets(const Database& db) {
     for (const auto& a : db.artifacts) sheets.push_back(buildArtifactSheet(a, db));
     for (const auto& p : db.pathways) {
         if (p.custom) sheets.push_back(buildPathwaySheet(p));
+    }
+    for (const auto& s : db.sefirot) {
+        if (!db.sefirahHolders(s.id).empty()) sheets.push_back(buildSefirahSheet(s, db));
     }
     return sheets;
 }

@@ -33,6 +33,7 @@ add_library(lotm_core STATIC
     src/catalogue.cpp
     src/export_menu.cpp
     src/settings_menu.cpp
+    src/sefirot_menu.cpp
 )
 target_include_directories(lotm_core PUBLIC src)
 target_link_libraries(lotm_core PUBLIC nlohmann_json::nlohmann_json)
@@ -95,6 +96,7 @@ if(LOTM_BUILD_WINDOW)
         src/window/pathways_screen.cpp
         src/window/settings_screen.cpp
         src/window/compare_screen.cpp
+        src/window/sefirot_screen.cpp
         src/window/theme.cpp)
     target_link_libraries(lotm_window PRIVATE lotm_core imgui)
     if(WIN32)

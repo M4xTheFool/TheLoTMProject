@@ -76,8 +76,20 @@ void stepSequence(const App& app, Character& c) {
     for (const auto& s : p->sequences) {
         std::cout << "  " << s.sequence << ") " << (s.name.empty() ? "(no name yet)" : s.name) << "\n";
     }
-    ui::info("9 is the weakest, 0 is a god.");
+    ui::info("9 is the weakest, 0 is a god. A god can go further: Above the Sequence.");
     c.sequence = ui::readInt("Sequence", 0, 9, c.sequence);
+    if (c.sequence != 0) {
+        c.aboveSequence = false;
+    } else {
+        ui::info("Above the Sequence: a Great Old One, who holds their group's Sefirah and every Uniqueness of its");
+        ui::info("pathways (the Fool, Door and Error pathways for the Lord of the Mysteries).");
+        c.aboveSequence = ui::yesNo("Is this god Above the Sequence?", c.aboveSequence);
+        const Sefirah* own = app.db.sefirahForPathway(c.pathwayId);
+        if (c.aboveSequence && c.sefirahId.empty() && own) {
+            c.sefirahId = own->id;
+            ui::info("They hold " + sefirahLabel(app.db, own->id) + " now; change it in Customization.");
+        }
+    }
     const auto all = abilitiesUpTo(*p, c.sequence);
     size_t count = 0;
     for (const SequenceInfo* s : all) count += s->abilities.size();
@@ -88,28 +100,28 @@ void stepSequence(const App& app, Character& c) {
     }
     if (c.sequence == 1) ui::info("Sequence 1: set Beyonder characteristics and describe the Uniqueness in Customization.");
     if (c.sequence == 0) ui::info("Sequence 0: you can describe the absorbed Uniqueness in Customization.");
+    if (dualPathwayEligible(c)) ui::info("A Sequence 0 god can also take a second pathway in Customization.");
     ui::info("The sheet lists " + std::to_string(count) + " abilities from Sequence 9 down to " +
-             std::to_string(c.sequence) + ".");
+             std::to_string(c.sequence) + (c.aboveSequence ? ", plus the Sequence 0 powers of every pathway in the group." : "."));
 }
 
 // ---------------------------------------------------------------- step 5
 
-// Toggles which Sequence 0 abilities the Uniqueness grants; typed text adds one of your own.
-void chooseUniquenessAbilities(const Pathway* p, Character& c) {
+// Toggles which of the pathway's Sequence 0 abilities the Uniqueness grants; typed text adds one of your own.
+void chooseUniquenessAbilities(const Pathway* p, std::vector<std::string>& held) {
     std::vector<std::string> options;
     if (const SequenceInfo* zero = p ? p->findSequence(0) : nullptr) {
         for (const auto& a : zero->abilities) {
             if (a.rfind("Edit me", 0) != 0) options.push_back(a);
         }
     }
-    for (const auto& a : c.uniquenessAbilities) {
+    for (const auto& a : held) {
         if (std::find(options.begin(), options.end(), a) == options.end()) options.push_back(a);
     }
     while (true) {
         std::cout << "Sequence 0 abilities the Uniqueness grants:\n";
         if (options.empty()) std::cout << "  (the pathway lists none yet; type your own)\n";
         for (size_t i = 0; i < options.size(); ++i) {
-            auto& held = c.uniquenessAbilities;
             const bool on = std::find(held.begin(), held.end(), options[i]) != held.end();
             std::cout << "  [" << (on ? "x" : " ") << "] " << (i + 1) << ") " << options[i] << "\n";
         }
@@ -119,7 +131,7 @@ void chooseUniquenessAbilities(const Pathway* p, Character& c) {
             std::all_of(value.begin(), value.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)); });
         if (!isNumber) {
             options.push_back(value);
-            c.uniquenessAbilities.push_back(value);
+            held.push_back(value);
             continue;
         }
         size_t index = value.size() <= 4 ? std::stoul(value) : 0;
@@ -127,11 +139,60 @@ void chooseUniquenessAbilities(const Pathway* p, Character& c) {
             ui::info("There is no entry " + value + ".");
             continue;
         }
-        auto& held = c.uniquenessAbilities;
         auto it = std::find(held.begin(), held.end(), options[index - 1]);
         if (it == held.end()) held.push_back(options[index - 1]);
         else held.erase(it);
     }
+}
+
+// A Sequence 0 god can hold a second pathway's Sequence 1 characteristic(s) and its Uniqueness.
+void stepSecondPathway(const App& app, Character& c) {
+    if (!dualPathwayEligible(c)) {
+        ui::info(c.aboveSequence ? "Above the Sequence they hold every Uniqueness of their group, so no second pathway."
+                                 : "A second pathway (a dual-pathway god) is open to a Sequence 0 god.");
+        return;
+    }
+    SecondPathway& second = c.secondPathway;
+    ui::info("Dual-pathway god: a second pathway's Sequence 1 Beyonder characteristic and, usually, its Uniqueness.");
+    ui::info("Amon, Sequence 0 Error, took the Door Uniqueness and a Key of Stars characteristic this way.");
+    const std::string current = second.empty() ? "none" : pathwayLabel(app.db, second.pathwayId);
+    const int pick = choosePathway(app, "Second pathway [current: " + current + "]", "None (one pathway)", true);
+    if (pick == ui::Choice::kKeep && second.empty()) return;
+    if (pick == ui::Choice::kZero) {
+        second = SecondPathway{};
+        return;
+    }
+    if (pick >= 0) {
+        if (app.db.pathways[pick].id == c.pathwayId) {
+            ui::info("That is their own pathway; the second one has to be another.");
+            return;
+        }
+        second.pathwayId = app.db.pathways[pick].id;
+    }
+    const Pathway* other = app.db.findPathway(second.pathwayId);
+    const auto group = app.db.pathwayGroup(c.pathwayId);
+    if (std::find(group.begin(), group.end(), other) == group.end()) {
+        ui::info("Note: canon dual-pathway gods combine neighbouring pathways; this one isn't a neighbour.");
+    }
+    second.beyonderCharacteristics = ui::readInt("Its Sequence 1 Beyonder characteristics they hold (1 or 2)", 1, 2,
+                                                 second.beyonderCharacteristics);
+    second.hasUniqueness = ui::yesNo("Do they hold that pathway's Uniqueness too?", second.hasUniqueness);
+    if (second.hasUniqueness) {
+        const std::string start = second.uniquenessForm.empty() && other ? other->uniqueness : second.uniquenessForm;
+        second.uniquenessForm = ui::readMultiline("Describe that Uniqueness and the shape it takes (optional)", start);
+        ui::info("It grants some of that pathway's Sequence 0 powers. Pick them:");
+        chooseUniquenessAbilities(other, second.uniquenessAbilities);
+    }
+}
+
+void chooseSefirah(const App& app, Character& c) {
+    if (app.db.sefirot.empty()) return;
+    std::vector<std::string> names;
+    for (const auto& s : app.db.sefirot) names.push_back(sefirahLabel(app.db, s.id));
+    const std::string current = c.sefirahId.empty() ? "none" : sefirahLabel(app.db, c.sefirahId);
+    const int pick = ui::choose("Sefirah they hold [current: " + current + "]", names, "None", true);
+    if (pick == ui::Choice::kZero) c.sefirahId.clear();
+    else if (pick >= 0) c.sefirahId = app.db.sefirot[pick].id;
 }
 
 void stepCustomization(const App& app, Character& c) {
@@ -173,10 +234,11 @@ void stepCustomization(const App& app, Character& c) {
             c.uniquenessForm = ui::readMultiline("Describe the Uniqueness: what it looks like and what shape it takes",
                                                  current);
             ui::info("The Uniqueness grants a couple of the Sequence 0 powers. Pick them:");
-            chooseUniquenessAbilities(p, c);
+            chooseUniquenessAbilities(p, c.uniquenessAbilities);
         }
     } else if (absorbedUniqueness(c)) {
-        ui::info("At Sequence 0 the Uniqueness has been absorbed, so its powers are all theirs.");
+        ui::info(c.aboveSequence ? "Above the Sequence they have absorbed every Uniqueness of their pathway group."
+                                 : "At Sequence 0 the Uniqueness has been absorbed, so its powers are all theirs.");
         const std::string current = c.uniquenessForm.empty() && p ? p->uniqueness : c.uniquenessForm;
         c.uniquenessForm = ui::readMultiline("Describe the absorbed Uniqueness and how it shows itself now (optional)",
                                              current);
@@ -184,9 +246,23 @@ void stepCustomization(const App& app, Character& c) {
         ui::info("Uniqueness (its look and the Sequence 0 powers it grants) and a second Beyonder characteristic:");
         ui::info("these are set at Sequence 1. Change the Sequence to 1 to describe them.");
     }
+
+    ui::blank();
+    stepSecondPathway(app, c);
+    ui::blank();
+    chooseSefirah(app, c);
 }
 
 // ---------------------------------------------------------------- step 6
+
+// The type and note of a new relationship, then it is added.
+void finishRelationship(const App& app, Character& c, Relationship r) {
+    if (const Character* other = app.db.findCharacter(r.characterId)) r.name = other->name;
+    r.type = ui::choosePreset("Relationship to " + r.name, kRelationshipTypes, "");
+    if (r.type.empty()) r.type = "Other";
+    r.note = ui::readText("Note (optional)", "");
+    c.relationships.push_back(r);
+}
 
 // Anyone can be named. If the name matches a saved character, the two are linked.
 void addRelationship(const App& app, Character& c, const std::string& typed) {
@@ -202,11 +278,30 @@ void addRelationship(const App& app, Character& c, const std::string& typed) {
         int pick = ui::choose("Is this one of your saved characters?", names, "No, just add \"" + typed + "\"");
         if (pick >= 0) r.characterId = matches[pick]->id;
     }
-    if (const Character* other = app.db.findCharacter(r.characterId)) r.name = other->name;
-    r.type = ui::choosePreset("Relationship to " + r.name, kRelationshipTypes, "");
-    if (r.type.empty()) r.type = "Other";
-    r.note = ui::readText("Note (optional)", "");
-    c.relationships.push_back(r);
+    finishRelationship(app, c, r);
+}
+
+// Picks one of the saved characters from a numbered list, without typing the name.
+void pickSavedCharacter(const App& app, Character& c) {
+    std::vector<const Character*> offered;
+    std::vector<std::string> names;
+    for (const auto& other : app.db.characters) {
+        if (other.id == c.id) continue;
+        offered.push_back(&other);
+        const Pathway* p = app.db.findPathway(other.pathwayId);
+        names.push_back(other.name + " (" + characterCode(other.id) + ", " +
+                        (other.pathwayId.empty() ? std::string("mortal") : (p ? p->name + ", " : "") + levelName(other)) +
+                        ")");
+    }
+    if (offered.empty()) {
+        ui::info("There are no other saved characters yet. Type a name instead.");
+        return;
+    }
+    const int pick = ui::choose("Which saved character?", names, "Cancel");
+    if (pick < 0) return;
+    Relationship r;
+    r.characterId = offered[static_cast<size_t>(pick)]->id;
+    finishRelationship(app, c, r);
 }
 
 void editRelationships(const App& app, Character& c) {
@@ -219,8 +314,13 @@ void editRelationships(const App& app, Character& c) {
             if (!r.note.empty()) std::cout << ", " << r.note;
             std::cout << "\n";
         }
-        std::string value = ui::readLine("  Type a name to add someone, a number to remove one, or Enter when done: ");
+        std::string value = ui::readLine(
+            "  P picks one of your saved characters, a typed name adds anyone, a number removes one, Enter when done: ");
         if (value.empty()) return;
+        if (value == "p" || value == "P") {
+            pickSavedCharacter(app, c);
+            continue;
+        }
         const bool isNumber =
             std::all_of(value.begin(), value.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)); });
         if (!isNumber) {
@@ -499,7 +599,7 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
         std::cout << renderText(buildCharacterSheet(c, app.db));
         int pick = ui::choose("\nChange something, or save:",
                               {"Name", "Looks and bio", "Pathway", "Sequence",
-                               "Customization (alignment, titles, aliases, honorific, Uniqueness)",
+                               "Customization (alignment, titles, aliases, honorific, Uniqueness, second pathway, Sefirah)",
                                "Affiliation and relationships", "Stat block, HP and Spirituality",
                                "Sealed Artifacts", "Dossier (threat level, status, remarks)", "Notes", "Save"},
                               "Cancel without saving");

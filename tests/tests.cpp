@@ -259,6 +259,200 @@ static void testAbilitiesAndEligibility() {
     CHECK(!sequenceOneChoices(mortal));
 }
 
+// A small world for the god-level rules: the Fool / Door / Error group with its Sefirah, plus a
+// pathway of your own that no Sefirah covers.
+static Database godDatabase() {
+    Database db;
+    auto make = [](const std::string& id, const std::string& name, const std::string& god, const std::string& group,
+                   const std::string& primary, const std::string& secondary) {
+        Pathway p;
+        p.id = id;
+        p.name = name;
+        p.god = god;
+        p.group = group;
+        p.primaryStat = primary;
+        p.secondaryStat = secondary;
+        for (int s = 9; s >= 0; --s) {
+            p.sequences.push_back({s, name + " " + std::to_string(s), {name + " power " + std::to_string(s) + ": does things"}});
+        }
+        return p;
+    };
+    db.pathways = {make("seer", "Seer", "The Fool", "Fool / Door / Error", "WIS", "DEX"),
+                   make("apprentice", "Apprentice", "Door", "Fool / Door / Error", "INT", "DEX"),
+                   make("marauder", "Marauder", "Error", "Fool / Door / Error", "DEX", "INT"),
+                   make("acrobat", "Acrobat", "The Maestro", "Maestro", "CHA", "DEX")};
+    db.pathways[1].movement = {{1, "Star travel"}};
+    Sefirah castle;
+    castle.id = "sefirah_castle";
+    castle.name = "Sefirah Castle";
+    castle.greatOldOne = "Lord of the Mysteries";
+    castle.pathwayIds = {"seer", "apprentice", "marauder"};
+    castle.knownHolders = {"Klein Moretti"};
+    db.sefirot = {castle};
+    return db;
+}
+
+static void testAboveTheSequence() {
+    Database db = godDatabase();
+    const Pathway* seer = db.findPathway("seer");
+    Character c;
+    c.id = 1;
+    c.name = "Klein Moretti";
+    c.pathwayId = "seer";
+    c.sequence = 0;
+    c.aboveSequence = true;
+    c.sefirahId = "sefirah_castle";
+
+    // A tier of its own: bigger pathway bonuses, threat, HP and Spirituality than Sequence 0.
+    CHECK(aboveTheSequence(c) && speedTierOf(c).tier == kAboveSequenceTier && speedTierOf(c).name == "Above the Sequence");
+    CHECK(statBonuses(c, seer)[4] == 6 && statBonuses(c, seer)[1] == 3);  // WIS +6, DEX +3
+    CHECK(assessThreat(c).total == 12 && assessThreat(c).level == "Catastrophic");
+    CHECK(assessThreat(c).explanation == "Above the Sequence (12) = 12");
+    CHECK(levelName(c) == "Above the Sequence");
+    Character god = c;
+    god.aboveSequence = false;
+    CHECK(suggestedHp(c, seer) > suggestedHp(god, seer));
+    CHECK(suggestedSpirituality(c, seer) > suggestedSpirituality(god, seer));
+
+    // Above the Sequence includes Sequence 0, and a mortal can't be there.
+    c.sequence = 4;
+    CHECK(normalizeCharacter(c).empty() && c.sequence == 0 && c.aboveSequence);
+    Character mortal;
+    mortal.aboveSequence = true;
+    normalizeCharacter(mortal);
+    CHECK(!mortal.aboveSequence && !aboveTheSequence(mortal));
+
+    // The whole group is theirs: their own Sequences, then every neighbour's Sequence 0 powers.
+    const auto groups = abilityGroups(c, db);
+    CHECK(groups.size() == 12);
+    CHECK(groups[10].heading == "From the Apprentice Uniqueness: Sequence 0: Apprentice 0");
+    CHECK(groups[11].heading == "From the Marauder Uniqueness: Sequence 0: Marauder 0");
+    CHECK(abilityCount(c, db) == 12);
+    CHECK(db.pathwayGroup("seer").size() == 3 && db.pathwayGroup("seer")[0] == seer);
+    CHECK(db.pathwayGroup("acrobat").size() == 1);  // no Sefirah, no neighbours: only itself
+    CHECK(db.sefirahForPathway("marauder") == &db.sefirot[0] && db.sefirahForPathway("acrobat") == nullptr);
+
+    const std::string text = renderText(buildCharacterSheet(c, db));
+    CHECK(text.find("Above the Sequence: Lord of the Mysteries, Seer pathway (The Fool)") != std::string::npos);
+    CHECK(text.find("Uniquenesses held: Seer, Apprentice and Marauder pathways") != std::string::npos);
+    CHECK(text.find("Sefirah: Sefirah Castle (Lord of the Mysteries)") != std::string::npos);
+    CHECK(text.find("Their group's Sefirah") == std::string::npos);  // they hold it
+    CHECK(text.find("Tier 6 Above the Sequence") != std::string::npos);
+    c.sefirahId.clear();
+    CHECK(renderText(buildCharacterSheet(c, db)).find("Their group's Sefirah: Sefirah Castle") != std::string::npos);
+
+    // Compare ranks it above a Sequence 0 god.
+    db.characters = {c, god};
+    db.characters[1].id = 2;
+    db.characters[1].name = "Another god";
+    const Comparison result = buildComparison({&db.characters[0], &db.characters[1]}, db);
+    const CompareRow& sequence = result.sections[0].rows[1];
+    CHECK(sequence.values[0] == "Above the Sequence" && sequence.highest == std::vector<bool>({true, false}));
+}
+
+static void testDualPathway() {
+    Database db = godDatabase();
+    Character amon;
+    amon.id = 1;
+    amon.name = "Amon";
+    amon.pathwayId = "marauder";
+    amon.sequence = 0;
+    amon.secondPathway.pathwayId = "apprentice";
+    amon.secondPathway.uniquenessForm = "A door of stars";
+    amon.secondPathway.uniquenessAbilities = {"Apprentice power 0: does things"};
+    CHECK(dualPathwayEligible(amon) && isDualPathwayGod(amon));
+    CHECK(normalizeCharacter(amon).empty() && amon.secondPathway.pathwayId == "apprentice");
+
+    // The second pathway's Sequences 9 to 1 (with their movement), then what its Uniqueness grants.
+    const auto groups = abilityGroups(amon, db);
+    CHECK(groups.size() == 10 + 9 + 1);
+    CHECK(groups[10].heading == "Apprentice pathway, Sequence 9: Apprentice 9");
+    CHECK(groups[18].heading == "Apprentice pathway, Sequence 1: Apprentice 1");
+    CHECK(groups[18].movement == std::vector<std::string>{"Star travel"});
+    CHECK(groups[19].heading == "From the Apprentice Uniqueness: Sequence 0: Apprentice 0");
+    CHECK(abilityCount(amon, db) == 20);
+    CHECK(statBonuses(amon, db.findPathway("marauder"))[3] == 2);  // stat bonuses follow the main pathway only
+
+    const std::string text = renderText(buildCharacterSheet(amon, db));
+    CHECK(text.find("Sequence 0 Marauder 0, Marauder pathway (Error) and Apprentice pathway (Door)") != std::string::npos);
+    CHECK(text.find("-- Second Pathway --") != std::string::npos);
+    CHECK(text.find("Beyonder characteristics: 1 of Sequence 1: Apprentice 1") != std::string::npos);
+    CHECK(text.find("A door of stars") != std::string::npos);
+    CHECK(text.find("- Movement: Star travel") != std::string::npos);
+
+    db.characters = {amon};
+    Character klein;
+    klein.id = 2;
+    klein.name = "Klein";
+    db.characters.push_back(klein);
+    const Comparison result = buildComparison({&db.characters[0], &db.characters[1]}, db);
+    CHECK(result.sections[0].rows[0].values[0] == "Marauder (Error) and Apprentice (Door)");
+
+    // Leaving Sequence 0, going Above the Sequence, or picking their own pathway drops it, with a note.
+    Character below = amon;
+    below.sequence = 1;
+    CHECK(normalizeCharacter(below).size() == 1 && below.secondPathway.empty());
+    Character above = amon;
+    above.aboveSequence = true;
+    CHECK(normalizeCharacter(above).size() == 1 && above.secondPathway.empty());
+    Character same = amon;
+    same.secondPathway.pathwayId = "marauder";
+    CHECK(normalizeCharacter(same).size() == 1 && same.secondPathway.empty());
+    // Not holding the Uniqueness drops its description and powers; characteristics stay 1 or 2.
+    Character noUniqueness = amon;
+    noUniqueness.secondPathway.hasUniqueness = false;
+    noUniqueness.secondPathway.beyonderCharacteristics = 5;
+    normalizeCharacter(noUniqueness);
+    CHECK(noUniqueness.secondPathway.uniquenessForm.empty() && noUniqueness.secondPathway.uniquenessAbilities.empty());
+    CHECK(noUniqueness.secondPathway.beyonderCharacteristics == 2);
+}
+
+static void testSefirot() {
+    const Storage source(fs::path(LOTM_SOURCE_DIR) / "data");
+    Database db;
+    source.loadAll(db);
+    CHECK(db.sefirot.size() == 9);
+    // Every built-in pathway belongs to exactly one Sefirah, and every Sefirah names real pathways.
+    for (const auto& p : db.pathways) {
+        if (p.custom) continue;
+        const auto count = std::count_if(db.sefirot.begin(), db.sefirot.end(), [&](const Sefirah& s) {
+            return std::find(s.pathwayIds.begin(), s.pathwayIds.end(), p.id) != s.pathwayIds.end();
+        });
+        if (count != 1) std::cerr << p.id << " is in " << count << " Sefirot\n";
+        CHECK(count == 1);
+    }
+    for (const auto& s : db.sefirot) {
+        CHECK(!s.description.empty() && !s.greatOldOne.empty() && !s.pathwayIds.empty());
+        for (const auto& id : s.pathwayIds) CHECK(db.findPathway(id) != nullptr);
+        // The neighbouring pathways of a group share the group name in pathways.json.
+        for (const auto& id : s.pathwayIds) CHECK(db.findPathway(id)->group == db.findPathway(s.pathwayIds[0])->group);
+    }
+    const Sefirah* castle = db.findSefirah("sefirah_castle");
+    CHECK(castle && castle->greatOldOne == "Lord of the Mysteries" && db.sefirahForPathway("seer") == castle);
+    CHECK(sefirahLabel(db, "sefirah_castle") == "Sefirah Castle (Lord of the Mysteries)");
+    CHECK(sefirahLabel(db, "") == "None");
+
+    // Holders: the characters that name it. Their Sefirot go into the catalogue export.
+    Character klein;
+    klein.id = 1;
+    klein.name = "Klein Moretti";
+    klein.pathwayId = "seer";
+    klein.sequence = 0;
+    klein.sefirahId = "sefirah_castle";
+    db.characters = {klein};
+    CHECK(db.sefirahHolders("sefirah_castle").size() == 1 && db.sefirahHolders("chaos_sea").empty());
+    const std::string text = renderText(buildSefirahSheet(*castle, db));
+    CHECK(text.find("SEFIRAH CASTLE") != std::string::npos);
+    CHECK(text.find("Great Old One: Lord of the Mysteries") != std::string::npos);
+    CHECK(text.find("Seer (The Fool)") != std::string::npos);
+    CHECK(text.find("Klein Moretti (C-001), Sequence 0") != std::string::npos);
+    const auto sheets = catalogueSheets(db);
+    CHECK(std::count_if(sheets.begin(), sheets.end(), [](const Sheet& s) { return s.kind == "Sefirah"; }) == 1);
+    const std::string html = renderHtmlPage("All", sheets, "light");
+    CHECK(html.find("<h2>Sefirot</h2>") != std::string::npos);
+    CHECK(exportName(*castle) == "sefirah-sefirah-castle");
+}
+
 static void testPointBuy() {
     CHECK(pointBuyCost(8) == 0);
     CHECK(pointBuyCost(13) == 5);
@@ -322,6 +516,19 @@ static void testJsonRoundTrip() {
     CHECK(partial.sequence == 9);
     CHECK(partial.stats.base[0] == 10);
     CHECK(partial.beyonderCharacteristics == 1 && partial.dossier.empty());
+    CHECK(!partial.aboveSequence && partial.secondPathway.empty() && partial.secondPathway.hasUniqueness);
+    CHECK(partial.sefirahId.empty());
+
+    c.sequence = 0;
+    c.aboveSequence = true;
+    c.sefirahId = "sefirah_castle";
+    c.secondPathway.pathwayId = "apprentice";
+    c.secondPathway.beyonderCharacteristics = 2;
+    c.secondPathway.uniquenessAbilities = {"Door: opens anything"};
+    back = nlohmann::json(c).get<Character>();
+    CHECK(back.aboveSequence && back.sefirahId == "sefirah_castle");
+    CHECK(back.secondPathway.pathwayId == "apprentice" && back.secondPathway.beyonderCharacteristics == 2);
+    CHECK(back.secondPathway.uniquenessAbilities.size() == 1);
 }
 
 static void testRelationships() {
@@ -763,6 +970,10 @@ static void testShippedSamples() {
             if (c.name.empty() || c.id <= 0) fail("a character without a name or id");
             if (!c.pathwayId.empty() && !db.findPathway(c.pathwayId)) fail(c.name + ": unknown pathway " + c.pathwayId);
             if (c.sequence < 0 || c.sequence > 9) fail(c.name + ": Sequence out of range");
+            if (!c.sefirahId.empty() && !db.findSefirah(c.sefirahId)) fail(c.name + ": unknown Sefirah " + c.sefirahId);
+            if (!c.secondPathway.empty() && !db.findPathway(c.secondPathway.pathwayId)) {
+                fail(c.name + ": unknown second pathway " + c.secondPathway.pathwayId);
+            }
             if (!known(kAlignments, c.alignment)) fail(c.name + ": unknown alignment " + c.alignment);
             if (!known(kRecentActions, c.dossier.recentActions)) fail(c.name + ": unknown recent actions");
             if (!known(kStatuses, c.dossier.status)) fail(c.name + ": unknown status " + c.dossier.status);
@@ -875,6 +1086,8 @@ int main() {
     testPathwayBonuses();
     testSpeed();
     testAbilitiesAndEligibility();
+    testAboveTheSequence();
+    testDualPathway();
     testPointBuy();
     testDice();
     testThreatLevel();
@@ -888,6 +1101,7 @@ int main() {
     testSampleImport();
     testComparison();
     testShippedSamples();
+    testSefirot();
     testRendering();
     if (failures == 0) {
         std::cout << "All checks passed.\n";

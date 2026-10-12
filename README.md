@@ -12,19 +12,23 @@ It comes as two programs that share the same saves:
 
 - **Character Creator:** name, looks (hair colour, length and style, eyes, skin, face, build, height,
   voice, clothing) and bio, one of the 22 pathways or one of your own, Sequence 9 to 0 with every ability
-  described, alignment, titles, aliases, honorific name (Sequence 3 and up), Beyonder characteristics and
-  the Uniqueness with its look and the Sequence 0 powers it grants (Sequence 1), affiliation, two-way relationships, a D&D-style stat block (roll, re-roll, type or
-  point-buy), Speed, optional HP, Spirituality, the Sealed Artifacts the character holds, and a dossier
-  with an automatic threat level.
+  described, or Above the Sequence (a Great Old One), alignment, titles, aliases, honorific name (Sequence
+  3 and up), Beyonder characteristics and the Uniqueness with its look and the Sequence 0 powers it grants
+  (Sequence 1), a second pathway for a dual-pathway god, the Sefirah they hold, affiliation, two-way
+  relationships (pick one of your saved characters or type any name), a D&D-style stat block (roll,
+  re-roll, type or point-buy), Speed, optional HP, Spirituality, the Sealed Artifacts the character holds,
+  and a dossier with an automatic threat level.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
 - **Pathways:** read any pathway Sequence by Sequence, create and edit your own inside the program, start
-  one from a copy of a built-in pathway, and export a pathway as a sheet. The Maestro pathway from the
+  one from a copy of a built-in pathway, and export a pathway as a sheet. The Acrobat pathway from the
   book is already in as one of your own.
+- **Sefirot:** the nine Sefirot, the pathways each one gathers, its Great Old One and who has held it.
+  Make one of your characters its holder, and export a Sefirah as a sheet.
 - **Catalogue:** browse, search, filter by pathway, sort, edit, duplicate, delete.
 - **Compare:** two to four characters side by side, with their stats on one chart and the highest value
   in each row marked.
-- **Sample sets:** the members of the Tarot Club and a few canon Sealed Artifacts, ready to add to your
-  saves from Settings.
+- **Sample sets:** the members of the Tarot Club, the brothers Adam and Amon, and a few canon Sealed
+  Artifacts, ready to add to your saves from Settings.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
   Markdown, or plain text.
 
@@ -112,14 +116,28 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 
 ## Using the app window
 
-- The tabs at the top are **Characters**, **Compare**, **Sealed Artifacts**, **Pathways** and
-  **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
+- The tabs at the top are **Characters**, **Compare**, **Sealed Artifacts**, **Pathways**, **Sefirot**
+  and **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
   the right. Drag the list's right edge to make it wider.
 - A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Sealed Artifacts,
   Relationships, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
 - The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
   **Roll** rolls 4d6 and drops the lowest die; hover over the slider to see the last roll.
 - Boxes with an arrow on the right take anything you type, or pick a suggestion from the arrow.
+- **Above the Sequence:** in a character's Pathway tab, drag the Sequence slider all the way to the right,
+  one step past Sequence 0. The character becomes a Great Old One: the tab offers to give them their
+  group's Sefirah and lists every ability they have, including the Sequence 0 powers of every pathway in
+  the group.
+- **Dual-pathway gods:** at Sequence 0, the Pathway tab has a **Second pathway** box. Pick the other
+  pathway, then choose one or two of its Sequence 1 Beyonder characteristics and whether they hold its
+  Uniqueness, and tick the Sequence 0 powers the Uniqueness grants. The sheet, the exports and Compare show
+  both pathways.
+- **Relationships:** the arrow next to a name lists your saved characters, and **+ Add a saved character**
+  opens a searchable list of them, so you don't have to type names. **+ Add someone by name** still takes
+  anyone, saved or not.
+- **Sefirot** lists the nine Sefirot. Pick one to read what it is, which pathways it gathers, its Great Old
+  One and who has held it. **+ Make one of your characters its holder** links a saved character to it. A
+  character holds one Sefirah at a time; you can also pick it in their Customization tab.
 - Nothing is saved until you click **Save** (or press **Ctrl+S**, **Cmd+S** on a Mac). The Save button
   turns gold when there are changes. If you open something else first, the window asks whether to save
   them, throw them away, or keep editing. Closing the window asks the same.
@@ -141,12 +159,17 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - Type the number of a menu entry and press Enter. `0` goes back.
 - When a value is shown in `[brackets]`, pressing Enter keeps it. Typing `-` clears an optional text.
 - Longer texts (descriptions, backstory, abilities) end with an empty line.
-- Relationships take any name, like `Fors Wall`. If the name matches a character you've already saved,
+- Relationships take any name, like `Fors Wall`, or type `P` to pick one of your saved characters from a
+  numbered list. If the name matches a character you've already saved,
   the two are linked and the other character gets the relationship back when you save (Mentor and
   Student, Parent and Child, Superior and Subordinate flip; the rest stay the same). Removing it removes
   both sides. If you list someone by name first and create them later, they link up when you save them.
 - Every creator finishes on a review screen where you can change any step before saving.
 - In the stat block, `R` rolls 4d6 and drops the lowest die; roll again as often as you like or type a value.
+- The Sequence question takes 9 to 0, and a Sequence 0 is then asked whether they are Above the Sequence
+  and whether they are a dual-pathway god with a second pathway.
+- **Sefirot** in the main menu lists the nine Sefirot; open one to read it, make a saved character its
+  holder or take it away, or export it.
 - **Open the Catalogue**, then **Compare characters side by side**, picks two to four characters and
   prints them as a table, with the highest value in each row marked `*`.
 
@@ -155,7 +178,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 | What | Where |
 | --- | --- |
 | The 22 built-in pathways | `data/pathways.json` |
-| Your own pathways (the Maestro and any you create) | `data/custom_pathways.json` |
+| Your own pathways (the Acrobat and any you create) | `data/custom_pathways.json` |
+| The nine Sefirot | `data/sefirot.json` |
 | Your characters | `data/characters.json` |
 | Your Sealed Artifacts | `data/artifacts.json` |
 | Settings (HP mode, export theme, backups, window text size and theme) | `data/settings.json` |
@@ -167,12 +191,18 @@ your computer. Copy the `data` folder to back them up or move them to another PC
 different: GitHub Desktop shows `custom_pathways.json` as changed after you edit a pathway, and committing
 it shares your pathways with anyone else who uses the repository.
 
-### Sample sets: the Tarot Club
+### Sample sets: the Tarot Club, Adam and Amon
 
-`data/samples` holds ready-made characters and Sealed Artifacts. The first set is the Tarot Club: every
-member as of the end of the first novel, with their pathways, Sequences, looks, backstories and
-relationships to each other, plus canon Sealed Artifacts linked to whoever holds them. Their stats are an
-interpretation (a 27-point buy before pathway bonuses), not something the novel gives.
+`data/samples` holds ready-made characters and Sealed Artifacts. There are two sets:
+
+- **The Tarot Club:** every member as of the end of the first novel, with their pathways, Sequences, looks,
+  backstories and relationships to each other, plus canon Sealed Artifacts linked to whoever holds them.
+- **Adam and Amon:** the two sons of the Ancient Sun God. Adam is the Sequence 0 Visionary and Amon the
+  Sequence 0 Error, a dual-pathway god who also holds the Door pathway's Uniqueness. Their relationships
+  link to Klein and the rest of the Tarot Club if you've added them.
+
+Stats are an interpretation (a 27-point buy before pathway bonuses), not something the novel gives. Each
+character's Notes say what is canon, with chapter numbers where they help, and what is a guess.
 
 To add them, open **Settings** in the app window and click **Add to my saves** under **Sample sets**, or in
 the console choose **Settings**, then **Add a sample set**. They become ordinary characters and Sealed
@@ -211,7 +241,7 @@ program picks up changes the next time it starts.
 - **Pathway bonuses:** each pathway boosts a primary and a secondary stat. The bonus grows with the speed
   tier: primary +1 per tier, secondary +1 every two tiers. Stats may go past 20 at high sequences.
 - **Speed tiers:** 0 Mortal, 1 Awakened (Seq 9-8), 2 Extraordinary (7-5), 3 Saint (4-3), 4 Angel (2-1),
-  5 Divine (0). A higher tier always wins; inside a tier the Speed score decides. The pathway's speed grade
+  5 Divine (0), 6 Above the Sequence. A higher tier always wins; inside a tier the Speed score decides. The pathway's speed grade
   adjusts the score: Slow -2, Average 0, Fast +2, Very fast +4.
 - **HP and Spirituality:** the program suggests a value from the tier and Constitution (HP) or Wisdom
   (Spirituality); you can always type your own. HP can be asked per character, always on, or always off
@@ -221,8 +251,17 @@ program picks up changes the next time it starts.
   to describe what it looks like and to pick the Sequence 0 abilities it grants. A Sequence 0 has already
   absorbed it and has every Sequence 0 ability, but you can still describe it. Other Sequences can't hold
   one, so the question doesn't appear for them.
+- **Above the Sequence:** a Great Old One holds a Sefirah and every Uniqueness of their pathway group. They
+  count as Sequence 0 for everything else, get tier 6 bonuses (primary +6, secondary +3) and every
+  Sequence 0 ability of their whole group. They can't also take a second pathway.
+- **Dual-pathway gods:** only a Sequence 0 who isn't Above the Sequence can take a second pathway. It
+  adds that pathway's abilities from Sequence 9 to 1 and the Sequence 0 powers its Uniqueness grants, but
+  no extra stat bonus. A pathway outside their own group is allowed, with a warning, since every canon
+  example combines neighbouring pathways.
+- **Sefirah:** any character can hold one Sefirah. Several of your characters can hold the same one (canon
+  has its rival claimants and successors), and the Sefirot tab lists them all.
 - **Threat level:** three numbers added up. Sequence: mortal 0, Sequence 9-8 1, 7-5 3, 4-3 5, 2-1 7,
-  Sequence 0 10. Recent actions: peaceful -1, minor incidents 0, violent +1, mass casualties +2. Sealed
+  Sequence 0 10, Above the Sequence 12. Recent actions: peaceful -1, minor incidents 0, violent +1, mass casualties +2. Sealed
   Artifacts held: one or two +1, three or more +2. A total up to 2 is Low, 3-4 Moderate, 5-6 High, 7-8
   Extreme, 9 or more Catastrophic. It updates by itself unless you set a level by hand in the dossier.
 
@@ -246,11 +285,13 @@ src/*_creator.cpp     the two creators
 src/pathway_menu.cpp  the Pathways menu (your own pathways)
 src/catalogue.cpp     the catalogue
 src/compare.*         comparing characters side by side, shared by both programs
+src/sefirot_menu.cpp  the console's Sefirot menu
 src/export_menu.cpp   exports
 tests/tests.cpp       automatic checks
 data/pathways.json    the 22 built-in pathways
 data/custom_pathways.json  your own pathways
-data/samples/         sample sets (the Tarot Club)
+data/sefirot.json     the nine Sefirot
+data/samples/         sample sets (the Tarot Club, Adam and Amon)
 ```
 
 ## Troubleshooting
