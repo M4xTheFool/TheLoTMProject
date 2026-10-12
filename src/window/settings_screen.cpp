@@ -31,8 +31,12 @@ void importAll(WindowState& w) {
         reloadCharacterDraft(w);
         std::string text = "Added " + std::to_string(report.addedCharacters.size()) + " characters and " +
                            std::to_string(report.addedArtifacts.size()) + " Sealed Artifacts.";
+        if (!report.updated.empty()) {
+            text += " Updated " + std::to_string(report.updated.size()) + " to a newer version from a sample set.";
+        }
         if (!report.skipped.empty()) {
-            text += " " + std::to_string(report.skipped.size()) + " were already saved, so they were left as they were.";
+            text += " " + std::to_string(report.skipped.size()) +
+                    " were already up to date or edited more recently here, so they were left as they were.";
         }
         setStatus(w, text);
     } catch (const StorageError& e) {
@@ -56,8 +60,9 @@ void sampleSetsSection(WindowState& w) {
         return;
     }
     ImGui::TextWrapped("Ready-made characters and Sealed Artifacts in the data/samples folder, including any "
-                       "shared through GitHub. Anything already saved under the same name is left as it is, so "
-                       "importing again only adds what is new.");
+                       "shared through GitHub. Anything already saved under the same name is updated when a set "
+                       "has a newer version, and left as it is when you edited it here more recently, so "
+                       "importing again only brings in what is new or changed.");
     const bool unsaved = hasUnsavedChanges(w);
     ImGui::BeginDisabled(unsaved || sets.empty());
     if (ImGui::Button("Import all")) importAll(w);
@@ -110,19 +115,13 @@ void shareSection(WindowState& w) {
     textField("Title", share.title, "e.g. Max's characters");
     multilineField("Description (optional)", share.description, 2);
 
-    const std::string fileName = sampleSetFileName(share.title.empty() ? "My sample set" : share.title);
+    const std::string fileName = sampleSetFileFor(sampleSets(w), share.title.empty() ? "My sample set" : ui::trim(share.title));
     const auto taken = namesInSampleSets(sampleSets(w), fileName);
-    // Until you tick something by hand, everything not already in another sample set is ticked.
+    // Until you tick something by hand: the title of a set that's already there ticks what it has, so
+    // you can save your changed versions over it; a new title ticks everything not in another set.
     if (!share.touched && share.pickedFor != fileName) {
         share.pickedFor = fileName;
-        share.characterIds.clear();
-        share.artifactIds.clear();
-        for (const auto& c : db.characters) {
-            if (!inList(taken, c.name)) share.characterIds.push_back(c.id);
-        }
-        for (const auto& a : db.artifacts) {
-            if (!inList(taken, a.name)) share.artifactIds.push_back(a.id);
-        }
+        defaultSharePicks(db, sampleSets(w), fileName, share.characterIds, share.artifactIds);
     }
 
     auto pickList = [&](const char* id, const char* title, auto& records, std::vector<int>& picked, auto code) {
@@ -185,7 +184,7 @@ void shareSection(WindowState& w) {
     ImGui::SameLine();
     if (ui::trim(share.title).empty()) ImGui::TextDisabled("Give it a title first.");
     else if (!ready) ImGui::TextDisabled("Tick at least one character or Sealed Artifact.");
-    else if (replacing) ImGui::TextColored(palette().warning, "A sample set with this title is already there; this replaces it.");
+    else if (replacing) ImGui::TextColored(palette().warning, "A sample set with this title is already there; this replaces it with the versions ticked here.");
     else ImGui::TextDisabled("%zu characters, %zu Sealed Artifacts", set.characters.size(), set.artifacts.size());
 }
 

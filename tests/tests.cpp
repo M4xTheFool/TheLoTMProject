@@ -1166,6 +1166,7 @@ static void testSampleImport() {
     App friendApp{Database{}, Storage(other), Dice{}};
     friendApp.storage.loadAll(friendApp.db);
     Character friendKlein;
+    friendKlein.id = friendApp.db.nextCharacterId();
     friendKlein.name = "Klein Moretti";
     saveCharacter(friendApp, friendKlein, true);
     const SampleImportReport all = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
@@ -1174,6 +1175,45 @@ static void testSampleImport() {
     CHECK(friendAudrey->artifactIds.size() == 1);
     CHECK(friendAudrey->relationships.at(0).characterId == friendKlein.id);  // linked again by name
     CHECK(importAllSampleSets(friendApp, friendApp.storage.loadSampleSets()).addedCharacters.empty());
+
+    // The friend links Audrey to someone of their own. Later the set is shared again: Audrey was
+    // edited since (newer), Leonard changed but the friend edited theirs more recently.
+    Character friendOwn;
+    friendOwn.id = friendApp.db.nextCharacterId();
+    friendOwn.name = "Fors Wall";
+    friendOwn.relationships = {{friendAudrey->id, "Audrey Hall", "Friend", ""}};
+    saveCharacter(friendApp, friendOwn, true);
+    SampleSet changed = friendApp.storage.loadSampleSets().at(0);
+    changed.characters[0].notes = "Now a Sequence 5 Dream Stealer.";
+    changed.characters[0].updatedAt = "2999-01-01 00:00:00";
+    changed.characters[1].notes = "An older edit.";
+    changed.characters[1].updatedAt = "2000-01-01 00:00:00";
+    friendApp.storage.saveSampleSet(changed, "maxs_characters.json");
+    const SampleImportReport update = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
+    CHECK(update.addedCharacters.empty() && update.updated == std::vector<std::string>{"Audrey Hall"});
+    CHECK(friendApp.db.characters.size() == 4);
+    const Character* updatedAudrey = friendApp.db.findCharactersByName("Audrey Hall", 0).at(0);
+    CHECK(updatedAudrey->id == friendAudrey->id && updatedAudrey->notes == "Now a Sequence 5 Dream Stealer.");
+    CHECK(updatedAudrey->updatedAt == "2999-01-01 00:00:00" && updatedAudrey->artifactIds.size() == 1);
+    CHECK(std::any_of(updatedAudrey->relationships.begin(), updatedAudrey->relationships.end(),
+                      [&](const Relationship& r) { return r.characterId == friendOwn.id && r.type == "Friend"; }));
+    CHECK(friendApp.db.findCharactersByName("Leonard Mitchell", 0).at(0)->notes.empty());  // theirs is newer
+    // Importing again changes nothing.
+    const SampleImportReport settled = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
+    CHECK(settled.updated.empty() && settled.addedCharacters.empty() && settled.addedArtifacts.empty());
+
+    // Saving under the title of a set that's there replaces its file, whatever the file is called,
+    // and starts with that set's records ticked.
+    fs::rename(other / "samples" / "maxs_characters.json", other / "samples" / "max.json");
+    const auto renamed = friendApp.storage.loadSampleSets();
+    CHECK(sampleSetFileFor(renamed, "max's CHARACTERS") == "max.json");
+    CHECK(sampleSetFileFor(renamed, "Something new") == "something_new.json");
+    std::vector<int> pickedCharacters, pickedArtifacts;
+    defaultSharePicks(friendApp.db, renamed, "max.json", pickedCharacters, pickedArtifacts);
+    CHECK(pickedCharacters.size() == 2 && pickedArtifacts.size() == 1);
+    CHECK(std::find(pickedCharacters.begin(), pickedCharacters.end(), friendOwn.id) == pickedCharacters.end());
+    defaultSharePicks(friendApp.db, renamed, "something_new.json", pickedCharacters, pickedArtifacts);
+    CHECK(pickedCharacters.size() == 2 && pickedArtifacts.empty());  // Klein and Fors, in no set yet
     fs::remove_all(root);
 }
 

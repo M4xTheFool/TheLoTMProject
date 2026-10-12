@@ -38,15 +38,19 @@ void importAll(App& app) {
         ui::info(set.title + ": " + std::to_string(set.characters.size()) + " characters, " +
                  std::to_string(set.artifacts.size()) + " Sealed Artifacts");
     }
-    ui::info("Anything already saved under the same name is left as it is.");
+    ui::info("Anything already saved under the same name is updated when the set has a newer version,");
+    ui::info("and left as it is when you edited it here more recently.");
     if (!ui::yesNo("Import them all?", true)) return;
     try {
         const SampleImportReport report = importAllSampleSets(app, sets);
         ui::blank();
         if (!report.addedCharacters.empty()) ui::info("Characters added: " + joined(report.addedCharacters));
         if (!report.addedArtifacts.empty()) ui::info("Sealed Artifacts added: " + joined(report.addedArtifacts));
-        if (report.addedCharacters.empty() && report.addedArtifacts.empty()) ui::info("Nothing new to add.");
-        if (!report.skipped.empty()) ui::info("Already saved, so skipped: " + joined(report.skipped));
+        if (!report.updated.empty()) ui::info("Updated to a newer version: " + joined(report.updated));
+        if (report.addedCharacters.empty() && report.addedArtifacts.empty() && report.updated.empty()) {
+            ui::info("Nothing new to add.");
+        }
+        if (!report.skipped.empty()) ui::info("Up to date or edited here more recently, so left as they are: " + joined(report.skipped));
     } catch (const StorageError& e) {
         ui::info(std::string("Importing stopped: ") + e.what());
     }
@@ -108,15 +112,11 @@ void shareOwn(App& app) {
     }
     const std::string title = ui::readRequired("Title (like Max's characters)", "");
     const std::string description = ui::readMultiline("Description (optional)", "");
-    const std::string fileName = sampleSetFileName(title);
-    const auto taken = namesInSampleSets(readSampleSets(app), fileName);
+    const auto sets = readSampleSets(app);
+    const std::string fileName = sampleSetFileFor(sets, title);
+    const auto taken = namesInSampleSets(sets, fileName);
     std::vector<int> characters, artifacts;
-    for (const auto& c : app.db.characters) {
-        if (std::find(taken.begin(), taken.end(), ui::toLower(c.name)) == taken.end()) characters.push_back(c.id);
-    }
-    for (const auto& a : app.db.artifacts) {
-        if (std::find(taken.begin(), taken.end(), ui::toLower(a.name)) == taken.end()) artifacts.push_back(a.id);
-    }
+    defaultSharePicks(app.db, sets, fileName, characters, artifacts);
     pickRecords("Characters to share:", app.db.characters, characters, taken, characterCode);
     pickRecords("Sealed Artifacts to share (the ones your characters hold go in too):", app.db.artifacts, artifacts,
                 taken, artifactCode);
