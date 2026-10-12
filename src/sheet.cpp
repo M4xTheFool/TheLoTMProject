@@ -312,7 +312,7 @@ Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
     sheet.anchor = "s-" + s.id;
     sheet.kind = "Sefirah";
     sheet.title = s.name;
-    sheet.subtitle = s.greatOldOne.empty() ? "Sefirah" : "Sefirah of the " + s.greatOldOne;
+    sheet.subtitle = "Sefirah";
 
     Section overview{"Overview"};
     overview.field("Also known as", join(s.alsoKnownAs));

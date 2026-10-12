@@ -60,7 +60,7 @@ struct Sefirah {
     std::string id;           // short key used in save files, e.g. "sefirah_castle"
     std::string name;         // "Sefirah Castle"
     std::vector<std::string> alsoKnownAs;
-    std::string greatOldOne;  // the Great Old One it belongs to, e.g. "Lord of Mysteries"
+    std::string greatOldOne;  // the Great Old One it belongs to, e.g. "Lord of the Mysteries"
     std::vector<std::string> pathwayIds;  // the pathway group, e.g. seer, apprentice, marauder
     std::string description;
     std::vector<std::string> knownHolders;  // who held it in the story, one line each
@@ -228,7 +228,7 @@ std::string characterCode(int id);  // "C-001"
 std::string artifactCode(int id);   // "A-001"
 std::string pathwayLabel(const Database& db, const std::string& pathwayId);  // "Seer (The Fool)"
 std::string sequenceLabel(const Pathway* pathway, int sequence);             // "Sequence 7: Magician"
-std::string sefirahLabel(const Database& db, const std::string& sefirahId);   // "Sefirah Castle (Lord of Mysteries)"
+std::string sefirahLabel(const Database& db, const std::string& sefirahId);   // "Sefirah Castle (Lord of the Mysteries)"
 std::string relationshipName(const Database& db, const Relationship& r);     // "Fors Wall (C-002)" or "Fors Wall"
 
 // Abilities are stored as "Name: what it does". splitAbility gives {"Name", "what it does"}; only a

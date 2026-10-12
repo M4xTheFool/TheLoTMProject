@@ -43,7 +43,7 @@ void drawDetails(WindowState& w, const Sefirah& s) {
     ImGui::TextUnformatted(s.name.c_str());
     ImGui::PopFont();
     ImGui::TextColored(palette().muted, "%s",
-                       s.greatOldOne.empty() ? "Sefirah" : ("Sefirah of the " + s.greatOldOne).c_str());
+                       s.greatOldOne.empty() ? "Sefirah" : ("Sefirah. Great Old One: " + s.greatOldOne).c_str());
     if (ImGui::Button("Export...")) ImGui::OpenPopup("export");
     if (ImGui::BeginPopup("export")) {
         const std::vector<Sheet> sheets = {buildSefirahSheet(s, db)};

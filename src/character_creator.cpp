@@ -82,7 +82,7 @@ void stepSequence(const App& app, Character& c) {
         c.aboveSequence = false;
     } else {
         ui::info("Above the Sequence: a Great Old One, who holds their group's Sefirah and every Uniqueness of its");
-        ui::info("pathways (the Fool, Door and Error pathways for the Lord of Mysteries).");
+        ui::info("pathways (the Fool, Door and Error pathways for the Lord of the Mysteries).");
         c.aboveSequence = ui::yesNo("Is this god Above the Sequence?", c.aboveSequence);
         const Sefirah* own = app.db.sefirahForPathway(c.pathwayId);
         if (c.aboveSequence && c.sefirahId.empty() && own) {

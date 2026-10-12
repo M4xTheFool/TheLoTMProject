@@ -285,7 +285,7 @@ static Database godDatabase() {
     Sefirah castle;
     castle.id = "sefirah_castle";
     castle.name = "Sefirah Castle";
-    castle.greatOldOne = "Lord of Mysteries";
+    castle.greatOldOne = "Lord of the Mysteries";
     castle.pathwayIds = {"seer", "apprentice", "marauder"};
     castle.knownHolders = {"Klein Moretti"};
     db.sefirot = {castle};
@@ -333,9 +333,9 @@ static void testAboveTheSequence() {
     CHECK(db.sefirahForPathway("marauder") == &db.sefirot[0] && db.sefirahForPathway("acrobat") == nullptr);
 
     const std::string text = renderText(buildCharacterSheet(c, db));
-    CHECK(text.find("Above the Sequence: Lord of Mysteries, Seer pathway (The Fool)") != std::string::npos);
+    CHECK(text.find("Above the Sequence: Lord of the Mysteries, Seer pathway (The Fool)") != std::string::npos);
     CHECK(text.find("Uniquenesses held: Seer, Apprentice and Marauder pathways") != std::string::npos);
-    CHECK(text.find("Sefirah: Sefirah Castle (Lord of Mysteries)") != std::string::npos);
+    CHECK(text.find("Sefirah: Sefirah Castle (Lord of the Mysteries)") != std::string::npos);
     CHECK(text.find("Their group's Sefirah") == std::string::npos);  // they hold it
     CHECK(text.find("Tier 6 Above the Sequence") != std::string::npos);
     c.sefirahId.clear();
@@ -428,8 +428,8 @@ static void testSefirot() {
         for (const auto& id : s.pathwayIds) CHECK(db.findPathway(id)->group == db.findPathway(s.pathwayIds[0])->group);
     }
     const Sefirah* castle = db.findSefirah("sefirah_castle");
-    CHECK(castle && castle->greatOldOne == "Lord of Mysteries" && db.sefirahForPathway("seer") == castle);
-    CHECK(sefirahLabel(db, "sefirah_castle") == "Sefirah Castle (Lord of Mysteries)");
+    CHECK(castle && castle->greatOldOne == "Lord of the Mysteries" && db.sefirahForPathway("seer") == castle);
+    CHECK(sefirahLabel(db, "sefirah_castle") == "Sefirah Castle (Lord of the Mysteries)");
     CHECK(sefirahLabel(db, "") == "None");
 
     // Holders: the characters that name it. Their Sefirot go into the catalogue export.
@@ -443,7 +443,7 @@ static void testSefirot() {
     CHECK(db.sefirahHolders("sefirah_castle").size() == 1 && db.sefirahHolders("chaos_sea").empty());
     const std::string text = renderText(buildSefirahSheet(*castle, db));
     CHECK(text.find("SEFIRAH CASTLE") != std::string::npos);
-    CHECK(text.find("Great Old One: Lord of Mysteries") != std::string::npos);
+    CHECK(text.find("Great Old One: Lord of the Mysteries") != std::string::npos);
     CHECK(text.find("Seer (The Fool)") != std::string::npos);
     CHECK(text.find("Klein Moretti (C-001), Sequence 0") != std::string::npos);
     const auto sheets = catalogueSheets(db);
