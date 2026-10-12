@@ -140,7 +140,10 @@ void aboveTheSequence(WindowState& w, const Pathway& p) {
             ImGui::SameLine();
             ImGui::TextWrapped("%s", sefirah->symbolism.c_str());
         }
-        for (const auto& a : sefirah->abilities) ImGui::BulletText("%s", a.c_str());
+        for (const auto& a : sefirah->abilities) {
+            ImGui::Bullet();
+            ImGui::TextWrapped("%s", a.c_str());
+        }
         if (ImGui::Button(((sefirah->custom ? "Edit " : "Open ") + sefirah->name).c_str())) {
             openSefirah(w, sefirah->id);
         }

@@ -344,6 +344,20 @@ void Storage::saveCustomSefirot(const Database& db) const {
     writeJsonFile(customSefirotFile(), file, backupsDir(), db.settings.backupsToKeep);
 }
 
+fs::path Storage::saveSampleSet(const SampleSet& set, const std::string& fileName) const {
+    std::error_code ec;
+    fs::create_directories(samplesDir(), ec);
+    if (ec) throw StorageError("Could not create " + samplesDir().string() + ": " + ec.message());
+    ordered_json data;
+    data["title"] = set.title;
+    data["description"] = set.description;
+    data["characters"] = ordered_json(json(set.characters));
+    data["artifacts"] = ordered_json(json(set.artifacts));
+    const fs::path file = samplesDir() / fileName;
+    writeJsonFile(file, data, backupsDir(), 0);  // the old version is in git
+    return file;
+}
+
 std::vector<SampleSet> Storage::loadSampleSets() const {
     std::vector<SampleSet> sets;
     std::error_code ec;

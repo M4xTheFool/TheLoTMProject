@@ -30,7 +30,8 @@ It comes as two programs that share the same saves:
 - **Compare:** two to four characters side by side, with their stats on one chart and the highest value
   in each row marked.
 - **Sample sets:** the members of the Tarot Club, the brothers Adam and Amon, and a few canon Sealed
-  Artifacts, ready to add to your saves from Settings.
+  Artifacts, added to your saves with one **Import all** button in Settings. Share your own characters the
+  same way: Settings turns them into a sample set that you commit to GitHub.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
   Markdown, or plain text.
 
@@ -133,7 +134,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - **Above the Sequence:** in a character's Pathway tab, drag the Sequence slider all the way to the right,
   one step past Sequence 0. The character becomes a Great Old One: the tab offers to give them their
   group's Sefirah, and they have every ability of every pathway in the group. Their own pathway is written
-  out in full; each other pathway shows as one line, "All abilities of the ... pathway".
+  out in full, then the step past Sequence 0 ("Above the Sequence: Lord of the Mysteries", with what it
+  symbolizes and the Great Old One's abilities), then one line for each other pathway, "All abilities of
+  the ... pathway".
 - **Dual-pathway gods:** at Sequence 0, the Pathway tab has a **Second pathway** box. Pick the other
   pathway, then choose one or two of its Sequence 1 Beyonder characteristics and whether they hold its
   Uniqueness. They have every ability of the second pathway, Sequence 9 to 0, shown as one line, "All
@@ -146,9 +149,14 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   character holds one Sefirah at a time; you can also pick it in their Customization tab.
 - **Your own Sefirot:** **+ New Sefirah** in the Sefirot tab makes one: give it a name, its Great Old One,
   other names, the pathways it gathers (ticked by group; it warns when another Sefirah already gathers a
-  pathway), a description, known holders and notes. Your own show under "Your own Sefirot" in the list
-  and can be edited or deleted; a canon Sefirah has **Copy into a new Sefirah of your own** to start
-  from it.
+  pathway), what its Great Old One symbolizes and the Great Old One's abilities, a description, known
+  holders and notes. Your own show under "Your own Sefirot" in the list and can be edited or deleted; a
+  canon Sefirah has **Copy into a new Sefirah of your own** to start from it.
+- **Above the Sequence is written on the Sefirah:** it is one more step after Sequence 0, shared by every
+  pathway the Sefirah gathers, so its symbolism and abilities live there. The Pathways tab shows it after
+  Sequence 0, with a button to open the Sefirah (or to make one, for a pathway of your own that no Sefirah
+  gathers yet). A Great Old One takes them from the Sefirah they hold when it gathers their pathway,
+  otherwise from their group's.
 - Nothing is saved until you click **Save** (or press **Ctrl+S**, **Cmd+S** on a Mac). The Save button
   turns gold when there are changes. If you open something else first, the window asks whether to save
   them, throw them away, or keep editing. Closing the window asks the same.
@@ -163,7 +171,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   two themes: **Night** (dark ink with gold) and **Parchment** (light paper with brown ink).
 - Every pathway group has its own colour. A character's medallion in the list shows their Sequence in
   that colour; the top of the editor shows their initials, tier, threat level and affiliation.
-- **Sample sets** in Settings adds ready-made characters and Sealed Artifacts to your saves (see below).
+- **Import all** under Sample sets in Settings adds every ready-made character and Sealed Artifact to your
+  saves, and **Share your own** turns yours into a sample set (see below).
 
 ## Using the console version
 
@@ -221,11 +230,28 @@ it shares your pathways with anyone else who uses the repository. Your own Sefir
 Stats are an interpretation (a 27-point buy before pathway bonuses), not something the novel gives. Each
 character's Notes say what is canon, with chapter numbers where they help, and what is a guess.
 
-To add them, open **Settings** in the app window and click **Add to my saves** under **Sample sets**, or in
-the console choose **Settings**, then **Add a sample set**. They become ordinary characters and Sealed
-Artifacts that you can edit or delete. Anything you've already saved under the same name (your own Klein
-Moretti, say) is left as it is, and the new characters link to it instead; adding the same set twice adds
-nothing.
+To add them, open **Settings** in the app window and click **Import all** under **Sample sets**, or in
+the console choose **Settings**, then **Import all sample sets**. Every set in `data/samples` is added at
+once. They become ordinary characters and Sealed Artifacts that you can edit or delete. Anything you've
+already saved under the same name (your own Klein Moretti, say) is left as it is, and the new characters
+link to it instead; importing again only adds what is new.
+
+### Sharing your own characters on GitHub
+
+Your characters and Sealed Artifacts stay on your computer until you share them as a sample set:
+
+1. In the app window, open **Settings** and scroll to **Share your own** (in the console: **Settings**, then
+   **Share your own characters and Sealed Artifacts as a sample set**).
+2. Give the set a title, like *Max's characters*, and tick who goes in. Everything that isn't already in
+   another sample set starts ticked; the Sealed Artifacts your characters hold go in by themselves.
+3. Click **Save as data/samples/...**. Saving again with the same title replaces the file, so you can
+   update it whenever your characters change.
+4. Open **GitHub Desktop**. It lists the new file under Changes. Write a summary like "Share my
+   characters", click **Commit to main**, then **Push origin**.
+
+Anyone who then pulls (**Fetch origin**, then **Pull origin** in GitHub Desktop) finds your set in Settings
+and gets everything with **Import all**. Your own pathways and Sefirot need no extra step: they are in
+`custom_pathways.json` and `custom_sefirot.json`, which GitHub Desktop commits the same way.
 
 A sample set is a JSON file with a `title`, a `description`, and `characters` and `artifacts` lists in the
 same layout as `characters.json` and `artifacts.json`. The ids inside it only need to match each other.
@@ -270,7 +296,9 @@ program picks up changes the next time it starts.
   one, so the question doesn't appear for them.
 - **Above the Sequence:** a Great Old One holds a Sefirah and every Uniqueness of their pathway group. They
   count as Sequence 0 for everything else, get tier 6 bonuses (primary +6, secondary +3) and every
-  ability of every pathway in their group. They can't also take a second pathway.
+  ability of every pathway in their group, plus the Great Old One's own abilities written on the Sefirah.
+  They can't also take a second pathway. The nine Sefirot of the story start with a symbolism and
+  abilities drawn from their full titles; the novel never lists them, so their notes say so.
 - **Dual-pathway gods:** only a Sequence 0 who isn't Above the Sequence can take a second pathway. It
   adds every ability of that pathway, Sequence 9 to 0, but no extra stat bonus. A pathway outside their own group is allowed, with a warning, since every canon
   example combines neighbouring pathways.
@@ -309,7 +337,7 @@ data/pathways.json    the 22 built-in pathways
 data/custom_pathways.json  your own pathways
 data/sefirot.json     the nine Sefirot
 data/custom_sefirot.json  your own Sefirot (made when you save the first one)
-data/samples/         sample sets (the Tarot Club, Adam and Amon)
+data/samples/         sample sets (the Tarot Club, Adam and Amon, and any you share)
 ```
 
 ## Troubleshooting

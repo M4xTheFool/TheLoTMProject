@@ -296,8 +296,9 @@ void pathwayTab(WindowState& w, Character& c) {
         }
         ImGui::SeparatorText((aboveSequenceLabel(goo) + " adds").c_str());
         if (!goo) {
-            ImGui::TextDisabled("No Sefirah gathers this pathway yet. Make one in the Sefirot tab to give it a "
-                                "Great Old One.");
+            ImGui::TextDisabled("No Sefirah gathers this pathway yet, so it has no Great Old One.");
+            ImGui::SameLine();
+            if (ImGui::TextLink("Make one")) openNewSefirah(w, c.pathwayId);
         } else {
             if (!goo->symbolism.empty()) {
                 ImGui::TextColored(palette().muted, "Symbolism");
@@ -305,7 +306,10 @@ void pathwayTab(WindowState& w, Character& c) {
                 ImGui::TextWrapped("%s", goo->symbolism.c_str());
             }
             if (goo->abilities.empty()) ImGui::TextDisabled("No Great Old One abilities written yet.");
-            for (const auto& a : goo->abilities) ImGui::BulletText("%s", a.c_str());
+            for (const auto& a : goo->abilities) {
+                ImGui::Bullet();
+                ImGui::TextWrapped("%s", a.c_str());
+            }
             ImGui::TextDisabled("%s", goo->custom ? "They are written on the Sefirah, in the Sefirot tab."
                                                   : "Copy the Sefirah into one of your own to write your own.");
             ImGui::SameLine();
@@ -735,7 +739,7 @@ void drawCharactersScreen(WindowState& w) {
         }
     }
     ImGui::Spacing();
-    if (ImGui::TextLink("Add the Tarot Club or other samples")) {
+    if (ImGui::TextLink("Import the sample sets (the Tarot Club and more)")) {
         w.switchTo = Tab::Settings;
         w.showSampleSets = true;
     }

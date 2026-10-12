@@ -37,6 +37,19 @@ struct SampleImportReport {
 // who knows whom. Anything with the same name as a saved record (ignoring case) is skipped and keeps
 // its details; the new characters link to it instead, so importing the same set twice adds nothing.
 SampleImportReport importSampleSet(App& app, const SampleSet& set);
+// Imports every sample set, one after another, and adds up what happened.
+SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& sets);
+
+// Packs saved characters and Sealed Artifacts into a sample set, to share them through
+// data/samples. The Sealed Artifacts the characters hold go in too. A relationship to someone left
+// out keeps their name but no link, so it links up again if they are imported later.
+SampleSet makeSampleSet(const Database& db, const std::string& title, const std::string& description,
+                        const std::vector<int>& characterIds, const std::vector<int>& artifactIds);
+// The file a sample set with this title is saved as: "Max's Creations" -> "maxs_creations.json".
+std::string sampleSetFileName(const std::string& title);
+// The names of the characters and Sealed Artifacts in these sample sets, in lower case, except the
+// one saved in exceptFile (the set being replaced).
+std::vector<std::string> namesInSampleSets(const std::vector<SampleSet>& sets, const std::string& exceptFile);
 
 // Saves one of your own pathways. A new one gets an id made from its name.
 void saveCustomPathway(App& app, Pathway& p, bool isNew);

@@ -257,8 +257,10 @@ void drawEditor(WindowState& w) {
             ImGui::TextDisabled("Holding the Sefirah and the Uniqueness of each of these makes a Great Old One.");
             pathwayPicker(w.app.db, s);
             ImGui::SeparatorText("Above the Sequence");
+            ImGui::PushTextWrapPos(0.0f);
             ImGui::TextDisabled("The step past Sequence 0. A character Above the Sequence who holds this Sefirah "
                                 "is its Great Old One and has these abilities.");
+            ImGui::PopTextWrapPos();
             multilineField("Symbolism: what the Great Old One stands for", s.symbolism, 2);
             ImGui::TextUnformatted("Great Old One abilities");
             ImGui::PushID("gooAbilities");

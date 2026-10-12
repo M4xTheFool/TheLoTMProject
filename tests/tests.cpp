@@ -1141,6 +1141,38 @@ static void testSampleImport() {
     const SampleImportReport again = importSampleSet(app, set);
     CHECK(again.addedCharacters.empty() && again.addedArtifacts.empty() && again.skipped.size() == 4);
     CHECK(app.db.characters.size() == 4);
+
+    // Sharing: Audrey (who holds the glove and knows Klein, Dunn and Leonard) and Leonard become a
+    // sample set of their own; the glove comes along, and the links to Klein and Dunn keep only names.
+    CHECK(sampleSetFileName("Max's Characters!") == "maxs_characters.json");
+    CHECK(sampleSetFileName("???") == "my_sample_set.json");
+    const SampleSet shared = makeSampleSet(app.db, "Max's Characters", "Mine.", {addedAudrey->id, addedLeonard->id}, {});
+    CHECK(shared.characters.size() == 2 && shared.artifacts.size() == 1 && shared.artifacts[0].name == "Creeping Hunger");
+    const Relationship& toKlein = shared.characters[0].relationships.at(0);
+    CHECK(toKlein.characterId == 0 && toKlein.name == "Klein Moretti");
+    CHECK(shared.characters[0].relationships.at(2).characterId == addedLeonard->id);  // inside the set: kept
+    const fs::path file = app.storage.saveSampleSet(shared, sampleSetFileName(shared.title));
+    CHECK(file.filename() == "maxs_characters.json" && fs::exists(file));
+    const auto sets = app.storage.loadSampleSets();
+    CHECK(sets.size() == 1 && sets[0].title == "Max's Characters" && sets[0].characters.size() == 2);
+    CHECK(namesInSampleSets(sets, "").size() == 3 && namesInSampleSets(sets, "maxs_characters.json").empty());
+
+    // Someone else pulls it and presses Import all: everything arrives, linked up, held artifacts too.
+    const fs::path other = root / "other";
+    fs::create_directories(other / "samples");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", other / "pathways.json");
+    fs::copy_file(file, other / "samples" / file.filename());
+    App friendApp{Database{}, Storage(other), Dice{}};
+    friendApp.storage.loadAll(friendApp.db);
+    Character friendKlein;
+    friendKlein.name = "Klein Moretti";
+    saveCharacter(friendApp, friendKlein, true);
+    const SampleImportReport all = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
+    CHECK(all.addedCharacters.size() == 2 && all.addedArtifacts.size() == 1 && all.skipped.empty());
+    const auto* friendAudrey = friendApp.db.findCharactersByName("Audrey Hall", 0).at(0);
+    CHECK(friendAudrey->artifactIds.size() == 1);
+    CHECK(friendAudrey->relationships.at(0).characterId == friendKlein.id);  // linked again by name
+    CHECK(importAllSampleSets(friendApp, friendApp.storage.loadSampleSets()).addedCharacters.empty());
     fs::remove_all(root);
 }
 

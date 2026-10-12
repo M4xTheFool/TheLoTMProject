@@ -124,6 +124,15 @@ struct WindowState {
     std::optional<std::vector<SampleSet>> sampleSets;
     std::string sampleSetsProblem;
     bool showSampleSets = false;  // scroll the Settings tab down to them on the next frame
+    // Settings > Share your own: packing your characters and Sealed Artifacts into a sample set.
+    struct Share {
+        std::string title;
+        std::string description;
+        std::vector<int> characterIds;
+        std::vector<int> artifactIds;
+        bool touched = false;  // ticked by hand, so a new title no longer changes the ticks
+        std::string pickedFor = "\x01";  // the file the default ticks were made for
+    } share;
 
     // The line at the bottom of the window: the result of the last save, export or error.
     std::string status;
