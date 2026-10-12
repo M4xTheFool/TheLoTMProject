@@ -102,7 +102,7 @@ void stepSequence(const App& app, Character& c) {
     if (c.sequence == 0) ui::info("Sequence 0: you can describe the absorbed Uniqueness in Customization.");
     if (dualPathwayEligible(c)) ui::info("A Sequence 0 god can also take a second pathway in Customization.");
     ui::info("The sheet lists " + std::to_string(count) + " abilities from Sequence 9 down to " +
-             std::to_string(c.sequence) + (c.aboveSequence ? ", plus the Sequence 0 powers of every pathway in the group." : "."));
+             std::to_string(c.sequence) + (c.aboveSequence ? ", plus every ability of the other pathways in their group." : "."));
 }
 
 // ---------------------------------------------------------------- step 5
@@ -153,7 +153,8 @@ void stepSecondPathway(const App& app, Character& c) {
         return;
     }
     SecondPathway& second = c.secondPathway;
-    ui::info("Dual-pathway god: a second pathway's Sequence 1 Beyonder characteristic and, usually, its Uniqueness.");
+    ui::info("Dual-pathway god: a second pathway's Sequence 1 Beyonder characteristic, usually its Uniqueness, and every");
+    ui::info("ability of that pathway.");
     ui::info("Amon, Sequence 0 Error, took the Door Uniqueness and a Key of Stars characteristic this way.");
     const std::string current = second.empty() ? "none" : pathwayLabel(app.db, second.pathwayId);
     const int pick = choosePathway(app, "Second pathway [current: " + current + "]", "None (one pathway)", true);
@@ -180,9 +181,8 @@ void stepSecondPathway(const App& app, Character& c) {
     if (second.hasUniqueness) {
         const std::string start = second.uniquenessForm.empty() && other ? other->uniqueness : second.uniquenessForm;
         second.uniquenessForm = ui::readMultiline("Describe that Uniqueness and the shape it takes (optional)", start);
-        ui::info("It grants some of that pathway's Sequence 0 powers. Pick them:");
-        chooseUniquenessAbilities(other, second.uniquenessAbilities);
     }
+    if (other) ui::info("They have every ability of the " + other->name + " pathway, Sequence 9 to 0.");
 }
 
 void chooseSefirah(const App& app, Character& c) {

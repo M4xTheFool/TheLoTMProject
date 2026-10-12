@@ -126,12 +126,12 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - Boxes with an arrow on the right take anything you type, or pick a suggestion from the arrow.
 - **Above the Sequence:** in a character's Pathway tab, drag the Sequence slider all the way to the right,
   one step past Sequence 0. The character becomes a Great Old One: the tab offers to give them their
-  group's Sefirah and lists every ability they have, including the Sequence 0 powers of every pathway in
-  the group.
+  group's Sefirah, and they have every ability of every pathway in the group. Their own pathway is written
+  out in full; each other pathway shows as one line, "All abilities of the ... pathway".
 - **Dual-pathway gods:** at Sequence 0, the Pathway tab has a **Second pathway** box. Pick the other
   pathway, then choose one or two of its Sequence 1 Beyonder characteristics and whether they hold its
-  Uniqueness, and tick the Sequence 0 powers the Uniqueness grants. The sheet, the exports and Compare show
-  both pathways.
+  Uniqueness. They have every ability of the second pathway, Sequence 9 to 0, shown as one line, "All
+  abilities of the ... pathway". The sheet, the exports and Compare show both pathways.
 - **Relationships:** the arrow next to a name lists your saved characters, and **+ Add a saved character**
   opens a searchable list of them, so you don't have to type names. **+ Add someone by name** still takes
   anyone, saved or not.
@@ -253,10 +253,9 @@ program picks up changes the next time it starts.
   one, so the question doesn't appear for them.
 - **Above the Sequence:** a Great Old One holds a Sefirah and every Uniqueness of their pathway group. They
   count as Sequence 0 for everything else, get tier 6 bonuses (primary +6, secondary +3) and every
-  Sequence 0 ability of their whole group. They can't also take a second pathway.
+  ability of every pathway in their group. They can't also take a second pathway.
 - **Dual-pathway gods:** only a Sequence 0 who isn't Above the Sequence can take a second pathway. It
-  adds that pathway's abilities from Sequence 9 to 1 and the Sequence 0 powers its Uniqueness grants, but
-  no extra stat bonus. A pathway outside their own group is allowed, with a warning, since every canon
+  adds every ability of that pathway, Sequence 9 to 0, but no extra stat bonus. A pathway outside their own group is allowed, with a warning, since every canon
   example combines neighbouring pathways.
 - **Sefirah:** any character can hold one Sefirah. Several of your characters can hold the same one (canon
   has its rival claimants and successors), and the Sefirot tab lists them all.

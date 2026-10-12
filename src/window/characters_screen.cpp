@@ -197,8 +197,9 @@ void secondPathwaySection(WindowState& w, Character& c) {
         ImGui::TextWrapped("%s", c.aboveSequence
                                      ? "Above the Sequence they hold every Uniqueness of their group, so there is no "
                                        "second pathway to add."
-                                     : "A Sequence 0 god can take a second pathway: its Sequence 1 Beyonder characteristic "
-                                       "and, usually, its Uniqueness. Move the slider to Sequence 0 to choose one.");
+                                     : "A Sequence 0 god can take a second pathway: its Sequence 1 Beyonder characteristic, "
+                                       "usually its Uniqueness, and every ability of that pathway. Move the slider to "
+                                       "Sequence 0 to choose one.");
         ImGui::PopStyleColor();
         return;
     }
@@ -228,6 +229,10 @@ void secondPathwaySection(WindowState& w, Character& c) {
     ImGui::RadioButton("One##second", &second.beyonderCharacteristics, 1);
     ImGui::SameLine();
     ImGui::RadioButton(("Two of " + sequenceLabel(other, 1)).c_str(), &second.beyonderCharacteristics, 2);
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    ImGui::TextWrapped("They have every ability of the %s pathway, Sequence 9 to 0.",
+                       other ? other->name.c_str() : "second");
+    ImGui::PopStyleColor();
     ImGui::Checkbox("Holds its Uniqueness too", &second.hasUniqueness);
     if (!second.hasUniqueness) return;
     ImGui::Indent();
@@ -240,8 +245,6 @@ void secondPathwaySection(WindowState& w, Character& c) {
         }
     }
     multilineField("What that Uniqueness looks like and the shape it takes", second.uniquenessForm, 3);
-    ImGui::Spacing();
-    uniquenessPowers("second", other, second.uniquenessAbilities);
     ImGui::Unindent();
 }
 
@@ -280,8 +283,8 @@ void pathwayTab(WindowState& w, Character& c) {
         for (size_t i = 0; i < group.size(); ++i) {
             names += (i == 0 ? "" : i + 1 == group.size() ? " and " : ", ") + group[i]->name;
         }
-        ImGui::TextWrapped("A Great Old One: past Sequence 0, holding %s and every Uniqueness of the %s %s, with all "
-                           "their Sequence 0 powers.",
+        ImGui::TextWrapped("A Great Old One: past Sequence 0, holding %s and every Uniqueness of the %s %s, with "
+                           "every ability of those pathways.",
                            groupSefirah ? groupSefirah->name.c_str() : "their group's Sefirah", names.c_str(),
                            group.size() == 1 ? "pathway" : "pathways");
         if (groupSefirah && !groupSefirah->greatOldOne.empty()) {
@@ -303,6 +306,7 @@ void pathwayTab(WindowState& w, Character& c) {
     if (ImGui::CollapsingHeader(header.c_str())) {
         for (const AbilityGroup& group : abilityGroups(c, db)) {
             ImGui::TextColored(palette().gold, "%s", group.heading.c_str());
+            if (!group.summary.empty()) ImGui::TextWrapped("%s.", group.summary.c_str());
             for (const auto& a : group.abilities) ImGui::BulletText("%s", a.c_str());
         }
     }

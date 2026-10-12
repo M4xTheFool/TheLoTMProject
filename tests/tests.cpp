@@ -322,12 +322,13 @@ static void testAboveTheSequence() {
     normalizeCharacter(mortal);
     CHECK(!mortal.aboveSequence && !aboveTheSequence(mortal));
 
-    // The whole group is theirs: their own Sequences, then every neighbour's Sequence 0 powers.
+    // The whole group is theirs: their own Sequences written out, then one line per other pathway.
     const auto groups = abilityGroups(c, db);
     CHECK(groups.size() == 12);
-    CHECK(groups[10].heading == "From the Apprentice Uniqueness: Sequence 0: Apprentice 0");
-    CHECK(groups[11].heading == "From the Marauder Uniqueness: Sequence 0: Marauder 0");
-    CHECK(abilityCount(c, db) == 12);
+    CHECK(groups[10].heading == "Apprentice (Door)" && groups[10].abilities.empty());
+    CHECK(groups[10].summary == "All abilities of the Apprentice pathway (Door), Sequence 9 to 0");
+    CHECK(groups[11].heading == "Marauder (Error)" && groups[11].wholePathwayCount == 10);
+    CHECK(abilityCount(c, db) == 30);
     CHECK(db.pathwayGroup("seer").size() == 3 && db.pathwayGroup("seer")[0] == seer);
     CHECK(db.pathwayGroup("acrobat").size() == 1);  // no Sefirah, no neighbours: only itself
     CHECK(db.sefirahForPathway("marauder") == &db.sefirot[0] && db.sefirahForPathway("acrobat") == nullptr);
@@ -359,17 +360,17 @@ static void testDualPathway() {
     amon.sequence = 0;
     amon.secondPathway.pathwayId = "apprentice";
     amon.secondPathway.uniquenessForm = "A door of stars";
-    amon.secondPathway.uniquenessAbilities = {"Apprentice power 0: does things"};
+    amon.secondPathway.uniquenessAbilities = {"Apprentice power 0: does things"};  // from an older save
     CHECK(dualPathwayEligible(amon) && isDualPathwayGod(amon));
     CHECK(normalizeCharacter(amon).empty() && amon.secondPathway.pathwayId == "apprentice");
+    CHECK(amon.secondPathway.uniquenessAbilities.empty());  // the whole pathway is theirs now
 
-    // The second pathway's Sequences 9 to 1 (with their movement), then what its Uniqueness grants.
+    // The whole second pathway, Sequence 9 to 0, as one line with its movement.
     const auto groups = abilityGroups(amon, db);
-    CHECK(groups.size() == 10 + 9 + 1);
-    CHECK(groups[10].heading == "Apprentice pathway, Sequence 9: Apprentice 9");
-    CHECK(groups[18].heading == "Apprentice pathway, Sequence 1: Apprentice 1");
-    CHECK(groups[18].movement == std::vector<std::string>{"Star travel"});
-    CHECK(groups[19].heading == "From the Apprentice Uniqueness: Sequence 0: Apprentice 0");
+    CHECK(groups.size() == 10 + 1);
+    CHECK(groups[10].heading == "Apprentice (Door)");
+    CHECK(groups[10].summary == "All abilities of the Apprentice pathway (Door), Sequence 9 to 0");
+    CHECK(groups[10].movement == std::vector<std::string>{"Star travel"});
     CHECK(abilityCount(amon, db) == 20);
     CHECK(statBonuses(amon, db.findPathway("marauder"))[3] == 2);  // stat bonuses follow the main pathway only
 
@@ -379,6 +380,7 @@ static void testDualPathway() {
     CHECK(text.find("Beyonder characteristics: 1 of Sequence 1: Apprentice 1") != std::string::npos);
     CHECK(text.find("A door of stars") != std::string::npos);
     CHECK(text.find("- Movement: Star travel") != std::string::npos);
+    CHECK(text.find("All abilities of the Apprentice pathway (Door), Sequence 9 to 0.") != std::string::npos);
 
     db.characters = {amon};
     Character klein;

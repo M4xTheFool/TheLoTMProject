@@ -97,6 +97,7 @@ void abilitiesTable(const WindowState& w, const std::vector<const Character*>& c
             ImGui::PushStyleColor(ImGuiCol_Text, palette().series[i]);
             ImGui::TextWrapped("%s", group.heading.c_str());
             ImGui::PopStyleColor();
+            if (!group.summary.empty()) ImGui::TextWrapped("%s", group.summary.c_str());
             for (const std::string& ability : group.abilities) {
                 const auto [name, description] = splitAbility(ability);
                 ImGui::Bullet();

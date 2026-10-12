@@ -170,7 +170,8 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         Section dual{"Second Pathway"};
         dual.paragraph("A dual-pathway god: besides their own pathway they hold a second pathway's Sequence 1 "
                        "Beyonder characteristic" + std::string(held.beyonderCharacteristics == 2 ? "s" : "") +
-                       (held.hasUniqueness ? " and its Uniqueness." : "."));
+                       (held.hasUniqueness ? " and its Uniqueness" : "") + ", and with them every ability of "
+                       "that pathway, Sequence 9 to 0.");
         dual.field("Pathway", pathwayLabel(db, held.pathwayId));
         dual.field("Beyonder characteristics", std::to_string(held.beyonderCharacteristics) + " of " +
                                                    sequenceLabel(second, 1));
@@ -212,6 +213,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     Section abilities{"Abilities"};
     for (const AbilityGroup& group : abilityGroups(c, db)) {
         abilities.subheading(group.heading);
+        if (!group.summary.empty()) abilities.paragraph(group.summary + ".");
         for (const auto& a : group.abilities) abilities.bullet(a);
         for (const auto& mode : group.movement) abilities.bullet("Movement: " + mode);
     }

@@ -125,7 +125,9 @@ struct SecondPathway {
     int beyonderCharacteristics = 1;  // its Sequence 1 characteristics: 1 or 2
     bool hasUniqueness = true;        // holds that pathway's Uniqueness as well
     std::string uniquenessForm;
-    std::vector<std::string> uniquenessAbilities;  // that pathway's Sequence 0 powers the Uniqueness grants
+    // No longer used: a dual-pathway god has every ability of the second pathway. Older saves may
+    // still have picked powers here; normalizeCharacter clears them.
+    std::vector<std::string> uniquenessAbilities;
 
     bool empty() const { return pathwayId.empty(); }
 };
