@@ -453,7 +453,8 @@ static void testSefirot() {
     const Storage source(fs::path(LOTM_SOURCE_DIR) / "data");
     Database db;
     source.loadAll(db);
-    CHECK(db.sefirot.size() == 9);
+    // Nine come with the program; data/custom_sefirot.json may add Max's own.
+    CHECK(std::count_if(db.sefirot.begin(), db.sefirot.end(), [](const Sefirah& s) { return !s.custom; }) == 9);
     // Every built-in pathway belongs to exactly one Sefirah, and every Sefirah names real pathways.
     for (const auto& p : db.pathways) {
         if (p.custom) continue;
