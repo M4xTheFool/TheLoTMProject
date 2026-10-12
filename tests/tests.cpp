@@ -11,6 +11,7 @@
 #include "compare.hpp"
 #include "dice.hpp"
 #include "exporter.hpp"
+#include "list_filter.hpp"
 #include "model_json.hpp"
 #include "presets.hpp"
 #include "records.hpp"
@@ -322,12 +323,13 @@ static void testAboveTheSequence() {
     normalizeCharacter(mortal);
     CHECK(!mortal.aboveSequence && !aboveTheSequence(mortal));
 
-    // The whole group is theirs: their own Sequences, then every neighbour's Sequence 0 powers.
+    // The whole group is theirs: their own Sequences written out, then one line per other pathway.
     const auto groups = abilityGroups(c, db);
     CHECK(groups.size() == 12);
-    CHECK(groups[10].heading == "From the Apprentice Uniqueness: Sequence 0: Apprentice 0");
-    CHECK(groups[11].heading == "From the Marauder Uniqueness: Sequence 0: Marauder 0");
-    CHECK(abilityCount(c, db) == 12);
+    CHECK(groups[10].heading == "Apprentice (Door)" && groups[10].abilities.empty());
+    CHECK(groups[10].summary == "All abilities of the Apprentice pathway (Door), Sequence 9 to 0");
+    CHECK(groups[11].heading == "Marauder (Error)" && groups[11].wholePathwayCount == 10);
+    CHECK(abilityCount(c, db) == 30);
     CHECK(db.pathwayGroup("seer").size() == 3 && db.pathwayGroup("seer")[0] == seer);
     CHECK(db.pathwayGroup("acrobat").size() == 1);  // no Sefirah, no neighbours: only itself
     CHECK(db.sefirahForPathway("marauder") == &db.sefirot[0] && db.sefirahForPathway("acrobat") == nullptr);
@@ -359,17 +361,17 @@ static void testDualPathway() {
     amon.sequence = 0;
     amon.secondPathway.pathwayId = "apprentice";
     amon.secondPathway.uniquenessForm = "A door of stars";
-    amon.secondPathway.uniquenessAbilities = {"Apprentice power 0: does things"};
+    amon.secondPathway.uniquenessAbilities = {"Apprentice power 0: does things"};  // from an older save
     CHECK(dualPathwayEligible(amon) && isDualPathwayGod(amon));
     CHECK(normalizeCharacter(amon).empty() && amon.secondPathway.pathwayId == "apprentice");
+    CHECK(amon.secondPathway.uniquenessAbilities.empty());  // the whole pathway is theirs now
 
-    // The second pathway's Sequences 9 to 1 (with their movement), then what its Uniqueness grants.
+    // The whole second pathway, Sequence 9 to 0, as one line with its movement.
     const auto groups = abilityGroups(amon, db);
-    CHECK(groups.size() == 10 + 9 + 1);
-    CHECK(groups[10].heading == "Apprentice pathway, Sequence 9: Apprentice 9");
-    CHECK(groups[18].heading == "Apprentice pathway, Sequence 1: Apprentice 1");
-    CHECK(groups[18].movement == std::vector<std::string>{"Star travel"});
-    CHECK(groups[19].heading == "From the Apprentice Uniqueness: Sequence 0: Apprentice 0");
+    CHECK(groups.size() == 10 + 1);
+    CHECK(groups[10].heading == "Apprentice (Door)");
+    CHECK(groups[10].summary == "All abilities of the Apprentice pathway (Door), Sequence 9 to 0");
+    CHECK(groups[10].movement == std::vector<std::string>{"Star travel"});
     CHECK(abilityCount(amon, db) == 20);
     CHECK(statBonuses(amon, db.findPathway("marauder"))[3] == 2);  // stat bonuses follow the main pathway only
 
@@ -379,6 +381,7 @@ static void testDualPathway() {
     CHECK(text.find("Beyonder characteristics: 1 of Sequence 1: Apprentice 1") != std::string::npos);
     CHECK(text.find("A door of stars") != std::string::npos);
     CHECK(text.find("- Movement: Star travel") != std::string::npos);
+    CHECK(text.find("All abilities of the Apprentice pathway (Door), Sequence 9 to 0.") != std::string::npos);
 
     db.characters = {amon};
     Character klein;
@@ -451,6 +454,162 @@ static void testSefirot() {
     const std::string html = renderHtmlPage("All", sheets, "light");
     CHECK(html.find("<h2>Sefirot</h2>") != std::string::npos);
     CHECK(exportName(*castle) == "sefirah-sefirah-castle");
+}
+
+// Your own Sefirot: saved to custom_sefirot.json (sefirot.json is never written), edited and deleted
+// through the shared records, and taken away from their holders when deleted.
+static void testCustomSefirot() {
+    const fs::path temp = fs::temp_directory_path() / "lotm_tests_custom_sefirot";
+    fs::remove_all(temp);
+    fs::create_directories(temp);
+    const fs::path source = fs::path(LOTM_SOURCE_DIR) / "data";
+    fs::copy_file(source / "pathways.json", temp / "pathways.json");
+    fs::copy_file(source / "sefirot.json", temp / "sefirot.json");
+
+    App app{Database{}, Storage(temp), Dice{}};
+    app.storage.loadAll(app.db);
+    CHECK(app.db.sefirot.size() == 9);
+    CHECK(app.db.newSefirahId("Sefirah Castle") == "sefirah_castle_2");
+    CHECK(app.db.newSefirahId("Sefirah of Masks!") == "sefirah_of_masks");
+
+    Sefirah masks;
+    masks.name = "Sefirah of Masks";
+    masks.greatOldOne = "The Faceless";
+    masks.pathwayIds = {"spectator", "seer"};
+    masks.knownHolders = {"The first Faceless"};
+    saveCustomSefirah(app, masks, true);
+    CHECK(masks.id == "sefirah_of_masks" && masks.custom);
+    CHECK(fs::exists(temp / "custom_sefirot.json"));
+    CHECK(fs::file_size(source / "sefirot.json") == fs::file_size(temp / "sefirot.json"));  // never rewritten
+    // Seer is already gathered by Sefirah Castle, which the editors point out.
+    CHECK(app.db.otherSefirahFor("seer", masks.id) == app.db.findSefirah("sefirah_castle"));
+    CHECK(app.db.otherSefirahFor("seer", "sefirah_castle") == app.db.findSefirah("sefirah_of_masks"));
+
+    Character ada;
+    ada.name = "Ada";
+    ada.pathwayId = "spectator";
+    ada.sequence = 0;
+    ada.sefirahId = masks.id;
+    saveCharacter(app, ada, true);
+
+    Database reloaded;
+    app.storage.loadAll(reloaded);
+    const Sefirah* loaded = reloaded.findSefirah("sefirah_of_masks");
+    CHECK(reloaded.sefirot.size() == 10 && loaded && loaded->custom && loaded->greatOldOne == "The Faceless");
+    CHECK(!reloaded.findSefirah("sefirah_castle")->custom);
+    CHECK(sefirahLabel(reloaded, ada.sefirahId) == "Sefirah of Masks (The Faceless)");
+    CHECK(buildSefirahSheet(*loaded, reloaded).footer == "Stored in custom_sefirot.json");
+    CHECK(buildSefirahSheet(*reloaded.findSefirah("sefirah_castle"), reloaded).footer == "Stored in sefirot.json");
+    CHECK(reloaded.sefirahHolders("sefirah_of_masks").size() == 1);
+
+    masks.description = "Every face it has worn.";
+    saveCustomSefirah(app, masks, false);
+    CHECK(app.db.sefirot.size() == 10 && app.db.findSefirah("sefirah_of_masks")->description == "Every face it has worn.");
+
+    bool refused = false;
+    try {
+        deleteCustomSefirah(app, "sefirah_castle");
+    } catch (const StorageError&) {
+        refused = true;
+    }
+    CHECK(refused && app.db.sefirot.size() == 10);
+    deleteCustomSefirah(app, "sefirah_of_masks");
+    CHECK(app.db.sefirot.size() == 9 && app.db.findCharacter(ada.id)->sefirahId.empty());
+    Database afterDelete;
+    app.storage.loadAll(afterDelete);
+    CHECK(afterDelete.sefirot.size() == 9 && afterDelete.characters.front().sefirahId.empty());
+
+    // An id used in both files is refused with a message naming the file.
+    Sefirah clash = masks;
+    clash.id = "chaos_sea";
+    clash.custom = true;
+    app.db.sefirot.push_back(clash);
+    app.storage.saveCustomSefirot(app.db);
+    refused = false;
+    try {
+        Database broken;
+        app.storage.loadAll(broken);
+    } catch (const StorageError& e) {
+        refused = std::string(e.what()).find("custom_sefirot.json") != std::string::npos;
+    }
+    CHECK(refused);
+    fs::remove_all(temp);
+}
+
+static void testListFilters() {
+    Database db;
+    db.pathways.push_back(warrior());
+    Character klein;
+    klein.id = 12;
+    klein.name = "Klein Moretti";
+    klein.aliases = {"Sherlock Moriarty", "Gehrman Sparrow"};
+    Character dunn;
+    dunn.id = 3;
+    dunn.name = "Dunn Smith";
+    dunn.pathwayId = "warrior";
+    dunn.sequence = 5;
+    Character god;
+    god.id = 7;
+    god.name = "Adam";
+    god.pathwayId = "warrior";
+    god.sequence = 0;
+    db.characters = {klein, dunn, god};
+
+    auto names = [](const std::vector<const Character*>& rows) {
+        std::string out;
+        for (const Character* c : rows) out += (out.empty() ? "" : ",") + c->name;
+        return out;
+    };
+    RecordFilter f;
+    CHECK(!f.active());
+    CHECK(names(filterCharacters(db, f)) == "Adam,Dunn Smith,Klein Moretti");
+    f.search = "sparrow";
+    CHECK(names(filterCharacters(db, f)) == "Klein Moretti");
+    f.search = "C-012";
+    CHECK(names(filterCharacters(db, f)) == "Klein Moretti");
+    f.search = "c3";
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith");
+    f.search = "7";
+    CHECK(names(filterCharacters(db, f)) == "Adam");
+    CHECK(f.active());
+    f.clear();
+    f.letter = 'D';
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith");
+    f.clear();
+    f.power = 2;  // Sequence 7-5
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith");
+    f.power = 0;
+    CHECK(names(filterCharacters(db, f)) == "Klein Moretti");
+    f.clear();
+    f.pathwayId = "warrior";
+    CHECK(names(filterCharacters(db, f)) == "Adam,Dunn Smith");
+    f.clear();
+    f.sort = SortOrder::Id;
+    CHECK(names(filterCharacters(db, f)) == "Dunn Smith,Adam,Klein Moretti");
+    f.sort = SortOrder::Power;
+    CHECK(names(filterCharacters(db, f)) == "Adam,Dunn Smith,Klein Moretti");
+    f.letter = 'K';
+    f.clear();
+    CHECK(f.sort == SortOrder::Power);  // clearing keeps the sort order
+    CHECK(firstLetters({"klein", "Adam", "Amon", "42"}) == std::vector<char>({'A', 'K'}));
+
+    Artifact a1;
+    a1.id = 1;
+    a1.name = "Creeping Hunger";
+    a1.sequenceLevel = 5;
+    Artifact a2;
+    a2.id = 2;
+    a2.name = "Blasphemy Slate";
+    db.artifacts = {a1, a2};
+    RecordFilter af;
+    af.power = kUnknownPower;
+    auto rows = filterArtifacts(db, af);
+    CHECK(rows.size() == 1 && rows[0]->name == "Blasphemy Slate");
+    af.clear();
+    af.search = "A-001";
+    rows = filterArtifacts(db, af);
+    CHECK(rows.size() == 1 && rows[0]->name == "Creeping Hunger");
+    CHECK(powerBandName(kUnknownPower) == "Level unknown");
 }
 
 static void testPointBuy() {
@@ -1100,8 +1259,10 @@ int main() {
     testSharedRecords();
     testSampleImport();
     testComparison();
+    testListFilters();
     testShippedSamples();
     testSefirot();
+    testCustomSefirot();
     testRendering();
     if (failures == 0) {
         std::cout << "All checks passed.\n";

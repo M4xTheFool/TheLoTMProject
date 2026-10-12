@@ -13,10 +13,6 @@ namespace lotm::window {
 
 namespace {
 
-bool containsIgnoreCase(const std::string& text, const std::string& part) {
-    return ui::toLower(text).find(ui::toLower(part)) != std::string::npos;
-}
-
 void removeEmpty(std::vector<std::string>& items) {
     items.erase(std::remove_if(items.begin(), items.end(), [](const std::string& s) { return ui::trim(s).empty(); }),
                 items.end());
@@ -197,8 +193,9 @@ void secondPathwaySection(WindowState& w, Character& c) {
         ImGui::TextWrapped("%s", c.aboveSequence
                                      ? "Above the Sequence they hold every Uniqueness of their group, so there is no "
                                        "second pathway to add."
-                                     : "A Sequence 0 god can take a second pathway: its Sequence 1 Beyonder characteristic "
-                                       "and, usually, its Uniqueness. Move the slider to Sequence 0 to choose one.");
+                                     : "A Sequence 0 god can take a second pathway: its Sequence 1 Beyonder characteristic, "
+                                       "usually its Uniqueness, and every ability of that pathway. Move the slider to "
+                                       "Sequence 0 to choose one.");
         ImGui::PopStyleColor();
         return;
     }
@@ -228,6 +225,10 @@ void secondPathwaySection(WindowState& w, Character& c) {
     ImGui::RadioButton("One##second", &second.beyonderCharacteristics, 1);
     ImGui::SameLine();
     ImGui::RadioButton(("Two of " + sequenceLabel(other, 1)).c_str(), &second.beyonderCharacteristics, 2);
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    ImGui::TextWrapped("They have every ability of the %s pathway, Sequence 9 to 0.",
+                       other ? other->name.c_str() : "second");
+    ImGui::PopStyleColor();
     ImGui::Checkbox("Holds its Uniqueness too", &second.hasUniqueness);
     if (!second.hasUniqueness) return;
     ImGui::Indent();
@@ -240,8 +241,6 @@ void secondPathwaySection(WindowState& w, Character& c) {
         }
     }
     multilineField("What that Uniqueness looks like and the shape it takes", second.uniquenessForm, 3);
-    ImGui::Spacing();
-    uniquenessPowers("second", other, second.uniquenessAbilities);
     ImGui::Unindent();
 }
 
@@ -280,8 +279,8 @@ void pathwayTab(WindowState& w, Character& c) {
         for (size_t i = 0; i < group.size(); ++i) {
             names += (i == 0 ? "" : i + 1 == group.size() ? " and " : ", ") + group[i]->name;
         }
-        ImGui::TextWrapped("A Great Old One: past Sequence 0, holding %s and every Uniqueness of the %s %s, with all "
-                           "their Sequence 0 powers.",
+        ImGui::TextWrapped("A Great Old One: past Sequence 0, holding %s and every Uniqueness of the %s %s, with "
+                           "every ability of those pathways.",
                            groupSefirah ? groupSefirah->name.c_str() : "their group's Sefirah", names.c_str(),
                            group.size() == 1 ? "pathway" : "pathways");
         if (groupSefirah && !groupSefirah->greatOldOne.empty()) {
@@ -303,6 +302,7 @@ void pathwayTab(WindowState& w, Character& c) {
     if (ImGui::CollapsingHeader(header.c_str())) {
         for (const AbilityGroup& group : abilityGroups(c, db)) {
             ImGui::TextColored(palette().gold, "%s", group.heading.c_str());
+            if (!group.summary.empty()) ImGui::TextWrapped("%s.", group.summary.c_str());
             for (const auto& a : group.abilities) ImGui::BulletText("%s", a.c_str());
         }
     }
@@ -668,16 +668,21 @@ void drawCharactersScreen(WindowState& w) {
     if (ImGui::Button("+ New character", ImVec2(-FLT_MIN, 0))) {
         whenSaved(w, draft.dirty(), saveThis, [&w] { openNew(w); });
     }
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::InputTextWithHint("##search", "Search names", &s.search);
+    const auto rows = filterCharacters(w.app.db, s.filter);
+    {
+        std::vector<std::string> names;
+        for (const auto& c : w.app.db.characters) names.push_back(c.name);
+        listFilterControls(w, s.filter, "Search names, aliases or IDs", characterPowerBands(), names, rows.size(), w.app.db.characters.size());
+    }
     ImGui::Separator();
     if (draft.open && draft.isNew) {
         listCard(w, "new", true, pathwayColour(w.app.db, draft.value.pathwayId), initials(draft.value.name),
                  draft.value.name.empty() ? "(new character)" : draft.value.name, "Not saved yet");
     }
     if (w.app.db.characters.empty()) ImGui::TextDisabled("No characters yet.");
-    for (const auto& c : w.app.db.characters) {
-        if (!s.search.empty() && !containsIgnoreCase(c.name, s.search)) continue;
+    else if (rows.empty()) ImGui::TextDisabled("None match the filters.");
+    for (const Character* row : rows) {
+        const Character& c = *row;
         const bool selected = draft.open && !draft.isNew && draft.value.id == c.id;
         const Pathway* pathway = w.app.db.findPathway(c.pathwayId);
         // The medallion shows the Sequence; the line below names it and the pathway.

@@ -40,15 +40,19 @@ public:
     std::filesystem::path exportsDir() const;  // sits next to the data folder
     std::filesystem::path backupsDir() const;
     std::filesystem::path customPathwaysFile() const;  // data/custom_pathways.json
+    std::filesystem::path customSefirotFile() const;   // data/custom_sefirot.json
     std::filesystem::path samplesDir() const;          // data/samples
 
-    // Reads pathways.json, custom_pathways.json, sefirot.json and the saves. Only pathways.json must exist.
+    // Reads pathways.json, custom_pathways.json, sefirot.json, custom_sefirot.json and the saves.
+    // Only pathways.json must exist.
     void loadAll(Database& db) const;
     void saveCharacters(const Database& db) const;
     void saveArtifacts(const Database& db) const;
     void saveSettings(const Database& db) const;
     // Writes the pathways marked custom to custom_pathways.json. pathways.json is never written.
     void saveCustomPathways(const Database& db) const;
+    // Writes the Sefirot marked custom to custom_sefirot.json. sefirot.json is never written.
+    void saveCustomSefirot(const Database& db) const;
 
     // Every sample set in data/samples, sorted by title. Throws StorageError for a broken file.
     std::vector<SampleSet> loadSampleSets() const;

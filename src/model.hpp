@@ -52,7 +52,7 @@ struct Pathway {
     const SequenceInfo* findSequence(int sequence) const;
 };
 
-// ---------- Sefirot (data/sefirot.json) ----------
+// ---------- Sefirot (data/sefirot.json, and your own in data/custom_sefirot.json) ----------
 
 // A Sefirah: a source of power and authority that gathers the Uniquenesses of a group of
 // neighbouring pathways. Holding it and every one of those Uniquenesses makes a Great Old One.
@@ -65,6 +65,10 @@ struct Sefirah {
     std::string description;
     std::vector<std::string> knownHolders;  // who held it in the story, one line each
     std::string notes;                      // sources, and what is a guess
+
+    // Not stored in the file: true for your own Sefirot from custom_sefirot.json, which the program
+    // creates, edits and deletes. The ones in sefirot.json are edited by hand.
+    bool custom = false;
 };
 
 // ---------- Characters (data/characters.json) ----------
@@ -125,7 +129,9 @@ struct SecondPathway {
     int beyonderCharacteristics = 1;  // its Sequence 1 characteristics: 1 or 2
     bool hasUniqueness = true;        // holds that pathway's Uniqueness as well
     std::string uniquenessForm;
-    std::vector<std::string> uniquenessAbilities;  // that pathway's Sequence 0 powers the Uniqueness grants
+    // No longer used: a dual-pathway god has every ability of the second pathway. Older saves may
+    // still have picked powers here; normalizeCharacter clears them.
+    std::vector<std::string> uniquenessAbilities;
 
     bool empty() const { return pathwayId.empty(); }
 };
@@ -219,6 +225,10 @@ struct Database {
     int nextArtifactId() const;
     // A free id for a new pathway, made from its name: "Mystery Pryer" -> "mystery_pryer" (or "mystery_pryer_2").
     std::string newPathwayId(const std::string& name) const;
+    // The same for a new Sefirah: "Sefirah of Masks" -> "sefirah_of_masks".
+    std::string newSefirahId(const std::string& name) const;
+    // Another Sefirah that already gathers this pathway, or nullptr.
+    const Sefirah* otherSefirahFor(const std::string& pathwayId, const std::string& sefirahId) const;
     // Names of the characters and Sealed Artifacts that belong to this pathway.
     std::vector<std::string> pathwayUsers(const std::string& id) const;
 };

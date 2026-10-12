@@ -137,30 +137,27 @@ std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db) 
     const Pathway* pathway = db.findPathway(c.pathwayId);
     if (!pathway) return groups;
     for (const SequenceInfo* s : abilitiesUpTo(*pathway, c.sequence)) {
-        groups.push_back({sequenceLabel(pathway, s->sequence), s->abilities, movementUnlockedAt(*pathway, s->sequence)});
+        groups.push_back({sequenceLabel(pathway, s->sequence), s->abilities, movementUnlockedAt(*pathway, s->sequence), {}, 0});
     }
     if (c.hasUniqueness && !c.uniquenessAbilities.empty()) {
-        groups.push_back({"From the Uniqueness: " + sequenceLabel(pathway, 0), c.uniquenessAbilities, {}});
+        groups.push_back({"From the Uniqueness: " + sequenceLabel(pathway, 0), c.uniquenessAbilities, {}, {}, 0});
     }
-    // A Sequence 1 characteristic carries the powers of that pathway's Sequences 9 to 1.
+    // A dual-pathway god and a Great Old One have every ability of their extra pathways, Sequence 9 to 0.
+    auto wholePathway = [&](const Pathway& other) {
+        AbilityGroup group;
+        group.heading = pathwayLabel(db, other.id);
+        group.summary = "All abilities of the " + other.name + " pathway" +
+                        (other.god.empty() ? "" : " (" + other.god + ")") + ", Sequence 9 to 0";
+        for (const auto& s : other.sequences) group.wholePathwayCount += static_cast<int>(s.abilities.size());
+        for (const auto& m : other.movement) group.movement.push_back(m.mode);
+        groups.push_back(group);
+    };
     if (const Pathway* second = isDualPathwayGod(c) ? db.findPathway(c.secondPathway.pathwayId) : nullptr) {
-        for (const SequenceInfo* s : abilitiesUpTo(*second, 1)) {
-            groups.push_back({second->name + " pathway, " + sequenceLabel(second, s->sequence), s->abilities,
-                              movementUnlockedAt(*second, s->sequence)});
-        }
-        const SecondPathway& held = c.secondPathway;
-        if (held.hasUniqueness && !held.uniquenessAbilities.empty()) {
-            groups.push_back({"From the " + second->name + " Uniqueness: " + sequenceLabel(second, 0),
-                              held.uniquenessAbilities, {}});
-        }
+        wholePathway(*second);
     }
-    // A Great Old One holds every Uniqueness of its group, and with them every Sequence 0 power.
     if (aboveTheSequence(c)) {
         for (const Pathway* other : db.pathwayGroup(c.pathwayId)) {
-            const SequenceInfo* zero = other != pathway ? other->findSequence(0) : nullptr;
-            if (!zero) continue;
-            groups.push_back({"From the " + other->name + " Uniqueness: " + sequenceLabel(other, 0), zero->abilities,
-                              movementUnlockedAt(*other, 0)});
+            if (other != pathway) wholePathway(*other);
         }
     }
     return groups;
@@ -168,7 +165,9 @@ std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db) 
 
 int abilityCount(const Character& c, const Database& db) {
     int count = 0;
-    for (const AbilityGroup& group : abilityGroups(c, db)) count += static_cast<int>(group.abilities.size());
+    for (const AbilityGroup& group : abilityGroups(c, db)) {
+        count += group.summary.empty() ? static_cast<int>(group.abilities.size()) : group.wholePathwayCount;
+    }
     return count;
 }
 
@@ -285,10 +284,9 @@ std::vector<std::string> normalizeCharacter(Character& c) {
         second = SecondPathway{};
     } else {
         second.beyonderCharacteristics = std::clamp(second.beyonderCharacteristics, 1, 2);
-        if (!second.hasUniqueness) {
-            second.uniquenessForm.clear();
-            second.uniquenessAbilities.clear();
-        }
+        // The whole second pathway is theirs, so picked Uniqueness powers (older saves) are not needed.
+        second.uniquenessAbilities.clear();
+        if (!second.hasUniqueness) second.uniquenessForm.clear();
     }
 
     if (!c.stats.hpIncluded) c.stats.hp = 0;

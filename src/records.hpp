@@ -43,4 +43,9 @@ void saveCustomPathway(App& app, Pathway& p, bool isNew);
 // Only your own pathways that no character or Sealed Artifact belongs to (check pathwayUsers first).
 void deleteCustomPathway(App& app, const std::string& id);
 
+// Saves one of your own Sefirot. A new one gets an id made from its name.
+void saveCustomSefirah(App& app, Sefirah& s, bool isNew);
+// Only your own Sefirot. Characters who held it no longer hold any Sefirah.
+void deleteCustomSefirah(App& app, const std::string& id);
+
 }  // namespace lotm

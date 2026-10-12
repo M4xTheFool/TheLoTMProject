@@ -54,12 +54,16 @@ std::string levelName(const Character& c);
 // Every power a character has, grouped the way the sheet shows them:
 //   - their pathway, Sequence 9 down to theirs;
 //   - the Sequence 0 powers a Sequence 1 Uniqueness grants;
-//   - a dual-pathway god's second pathway, Sequence 9 down to 1, and the powers its Uniqueness grants;
-//   - Above the Sequence, the Sequence 0 powers of every other pathway in their group.
+//   - a dual-pathway god's second pathway, and Above the Sequence every other pathway in their group:
+//     these grant the whole pathway, Sequence 9 to 0, so they are one line each, not written out.
 struct AbilityGroup {
-    std::string heading;                 // "Sequence 7: Magician", "Apprentice pathway, Sequence 1: Key of Stars"
+    std::string heading;                 // "Sequence 7: Magician", "Apprentice pathway (Door)"
     std::vector<std::string> abilities;  // "Name: what it does"
     std::vector<std::string> movement;   // movement modes unlocked there
+    // Set for a whole extra pathway: "All abilities of the Apprentice pathway (Door), Sequence 9 to 0".
+    // Its abilities stay unlisted; wholePathwayCount is how many it has.
+    std::string summary;
+    int wholePathwayCount = 0;
 };
 std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db);
 int abilityCount(const Character& c, const Database& db);  // abilities only, not movement

@@ -27,6 +27,7 @@ add_library(lotm_core STATIC
     src/pathway_menu.cpp
     src/records.cpp
     src/compare.cpp
+    src/list_filter.cpp
     src/exporter.cpp
     src/artifact_creator.cpp
     src/character_creator.cpp

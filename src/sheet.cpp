@@ -170,7 +170,8 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         Section dual{"Second Pathway"};
         dual.paragraph("A dual-pathway god: besides their own pathway they hold a second pathway's Sequence 1 "
                        "Beyonder characteristic" + std::string(held.beyonderCharacteristics == 2 ? "s" : "") +
-                       (held.hasUniqueness ? " and its Uniqueness." : "."));
+                       (held.hasUniqueness ? " and its Uniqueness" : "") + ", and with them every ability of "
+                       "that pathway, Sequence 9 to 0.");
         dual.field("Pathway", pathwayLabel(db, held.pathwayId));
         dual.field("Beyonder characteristics", std::to_string(held.beyonderCharacteristics) + " of " +
                                                    sequenceLabel(second, 1));
@@ -212,6 +213,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     Section abilities{"Abilities"};
     for (const AbilityGroup& group : abilityGroups(c, db)) {
         abilities.subheading(group.heading);
+        if (!group.summary.empty()) abilities.paragraph(group.summary + ".");
         for (const auto& a : group.abilities) abilities.bullet(a);
         for (const auto& mode : group.movement) abilities.bullet("Movement: " + mode);
     }
@@ -312,7 +314,7 @@ Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
     sheet.anchor = "s-" + s.id;
     sheet.kind = "Sefirah";
     sheet.title = s.name;
-    sheet.subtitle = "Sefirah";
+    sheet.subtitle = s.custom ? "Your own Sefirah" : "Sefirah";
 
     Section overview{"Overview"};
     overview.field("Also known as", join(s.alsoKnownAs));
@@ -337,7 +339,7 @@ Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
     notes.paragraph(s.notes);
     addSection(sheet, notes);
 
-    sheet.footer = "Stored in sefirot.json";
+    sheet.footer = s.custom ? "Stored in custom_sefirot.json" : "Stored in sefirot.json";
     return sheet;
 }
 

@@ -88,8 +88,12 @@ void drawArtifactsScreen(WindowState& w) {
     if (ImGui::Button("+ New Sealed Artifact", ImVec2(-FLT_MIN, 0))) {
         whenSaved(w, draft.dirty(), saveThis, [&w] { openNew(w); });
     }
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::InputTextWithHint("##search", "Search names", &s.search);
+    const auto rows = filterArtifacts(w.app.db, s.filter);
+    {
+        std::vector<std::string> names;
+        for (const auto& a : w.app.db.artifacts) names.push_back(a.name);
+        listFilterControls(w, s.filter, "Search names or IDs", artifactPowerBands(), names, rows.size(), w.app.db.artifacts.size());
+    }
     ImGui::Separator();
     auto badge = [](const Artifact& a) {
         return a.sequenceLevel == kUnknownSequence ? std::string("?") : std::to_string(a.sequenceLevel);
@@ -99,8 +103,9 @@ void drawArtifactsScreen(WindowState& w) {
                  draft.value.name.empty() ? "(new Sealed Artifact)" : draft.value.name, "Not saved yet");
     }
     if (w.app.db.artifacts.empty()) ImGui::TextDisabled("No Sealed Artifacts yet.");
-    for (const auto& a : w.app.db.artifacts) {
-        if (!s.search.empty() && ui::toLower(a.name).find(ui::toLower(s.search)) == std::string::npos) continue;
+    else if (rows.empty()) ImGui::TextDisabled("None match the filters.");
+    for (const Artifact* row : rows) {
+        const Artifact& a = *row;
         const bool selected = draft.open && !draft.isNew && draft.value.id == a.id;
         const Pathway* pathway = w.app.db.findPathway(a.pathwayId);
         const std::string subtitle = artifactCode(a.id) + ", " + (pathway ? pathway->name : std::string("unknown pathway"));

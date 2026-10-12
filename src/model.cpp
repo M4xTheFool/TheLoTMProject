@@ -143,17 +143,41 @@ int Database::nextArtifactId() const {
     return highest + 1;
 }
 
-std::string Database::newPathwayId(const std::string& name) const {
+namespace {
+
+// "Mystery Pryer" -> "mystery_pryer"; fallback when nothing usable is left.
+std::string idFromName(const std::string& name, const char* fallback) {
     std::string id;
     for (unsigned char ch : name) {
         if (std::isalnum(ch) && ch < 128) id += static_cast<char>(std::tolower(ch));
         else if (!id.empty() && id.back() != '_') id += '_';
     }
     while (!id.empty() && id.back() == '_') id.pop_back();
-    if (id.empty()) id = "pathway";
+    return id.empty() ? fallback : id;
+}
+
+}  // namespace
+
+std::string Database::newPathwayId(const std::string& name) const {
+    const std::string id = idFromName(name, "pathway");
     std::string unique = id;
     for (int n = 2; findPathway(unique); ++n) unique = id + "_" + std::to_string(n);
     return unique;
+}
+
+std::string Database::newSefirahId(const std::string& name) const {
+    const std::string id = idFromName(name, "sefirah");
+    std::string unique = id;
+    for (int n = 2; findSefirah(unique); ++n) unique = id + "_" + std::to_string(n);
+    return unique;
+}
+
+const Sefirah* Database::otherSefirahFor(const std::string& pathwayId, const std::string& sefirahId) const {
+    for (const auto& s : sefirot) {
+        if (s.id == sefirahId) continue;
+        if (std::find(s.pathwayIds.begin(), s.pathwayIds.end(), pathwayId) != s.pathwayIds.end()) return &s;
+    }
+    return nullptr;
 }
 
 std::vector<std::string> Database::pathwayUsers(const std::string& id) const {
