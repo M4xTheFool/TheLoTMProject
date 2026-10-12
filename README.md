@@ -40,6 +40,32 @@ Everything is saved as JSON in the `data` folder, with automatic backups in `dat
    extensions (**C/C++** and **CMake Tools**).
 4. If VS Code asks you to pick a "kit", choose the one that mentions **Visual Studio Build Tools 2022 - amd64**.
 
+## Set up on macOS (one time)
+
+1. Install Apple's compiler: open **Terminal** (press **Cmd+Space**, type `Terminal`, press Enter), type
+   `xcode-select --install` and press Enter, then click **Install** in the window that appears. You don't
+   need the full Xcode app.
+2. Install **Homebrew**, an installer for developer tools: copy the command under "Install Homebrew" on
+   <https://brew.sh>, paste it into Terminal and press Enter. It asks for your Mac password (nothing shows
+   while you type it). When it finishes it prints **Next steps** with a few commands; paste and run those
+   too, so Terminal can find `brew`.
+3. Install **CMake**: run `brew install cmake` in Terminal. `cmake --version` should then print a version.
+4. Install **VS Code** from <https://code.visualstudio.com/> and drag it into your **Applications** folder.
+5. Get the project onto the Mac: install **GitHub Desktop** from <https://desktop.github.com/>, sign in,
+   choose **File > Clone Repository**, pick **TheLoTMProject**, then choose
+   **Repository > Open in Visual Studio Code**.
+6. Accept the pop-up to install the recommended extensions (**C/C++** and **CMake Tools**). If no pop-up
+   appears, press **Cmd+Shift+X**, search for each one and click **Install**.
+7. If VS Code asks you to pick a "kit", choose the **Clang** one (it mentions `arm64-apple-darwin`, or
+   `x86_64-apple-darwin` on an older Intel Mac).
+
+Then build and run as described below. Two Mac differences: VS Code's **Ctrl** shortcuts are **Cmd** on a
+Mac (**Cmd+Shift+P**), and the F keys need the **fn** key held down (**fn+F7** builds, **fn+Shift+F5** runs).
+Clicking the buttons in the CMake panel does the same without any keys.
+
+Your characters and Sealed Artifacts stay on the computer that saved them. To bring them from another
+computer, copy its `data/characters.json` and `data/artifacts.json` into this project's `data` folder.
+
 The first build downloads three libraries (nlohmann/json for the saves, GLFW and Dear ImGui for the app
 window), so be online for it.
 
@@ -48,7 +74,8 @@ window), so be online for it.
 **In VS Code** (with the CMake Tools extension installed):
 
 1. Click the **CMake** icon (a triangle) in the bar on the far left. The **Project Status** panel opens.
-2. Under **Configure**, if no kit is shown, click it and pick **Visual Studio Build Tools 2022 Release - amd64**.
+2. Under **Configure**, if no kit is shown, click it and pick **Visual Studio Build Tools 2022 Release - amd64**
+   (on a Mac, the **Clang** kit).
 3. Under **Build**, click the build icon that appears when you hover over it (or press **F7**).
 4. Under **Launch**, pick which program to start: hover over it, click the pencil icon, and choose
    **lotm_window** (the app window) or **lotm_creator** (the console version). VS Code remembers the choice.
@@ -68,10 +95,18 @@ cmake --build build --config Release
 
 The console version is `.\build\Release\lotm_creator.exe`.
 
-On macOS or Linux the same `cmake` commands work, and the programs are `./build/lotm_window` and
-`./build/lotm_creator`. Linux needs a few packages for the window first:
-`sudo apt install libgl-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev`. To build only the
-console version, configure with `cmake -S . -B build -DLOTM_BUILD_WINDOW=OFF`.
+**On a Mac**, use the normal **Terminal** app. Go to the project folder with `cd` (type `cd `, drag the
+folder from Finder into the Terminal window, press Enter), then run:
+
+```
+cmake -S . -B build
+cmake --build build
+./build/lotm_window
+```
+
+The console version is `./build/lotm_creator`. Linux uses the same commands but needs a few packages for
+the window first: `sudo apt install libgl-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev`.
+To build only the console version, configure with `cmake -S . -B build -DLOTM_BUILD_WINDOW=OFF`.
 
 To run the automatic checks: `ctest --test-dir build -C Release`.
 
@@ -85,9 +120,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
   **Roll** rolls 4d6 and drops the lowest die; hover over the slider to see the last roll.
 - Boxes with an arrow on the right take anything you type, or pick a suggestion from the arrow.
-- Nothing is saved until you click **Save** (or press **Ctrl+S**). The Save button turns gold when there
-  are changes. If you open something else first, the window asks whether to save them, throw them away,
-  or keep editing. Closing the window asks the same.
+- Nothing is saved until you click **Save** (or press **Ctrl+S**, **Cmd+S** on a Mac). The Save button
+  turns gold when there are changes. If you open something else first, the window asks whether to save
+  them, throw them away, or keep editing. Closing the window asks the same.
 - **Compare** puts two to four characters side by side: tick them in the list. It shows their pathway,
   Sequence, tier and threat level, every stat with a bar (and the six stats on one chart), Speed, HP,
   Spirituality, abilities, Sealed Artifacts and how they're related to each other. The highest value in
@@ -227,6 +262,15 @@ data/samples/         sample sets (the Tarot Club)
   (and **C/C++** from Microsoft).
 - **`cmake` is not recognized**: you are in a normal PowerShell. Use **Developer PowerShell for VS 2022**
   instead, or build from VS Code.
+- **Mac: F5 says debugger type `cppvsdbg` is not available**: VS Code picked the Windows entry. Open
+  **Run and Debug** (**Cmd+Shift+D**) and choose **Run LoTM Creator (macOS / Linux)** in the list at the
+  top; VS Code remembers it. Or run without the debugger: **fn+Shift+F5**, or the play icon in the CMake panel.
+- **Mac: "No kits found", or "No CMAKE_CXX_COMPILER could be found"**: Apple's compiler isn't installed
+  yet. Run `xcode-select --install` in Terminal, then in VS Code press **Cmd+Shift+P** and run
+  **CMake: Scan for Kits**.
+- **Mac: `cmake: command not found`, or VS Code says "Bad CMake executable"**: install CMake with
+  `brew install cmake`. If `brew` isn't found either, run the **Next steps** commands Homebrew printed when
+  it was installed. Then quit Terminal and VS Code completely (**Cmd+Q**) and open them again.
 - **CMake complains about the `build` folder** (for example a "generator" mismatch): delete the `build`
   folder and build again.
 - **"Could not find the data folder"**: run the program from this project folder (VS Code does this
