@@ -5,6 +5,7 @@
 #include <map>
 #include <optional>
 
+#include "model_json.hpp"
 #include "relations.hpp"
 #include "rules.hpp"
 
@@ -116,47 +117,71 @@ void deleteArtifact(App& app, int id) {
     }
 }
 
+// The same record apart from when it was created and edited.
+template <typename Record>
+bool sameDetails(Record a, Record b) {
+    a.createdAt = a.updatedAt = b.createdAt = b.updatedAt = "";
+    return nlohmann::json(a) == nlohmann::json(b);
+}
+
 SampleImportReport importSampleSet(App& app, const SampleSet& set) {
     SampleImportReport report;
     const auto charactersBackup = app.db.characters;
     const auto artifactsBackup = app.db.artifacts;
     const std::string now = nowTimestamp();
+    // A set's own edit time is kept, so a newer version shared later can be told apart. A record
+    // with no edit time (written by hand) never counts as newer than a saved one.
+    auto editedAt = [&](const std::string& stamp) { return stamp.empty() ? now : stamp; };
+    auto newer = [](const std::string& stamp, const std::string& saved) { return stamp >= saved; };
+    bool artifactsChanged = false;
+    bool charactersChanged = false;
 
     // The sample's own ids, mapped to the ids they get here.
     std::map<int, int> artifactIds;
     for (Artifact a : set.artifacts) {
+        const int sampleId = a.id;
         const auto saved = std::find_if(app.db.artifacts.begin(), app.db.artifacts.end(),
                                         [&](const Artifact& x) { return sameName(x.name, a.name); });
         if (saved != app.db.artifacts.end()) {
-            artifactIds[a.id] = saved->id;
-            report.skipped.push_back(a.name);
+            artifactIds[sampleId] = saved->id;
+            a.id = saved->id;
+            a.createdAt = saved->createdAt;
+            const bool isNewer = newer(a.updatedAt, saved->updatedAt);
+            a.updatedAt = editedAt(a.updatedAt);
+            if (isNewer && !sameDetails(a, *saved)) {
+                *saved = a;
+                artifactsChanged = true;
+                report.updated.push_back(a.name);
+            } else {
+                report.skipped.push_back(a.name);
+            }
             continue;
         }
-        const int sampleId = a.id;
         a.id = app.db.nextArtifactId();
-        a.createdAt = a.updatedAt = now;
+        a.createdAt = a.updatedAt = editedAt(a.updatedAt);
         artifactIds[sampleId] = a.id;
         app.db.artifacts.push_back(a);
+        artifactsChanged = true;
         report.addedArtifacts.push_back(a.name);
     }
 
     std::map<int, int> characterIds;
-    std::vector<Character> added;
+    std::vector<bool> alreadySaved;  // whether each sample character matches a saved one
     int nextId = app.db.nextCharacterId();
     for (const Character& c : set.characters) {
         const auto saved = std::find_if(app.db.characters.begin(), app.db.characters.end(),
                                         [&](const Character& x) { return sameName(x.name, c.name); });
-        if (saved != app.db.characters.end()) {
-            characterIds[c.id] = saved->id;
-            report.skipped.push_back(c.name);
-            continue;
-        }
-        characterIds[c.id] = nextId;
-        added.push_back(c);
-        added.back().id = nextId++;
+        const bool exists = saved != app.db.characters.end();
+        characterIds[c.id] = exists ? saved->id : nextId++;
+        alreadySaved.push_back(exists);
     }
 
-    for (Character& c : added) {
+    // Each sample character as it would be saved here: ids mapped, links found by name.
+    std::vector<Character> incoming;
+    std::vector<bool> isNewer;
+    for (size_t i = 0; i < set.characters.size(); ++i) {
+        Character c = set.characters[i];
+        c.id = characterIds[c.id];
         std::vector<int> held;
         for (int id : c.artifactIds) {
             if (auto it = artifactIds.find(id); it != artifactIds.end()) held.push_back(it->second);
@@ -166,21 +191,66 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
             const auto it = characterIds.find(r.characterId);
             r.characterId = it != characterIds.end() ? it->second : 0;
         }
+        linkRelationshipsByName(app.db, c);
         normalizeCharacter(c);
-        c.createdAt = c.updatedAt = now;
-        app.db.characters.push_back(c);
-        report.addedCharacters.push_back(c.name);
+        if (const Character* saved = alreadySaved[i] ? app.db.findCharacter(c.id) : nullptr) {
+            // What the saved version has outside this set (people and Sealed Artifacts it doesn't
+            // know about) stays.
+            auto inSet = [&](int id) {
+                return std::any_of(characterIds.begin(), characterIds.end(), [&](const auto& m) { return m.second == id; });
+            };
+            for (const Relationship& r : saved->relationships) {
+                if (r.characterId == 0 || inSet(r.characterId)) continue;
+                const bool has = std::any_of(c.relationships.begin(), c.relationships.end(), [&](const Relationship& x) {
+                    return x.characterId == r.characterId && sameName(x.type, r.type);
+                });
+                if (!has) c.relationships.push_back(r);
+            }
+            for (int id : saved->artifactIds) {
+                const bool fromSet = std::any_of(artifactIds.begin(), artifactIds.end(), [&](const auto& m) { return m.second == id; });
+                if (!fromSet && std::find(c.artifactIds.begin(), c.artifactIds.end(), id) == c.artifactIds.end()) {
+                    c.artifactIds.push_back(id);
+                }
+            }
+            c.createdAt = saved->createdAt;
+            isNewer.push_back(newer(c.updatedAt, saved->updatedAt));
+            c.updatedAt = editedAt(c.updatedAt);
+        } else {
+            isNewer.push_back(true);
+            c.createdAt = c.updatedAt = editedAt(c.updatedAt);
+        }
+        incoming.push_back(std::move(c));
     }
-    // Links to characters saved before the import go both ways, like a normal save.
-    for (const Character& c : added) {
-        Character* stored = app.db.findCharacter(c.id);
+
+    std::vector<std::pair<int, std::optional<Character>>> changed;  // id, and the version it replaced
+    for (size_t i = 0; i < incoming.size(); ++i) {
+        Character& c = incoming[i];
+        if (!alreadySaved[i]) {
+            app.db.characters.push_back(c);
+            report.addedCharacters.push_back(c.name);
+            changed.emplace_back(c.id, std::nullopt);
+            continue;
+        }
+        Character* saved = app.db.findCharacter(c.id);
+        if (isNewer[i] && !sameDetails(c, *saved)) {
+            changed.emplace_back(c.id, *saved);
+            *saved = c;
+            report.updated.push_back(c.name);
+        } else {
+            report.skipped.push_back(c.name);
+        }
+    }
+    // Links go both ways, like a normal save, and links the new version dropped go on both sides.
+    for (const auto& [id, before] : changed) {
+        Character* stored = app.db.findCharacter(id);
         linkRelationshipsByName(app.db, *stored);
-        syncRelationships(app.db, *stored, nullptr);
+        syncRelationships(app.db, *stored, before ? &*before : nullptr);
+        charactersChanged = true;
     }
 
     try {
-        if (!report.addedArtifacts.empty()) app.storage.saveArtifacts(app.db);
-        if (!report.addedCharacters.empty()) app.storage.saveCharacters(app.db);
+        if (artifactsChanged) app.storage.saveArtifacts(app.db);
+        if (charactersChanged) app.storage.saveCharacters(app.db);
     } catch (const StorageError&) {
         app.db.characters = charactersBackup;
         app.db.artifacts = artifactsBackup;
@@ -195,6 +265,7 @@ SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& s
         SampleImportReport report = importSampleSet(app, set);
         for (auto& name : report.addedCharacters) total.addedCharacters.push_back(std::move(name));
         for (auto& name : report.addedArtifacts) total.addedArtifacts.push_back(std::move(name));
+        for (auto& name : report.updated) total.updated.push_back(std::move(name));
         for (auto& name : report.skipped) total.skipped.push_back(std::move(name));
     }
     return total;
@@ -250,6 +321,46 @@ std::vector<std::string> namesInSampleSets(const std::vector<SampleSet>& sets, c
         for (const auto& a : set.artifacts) names.push_back(lower(a.name));
     }
     return names;
+}
+
+std::string sampleSetFileFor(const std::vector<SampleSet>& sets, const std::string& title) {
+    for (const SampleSet& set : sets) {
+        if (!set.file.empty() && sameName(set.title, title)) return set.file.filename().string();
+    }
+    return sampleSetFileName(title);
+}
+
+void defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, const std::string& fileName,
+                       std::vector<int>& characterIds, std::vector<int>& artifactIds) {
+    characterIds.clear();
+    artifactIds.clear();
+    const auto existing = std::find_if(sets.begin(), sets.end(),
+                                       [&](const SampleSet& set) { return set.file.filename().string() == fileName; });
+    if (existing != sets.end()) {
+        for (const auto& c : db.characters) {
+            if (std::any_of(existing->characters.begin(), existing->characters.end(),
+                            [&](const Character& x) { return sameName(x.name, c.name); })) {
+                characterIds.push_back(c.id);
+            }
+        }
+        for (const auto& a : db.artifacts) {
+            if (std::any_of(existing->artifacts.begin(), existing->artifacts.end(),
+                            [&](const Artifact& x) { return sameName(x.name, a.name); })) {
+                artifactIds.push_back(a.id);
+            }
+        }
+        return;
+    }
+    const auto taken = namesInSampleSets(sets, fileName);
+    auto isTaken = [&](const std::string& name) {
+        return std::any_of(taken.begin(), taken.end(), [&](const std::string& t) { return sameName(t, name); });
+    };
+    for (const auto& c : db.characters) {
+        if (!isTaken(c.name)) characterIds.push_back(c.id);
+    }
+    for (const auto& a : db.artifacts) {
+        if (!isTaken(a.name)) artifactIds.push_back(a.id);
+    }
 }
 
 void saveCustomPathway(App& app, Pathway& p, bool isNew) {

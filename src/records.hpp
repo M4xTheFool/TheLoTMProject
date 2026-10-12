@@ -30,14 +30,19 @@ void deleteArtifact(App& app, int id);
 struct SampleImportReport {
     std::vector<std::string> addedCharacters;
     std::vector<std::string> addedArtifacts;
-    std::vector<std::string> skipped;  // already saved under the same name
+    std::vector<std::string> updated;  // saved already, and the sample set had a newer version
+    std::vector<std::string> skipped;  // saved already, and the same or edited more recently here
 };
 
-// Adds a sample set's characters and Sealed Artifacts as new records, keeping who holds what and
-// who knows whom. Anything with the same name as a saved record (ignoring case) is skipped and keeps
-// its details; the new characters link to it instead, so importing the same set twice adds nothing.
+// Adds a sample set's characters and Sealed Artifacts, keeping who holds what and who knows whom.
+// A record with the same name as a saved one (ignoring case) is the same record: when the set's
+// version was edited at the same time or later ("last edited") and differs, it replaces the saved
+// one, which keeps its id. A saved record edited here more recently is left as it is. Updated
+// characters keep their links to characters and Sealed Artifacts the set doesn't have. Importing
+// the same set twice changes nothing.
 SampleImportReport importSampleSet(App& app, const SampleSet& set);
-// Imports every sample set, one after another, and adds up what happened.
+// Imports every sample set, one after another, and adds up what happened. When two sets have the
+// same record, the most recently edited version ends up saved.
 SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& sets);
 
 // Packs saved characters and Sealed Artifacts into a sample set, to share them through
@@ -50,6 +55,13 @@ std::string sampleSetFileName(const std::string& title);
 // The names of the characters and Sealed Artifacts in these sample sets, in lower case, except the
 // one saved in exceptFile (the set being replaced).
 std::vector<std::string> namesInSampleSets(const std::vector<SampleSet>& sets, const std::string& exceptFile);
+// The file to save a sample set with this title in: the file of a set that already has this title
+// (any capitals), so saving "The Tarot Club" again replaces tarot_club.json, or else sampleSetFileName.
+std::string sampleSetFileFor(const std::vector<SampleSet>& sets, const std::string& title);
+// What sharing ticks before you change anything. Replacing the set saved in fileName ticks the
+// records that set already has; a new set ticks everything not already in another sample set.
+void defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, const std::string& fileName,
+                       std::vector<int>& characterIds, std::vector<int>& artifactIds);
 
 // Saves one of your own pathways. A new one gets an id made from its name.
 void saveCustomPathway(App& app, Pathway& p, bool isNew);

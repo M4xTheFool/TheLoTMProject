@@ -233,8 +233,15 @@ character's Notes say what is canon, with chapter numbers where they help, and w
 To add them, open **Settings** in the app window and click **Import all** under **Sample sets**, or in
 the console choose **Settings**, then **Import all sample sets**. Every set in `data/samples` is added at
 once. They become ordinary characters and Sealed Artifacts that you can edit or delete. Anything you've
-already saved under the same name (your own Klein Moretti, say) is left as it is, and the new characters
-link to it instead; importing again only adds what is new.
+already saved under the same name (your own Klein Moretti, say) counts as the same record, and the new
+characters link to it:
+
+- If the set's version was edited more recently (each record keeps its "last edited" time), it replaces
+  yours. Your links to characters and Sealed Artifacts that aren't in the set are kept.
+- If you edited yours more recently, yours is left as it is.
+
+So importing again only brings in what is new or changed. When two sets have the same character, the most
+recently edited version wins.
 
 ### Sharing your own characters on GitHub
 
@@ -245,7 +252,9 @@ Your characters and Sealed Artifacts stay on your computer until you share them 
 2. Give the set a title, like *Max's characters*, and tick who goes in. Everything that isn't already in
    another sample set starts ticked; the Sealed Artifacts your characters hold go in by themselves.
 3. Click **Save as data/samples/...**. Saving again with the same title replaces the file, so you can
-   update it whenever your characters change.
+   update it whenever your characters change. This works for the sets that came with the program too:
+   type *The Tarot Club* or *Adam and Amon* as the title, and the ones already in it start ticked, so
+   your changed versions replace the old ones.
 4. Open **GitHub Desktop**. It lists the new file under Changes. Write a summary like "Share my
    characters", click **Commit to main**, then **Push origin**.
 
