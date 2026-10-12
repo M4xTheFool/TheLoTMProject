@@ -12,6 +12,7 @@ data/artifacts.json
 data/settings.json
 data/backups/
 data/*.tmp
+data/samples/*.tmp
 
 # Exported sheets
 exports/

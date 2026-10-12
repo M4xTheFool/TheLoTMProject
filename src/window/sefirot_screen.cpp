@@ -119,6 +119,26 @@ void yourHolders(WindowState& w, const Sefirah& s) {
     }
 }
 
+// The Great Old One's step past Sequence 0, read-only: what it symbolizes and its abilities.
+void aboveTheSequence(WindowState& w, const Sefirah& s) {
+    heading(w, "Above the Sequence");
+    if (!s.greatOldOne.empty()) {
+        ImGui::TextColored(palette().gold, "%s", s.greatOldOne.c_str());
+        ImGui::SameLine();
+        ImGui::TextDisabled("its Great Old One");
+    }
+    if (!s.symbolism.empty()) {
+        ImGui::TextColored(palette().muted, "Symbolism");
+        ImGui::SameLine();
+        ImGui::TextWrapped("%s", s.symbolism.c_str());
+    }
+    if (s.abilities.empty()) ImGui::TextDisabled("No Great Old One abilities written yet.");
+    for (const auto& a : s.abilities) {
+        ImGui::Bullet();
+        ImGui::TextWrapped("%s", a.c_str());
+    }
+}
+
 void openDraft(WindowState& w, const Sefirah& s, bool isNew) {
     w.sefirot.selectedId.clear();
     w.sefirot.draft.start(s, isNew);
@@ -146,7 +166,8 @@ bool saveImpl(WindowState& w) {
         setStatus(w, "Give the Sefirah a name before saving.", true);
         return false;
     }
-    for (auto* list : {&s.alsoKnownAs, &s.knownHolders}) {
+    s.symbolism = ui::trim(s.symbolism);
+    for (auto* list : {&s.alsoKnownAs, &s.knownHolders, &s.abilities}) {
         list->erase(std::remove_if(list->begin(), list->end(), [](const std::string& x) { return ui::trim(x).empty(); }),
                     list->end());
     }
@@ -235,6 +256,16 @@ void drawEditor(WindowState& w) {
             ImGui::SeparatorText("Pathways it gathers");
             ImGui::TextDisabled("Holding the Sefirah and the Uniqueness of each of these makes a Great Old One.");
             pathwayPicker(w.app.db, s);
+            ImGui::SeparatorText("Above the Sequence");
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextDisabled("The step past Sequence 0. A character Above the Sequence who holds this Sefirah "
+                                "is its Great Old One and has these abilities.");
+            ImGui::PopTextWrapPos();
+            multilineField("Symbolism: what the Great Old One stands for", s.symbolism, 2);
+            ImGui::TextUnformatted("Great Old One abilities");
+            ImGui::PushID("gooAbilities");
+            abilityListEditor(s.abilities);
+            ImGui::PopID();
             ImGui::SeparatorText("What it is");
             multilineField("Description", s.description, 5);
             ImGui::SeparatorText("Known holders in the story");
@@ -285,6 +316,9 @@ void drawDetails(WindowState& w, const Sefirah& s) {
     }
     ImGui::TextWrapped("%s", s.description.c_str());
 
+    ImGui::Spacing();
+    aboveTheSequence(w, s);
+
     if (!s.knownHolders.empty()) {
         ImGui::Spacing();
         heading(w, "Known holders in the story");
@@ -309,6 +343,30 @@ void drawDetails(WindowState& w, const Sefirah& s) {
 }  // namespace
 
 bool saveSefirahDraft(WindowState& w) { return saveImpl(w); }
+
+void openNewSefirah(WindowState& w, const std::string& pathwayId) {
+    whenSaved(w, w.sefirot.draft.dirty(), [&w] { return saveImpl(w); }, [&w, pathwayId] {
+        Sefirah s;
+        s.custom = true;
+        s.pathwayIds = {pathwayId};
+        openDraft(w, s, true);
+        w.switchTo = Tab::Sefirot;
+    });
+}
+
+void openSefirah(WindowState& w, const std::string& id) {
+    whenSaved(w, w.sefirot.draft.dirty(), [&w] { return saveImpl(w); }, [&w, id] {
+        const Sefirah* found = w.app.db.findSefirah(id);
+        if (!found) return;
+        if (found->custom) {
+            openDraft(w, *found, false);
+        } else {
+            w.sefirot.draft.close();
+            w.sefirot.selectedId = id;
+        }
+        w.switchTo = Tab::Sefirot;
+    });
+}
 
 void drawSefirotScreen(WindowState& w) {
     auto& screen = w.sefirot;

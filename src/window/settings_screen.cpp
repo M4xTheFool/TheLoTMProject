@@ -5,40 +5,16 @@
 #include "presets.hpp"
 #include "records.hpp"
 #include "storage.hpp"
+#include "ui.hpp"
 #include "window.hpp"
 
 namespace lotm::window {
 
 namespace {
 
-std::string joined(const std::vector<std::string>& names) {
-    std::string text;
-    for (const auto& name : names) text += (text.empty() ? "" : ", ") + name;
-    return text;
-}
-
-void addSampleSet(WindowState& w, const SampleSet& set) {
-    try {
-        const SampleImportReport report = importSampleSet(w.app, set);
-        reloadCharacterDraft(w);
-        std::string text = "Added " + std::to_string(report.addedCharacters.size()) + " characters and " +
-                           std::to_string(report.addedArtifacts.size()) + " Sealed Artifacts from " + set.title + ".";
-        if (!report.skipped.empty()) text += " Already saved, so left as they were: " + joined(report.skipped) + ".";
-        setStatus(w, text);
-    } catch (const StorageError& e) {
-        setStatus(w, std::string("Could not add the sample set: ") + e.what(), true);
-    }
-}
-
-// Ready-made characters and Sealed Artifacts from data/samples, such as the Tarot Club.
-void sampleSetsSection(WindowState& w) {
-    ImGui::Spacing();
-    if (w.showSampleSets) {
-        ImGui::SetScrollHereY(0.0f);
-        w.showSampleSets = false;
-    }
-    heading(w, "Sample sets");
+std::vector<SampleSet>& sampleSets(WindowState& w) {
     if (!w.sampleSets) {
+        w.sampleSetsProblem.clear();
         try {
             w.sampleSets = w.app.storage.loadSampleSets();
         } catch (const StorageError& e) {
@@ -46,41 +22,171 @@ void sampleSetsSection(WindowState& w) {
             w.sampleSetsProblem = e.what();
         }
     }
-    if (!w.sampleSetsProblem.empty()) ImGui::TextColored(palette().danger, "%s", w.sampleSetsProblem.c_str());
-    if (w.sampleSets->empty() && w.sampleSetsProblem.empty()) {
-        ImGui::TextDisabled("No sample sets found in %s.", w.app.storage.samplesDir().string().c_str());
+    return *w.sampleSets;
+}
+
+void importAll(WindowState& w) {
+    try {
+        const SampleImportReport report = importAllSampleSets(w.app, sampleSets(w));
+        reloadCharacterDraft(w);
+        std::string text = "Added " + std::to_string(report.addedCharacters.size()) + " characters and " +
+                           std::to_string(report.addedArtifacts.size()) + " Sealed Artifacts.";
+        if (!report.skipped.empty()) {
+            text += " " + std::to_string(report.skipped.size()) + " were already saved, so they were left as they were.";
+        }
+        setStatus(w, text);
+    } catch (const StorageError& e) {
+        setStatus(w, std::string("Importing stopped: ") + e.what(), true);
     }
+}
+
+// Ready-made characters and Sealed Artifacts from data/samples: the Tarot Club, Adam and Amon, and any
+// set shared through GitHub. One button imports them all.
+void sampleSetsSection(WindowState& w) {
+    ImGui::Spacing();
+    if (w.showSampleSets) {
+        ImGui::SetScrollHereY(0.0f);
+        w.showSampleSets = false;
+    }
+    heading(w, "Sample sets");
+    const auto& sets = sampleSets(w);
+    if (!w.sampleSetsProblem.empty()) ImGui::TextColored(palette().danger, "%s", w.sampleSetsProblem.c_str());
+    if (sets.empty() && w.sampleSetsProblem.empty()) {
+        ImGui::TextDisabled("No sample sets found in %s.", w.app.storage.samplesDir().string().c_str());
+        return;
+    }
+    ImGui::TextWrapped("Ready-made characters and Sealed Artifacts in the data/samples folder, including any "
+                       "shared through GitHub. Anything already saved under the same name is left as it is, so "
+                       "importing again only adds what is new.");
     const bool unsaved = hasUnsavedChanges(w);
-    for (const SampleSet& set : *w.sampleSets) {
+    ImGui::BeginDisabled(unsaved || sets.empty());
+    if (ImGui::Button("Import all")) importAll(w);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (unsaved) ImGui::TextDisabled("Save or undo the changes you're making first.");
+    else ImGui::TextDisabled("%zu sets", sets.size());
+    for (const SampleSet& set : sets) {
         ImGui::PushID(set.file.string().c_str());
-        ImGui::PushFont(w.fonts.bold, 0.0f);
-        ImGui::TextUnformatted(set.title.c_str());
-        ImGui::PopFont();
-        ImGui::SameLine();
-        ImGui::TextDisabled("%zu characters, %zu Sealed Artifacts", set.characters.size(), set.artifacts.size());
-        if (!set.description.empty()) ImGui::TextWrapped("%s", set.description.c_str());
-        if (ImGui::TreeNode("What's in it")) {
+        const std::string header = set.title + "  -  " + std::to_string(set.characters.size()) + " characters, " +
+                                   std::to_string(set.artifacts.size()) + " Sealed Artifacts###set";
+        if (ImGui::TreeNode(header.c_str())) {
+            if (!set.description.empty()) ImGui::TextWrapped("%s", set.description.c_str());
             for (const Character& c : set.characters) {
                 ImGui::BulletText("%s, %s", c.name.c_str(),
-                                  c.pathwayId.empty()
-                                      ? "mortal"
-                                      : sequenceLabel(w.app.db.findPathway(c.pathwayId), c.sequence).c_str());
+                                  c.pathwayId.empty() ? "mortal"
+                                  : c.aboveSequence   ? "Above the Sequence"
+                                                      : sequenceLabel(w.app.db.findPathway(c.pathwayId), c.sequence).c_str());
             }
             for (const Artifact& a : set.artifacts) ImGui::BulletText("%s (Sealed Artifact)", a.name.c_str());
+            ImGui::TextDisabled("data/samples/%s", set.file.filename().string().c_str());
             ImGui::TreePop();
         }
-        ImGui::BeginDisabled(unsaved);
-        if (ImGui::Button("Add to my saves")) addSampleSet(w, set);
-        ImGui::EndDisabled();
-        if (unsaved) {
-            ImGui::SameLine();
-            ImGui::TextDisabled("Save or undo the changes you're making first.");
-        } else {
-            ImGui::SetItemTooltip("Anything already saved under the same name is left as it is.");
-        }
-        ImGui::Spacing();
         ImGui::PopID();
     }
+}
+
+bool contains(const std::vector<int>& ids, int id) { return std::find(ids.begin(), ids.end(), id) != ids.end(); }
+
+void toggle(std::vector<int>& ids, int id, bool on) {
+    if (on && !contains(ids, id)) ids.push_back(id);
+    if (!on) ids.erase(std::remove(ids.begin(), ids.end(), id), ids.end());
+}
+
+bool inList(const std::vector<std::string>& names, const std::string& name) {
+    return std::find(names.begin(), names.end(), ui::toLower(name)) != names.end();
+}
+
+// Packs your own characters and Sealed Artifacts into a file in data/samples, which GitHub Desktop
+// can then commit and share. Whoever pulls it gets them with Import all.
+void shareSection(WindowState& w) {
+    auto& share = w.share;
+    const Database& db = w.app.db;
+    ImGui::Spacing();
+    heading(w, "Share your own");
+    ImGui::TextWrapped("Turn your characters and Sealed Artifacts into a sample set. It is saved in the data/samples "
+                       "folder; commit it in GitHub Desktop and push, and anyone who pulls gets them with Import all. "
+                       "Your own pathways and Sefirot are shared already: they are in custom_pathways.json and "
+                       "custom_sefirot.json, which GitHub Desktop commits the same way.");
+    textField("Title", share.title, "e.g. Max's characters");
+    multilineField("Description (optional)", share.description, 2);
+
+    const std::string fileName = sampleSetFileName(share.title.empty() ? "My sample set" : share.title);
+    const auto taken = namesInSampleSets(sampleSets(w), fileName);
+    // Until you tick something by hand, everything not already in another sample set is ticked.
+    if (!share.touched && share.pickedFor != fileName) {
+        share.pickedFor = fileName;
+        share.characterIds.clear();
+        share.artifactIds.clear();
+        for (const auto& c : db.characters) {
+            if (!inList(taken, c.name)) share.characterIds.push_back(c.id);
+        }
+        for (const auto& a : db.artifacts) {
+            if (!inList(taken, a.name)) share.artifactIds.push_back(a.id);
+        }
+    }
+
+    auto pickList = [&](const char* id, const char* title, auto& records, std::vector<int>& picked, auto code) {
+        ImGui::PushID(id);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(title);
+        ImGui::SameLine();
+        if (ImGui::SmallButton("All")) {
+            picked.clear();
+            for (const auto& r : records) picked.push_back(r.id);
+            share.touched = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::SmallButton("None")) {
+            picked.clear();
+            share.touched = true;
+        }
+        if (records.empty()) ImGui::TextDisabled("None saved yet.");
+        for (const auto& r : records) {
+            bool on = contains(picked, r.id);
+            if (ImGui::Checkbox((r.name + "##" + std::to_string(r.id)).c_str(), &on)) {
+                toggle(picked, r.id, on);
+                share.touched = true;
+            }
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s%s", code(r.id).c_str(), inList(taken, r.name) ? ", already in a sample set" : "");
+        }
+        ImGui::PopID();
+    };
+    if (ImGui::BeginTable("pick", 2, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableNextColumn();
+        pickList("characters", "Characters", db.characters, share.characterIds, characterCode);
+        ImGui::TableNextColumn();
+        pickList("artifacts", "Sealed Artifacts", db.artifacts, share.artifactIds, artifactCode);
+        ImGui::TextDisabled("The ones your ticked characters hold go in too.");
+        ImGui::EndTable();
+    }
+
+    const SampleSet set = makeSampleSet(db, ui::trim(share.title), ui::trim(share.description), share.characterIds,
+                                        share.artifactIds);
+    const bool replacing = std::filesystem::exists(w.app.storage.samplesDir() / fileName);
+    const bool ready = !ui::trim(share.title).empty() && (!set.characters.empty() || !set.artifacts.empty());
+    ImGui::Spacing();
+    ImGui::BeginDisabled(!ready);
+    const std::string button = (replacing ? "Replace data/samples/" : "Save as data/samples/") + fileName;
+    if (ImGui::Button(button.c_str())) {
+        try {
+            w.app.storage.saveSampleSet(set, fileName);
+            w.sampleSets.reset();  // read the folder again, with the new set in it
+            share.touched = false;
+            share.pickedFor = fileName;
+            setStatus(w, "Saved " + std::to_string(set.characters.size()) + " characters and " +
+                             std::to_string(set.artifacts.size()) + " Sealed Artifacts to data/samples/" + fileName +
+                             ". Commit it in GitHub Desktop and push to share it.");
+        } catch (const StorageError& e) {
+            setStatus(w, std::string("Saving failed: ") + e.what(), true);
+        }
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ui::trim(share.title).empty()) ImGui::TextDisabled("Give it a title first.");
+    else if (!ready) ImGui::TextDisabled("Tick at least one character or Sealed Artifact.");
+    else if (replacing) ImGui::TextColored(palette().warning, "A sample set with this title is already there; this replaces it.");
+    else ImGui::TextDisabled("%zu characters, %zu Sealed Artifacts", set.characters.size(), set.artifacts.size());
 }
 
 }  // namespace
@@ -141,6 +247,7 @@ void drawSettingsScreen(WindowState& w) {
     }
 
     sampleSetsSection(w);
+    shareSection(w);
 
     ImGui::Spacing();
     heading(w, "Files");

@@ -350,6 +350,45 @@ static void testAboveTheSequence() {
     const Comparison result = buildComparison({&db.characters[0], &db.characters[1]}, db);
     const CompareRow& sequence = result.sections[0].rows[1];
     CHECK(sequence.values[0] == "Above the Sequence" && sequence.highest == std::vector<bool>({true, false}));
+
+    // Above the Sequence is one more step, written on the Sefirah: its symbolism and the Great Old
+    // One's abilities come right after Sequence 0.
+    db.sefirot[0].symbolism = "Mysteries and the gray fog";
+    db.sefirot[0].abilities = {"Lord of the Mysteries: Rules every mystery.", "Gray Fog: Hides anything."};
+    c.sefirahId = "sefirah_castle";
+    CHECK(greatOldOneSefirah(c, db) == &db.sefirot[0]);
+    const auto withGoo = abilityGroups(c, db);
+    CHECK(withGoo.size() == 13);
+    CHECK(withGoo[10].heading == "Above the Sequence: Lord of the Mysteries");
+    CHECK(withGoo[10].symbolism == "Mysteries and the gray fog" && withGoo[10].abilities.size() == 2);
+    CHECK(withGoo[11].heading == "Apprentice (Door)");
+    CHECK(abilityCount(c, db) == 32);
+    const std::string gooText = renderText(buildCharacterSheet(c, db));
+    CHECK(gooText.find("Symbolism: Mysteries and the gray fog") != std::string::npos);
+    CHECK(gooText.find("Gray Fog: Hides anything.") != std::string::npos);
+    // A Sefirah of their own that gathers their pathway wins over the group's; one that doesn't, doesn't.
+    Sefirah own;
+    own.id = "theatre";
+    own.name = "Grand Theatre";
+    own.greatOldOne = "The Ringmaster";
+    own.pathwayIds = {"seer"};
+    own.abilities = {"Curtain Call: Ends any act."};
+    own.custom = true;
+    db.sefirot.push_back(own);
+    c.sefirahId = "theatre";
+    CHECK(greatOldOneSefirah(c, db)->id == "theatre");
+    CHECK(abilityGroups(c, db)[10].heading == "Above the Sequence: The Ringmaster");
+    db.sefirot.back().pathwayIds = {"acrobat"};
+    CHECK(greatOldOneSefirah(c, db)->id == "sefirah_castle");
+    // A god at Sequence 0 doesn't get it.
+    CHECK(abilityGroups(god, db).size() == 10);
+    // The pathway sheet shows the step after Sequence 0.
+    const std::string pathwayText = renderText(buildPathwaySheet(*seer, db));
+    CHECK(pathwayText.find("Above the Sequence: Lord of the Mysteries") != std::string::npos);
+    CHECK(pathwayText.find("Lord of the Mysteries: Rules every mystery.") != std::string::npos);
+    CHECK(renderText(buildPathwaySheet(*db.findPathway("acrobat"), db)).find("No Sefirah gathers this pathway yet") ==
+          std::string::npos);  // the Grand Theatre gathers it now
+    CHECK(renderText(buildSefirahSheet(db.sefirot[0], db)).find("Symbolism: Mysteries and the gray fog") != std::string::npos);
 }
 
 static void testDualPathway() {
@@ -414,7 +453,8 @@ static void testSefirot() {
     const Storage source(fs::path(LOTM_SOURCE_DIR) / "data");
     Database db;
     source.loadAll(db);
-    CHECK(db.sefirot.size() == 9);
+    // Nine come with the program; data/custom_sefirot.json may add Max's own.
+    CHECK(std::count_if(db.sefirot.begin(), db.sefirot.end(), [](const Sefirah& s) { return !s.custom; }) == 9);
     // Every built-in pathway belongs to exactly one Sefirah, and every Sefirah names real pathways.
     for (const auto& p : db.pathways) {
         if (p.custom) continue;
@@ -477,6 +517,8 @@ static void testCustomSefirot() {
     masks.greatOldOne = "The Faceless";
     masks.pathwayIds = {"spectator", "seer"};
     masks.knownHolders = {"The first Faceless"};
+    masks.symbolism = "Faces and lies";
+    masks.abilities = {"Thousand Faces: Wears any face."};
     saveCustomSefirah(app, masks, true);
     CHECK(masks.id == "sefirah_of_masks" && masks.custom);
     CHECK(fs::exists(temp / "custom_sefirot.json"));
@@ -496,6 +538,7 @@ static void testCustomSefirot() {
     app.storage.loadAll(reloaded);
     const Sefirah* loaded = reloaded.findSefirah("sefirah_of_masks");
     CHECK(reloaded.sefirot.size() == 10 && loaded && loaded->custom && loaded->greatOldOne == "The Faceless");
+    CHECK(loaded && loaded->symbolism == "Faces and lies" && loaded->abilities.size() == 1);
     CHECK(!reloaded.findSefirah("sefirah_castle")->custom);
     CHECK(sefirahLabel(reloaded, ada.sefirahId) == "Sefirah of Masks (The Faceless)");
     CHECK(buildSefirahSheet(*loaded, reloaded).footer == "Stored in custom_sefirot.json");
@@ -860,7 +903,7 @@ static void testCustomPathways() {
     CHECK(refused);
 
     // The pathway sheet lists every Sequence and its abilities.
-    const std::string text = renderText(buildPathwaySheet(*loaded));
+    const std::string text = renderText(buildPathwaySheet(*loaded, reloaded));
     CHECK(text.find("NIGHT WEAVER PATHWAY") != std::string::npos);
     CHECK(text.find("one of your own pathways") != std::string::npos);
     CHECK(text.find("Thread Sight: Sees the threads between people.") != std::string::npos);
@@ -1099,6 +1142,38 @@ static void testSampleImport() {
     const SampleImportReport again = importSampleSet(app, set);
     CHECK(again.addedCharacters.empty() && again.addedArtifacts.empty() && again.skipped.size() == 4);
     CHECK(app.db.characters.size() == 4);
+
+    // Sharing: Audrey (who holds the glove and knows Klein, Dunn and Leonard) and Leonard become a
+    // sample set of their own; the glove comes along, and the links to Klein and Dunn keep only names.
+    CHECK(sampleSetFileName("Max's Characters!") == "maxs_characters.json");
+    CHECK(sampleSetFileName("???") == "my_sample_set.json");
+    const SampleSet shared = makeSampleSet(app.db, "Max's Characters", "Mine.", {addedAudrey->id, addedLeonard->id}, {});
+    CHECK(shared.characters.size() == 2 && shared.artifacts.size() == 1 && shared.artifacts[0].name == "Creeping Hunger");
+    const Relationship& toKlein = shared.characters[0].relationships.at(0);
+    CHECK(toKlein.characterId == 0 && toKlein.name == "Klein Moretti");
+    CHECK(shared.characters[0].relationships.at(2).characterId == addedLeonard->id);  // inside the set: kept
+    const fs::path file = app.storage.saveSampleSet(shared, sampleSetFileName(shared.title));
+    CHECK(file.filename() == "maxs_characters.json" && fs::exists(file));
+    const auto sets = app.storage.loadSampleSets();
+    CHECK(sets.size() == 1 && sets[0].title == "Max's Characters" && sets[0].characters.size() == 2);
+    CHECK(namesInSampleSets(sets, "").size() == 3 && namesInSampleSets(sets, "maxs_characters.json").empty());
+
+    // Someone else pulls it and presses Import all: everything arrives, linked up, held artifacts too.
+    const fs::path other = root / "other";
+    fs::create_directories(other / "samples");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", other / "pathways.json");
+    fs::copy_file(file, other / "samples" / file.filename());
+    App friendApp{Database{}, Storage(other), Dice{}};
+    friendApp.storage.loadAll(friendApp.db);
+    Character friendKlein;
+    friendKlein.name = "Klein Moretti";
+    saveCharacter(friendApp, friendKlein, true);
+    const SampleImportReport all = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
+    CHECK(all.addedCharacters.size() == 2 && all.addedArtifacts.size() == 1 && all.skipped.empty());
+    const auto* friendAudrey = friendApp.db.findCharactersByName("Audrey Hall", 0).at(0);
+    CHECK(friendAudrey->artifactIds.size() == 1);
+    CHECK(friendAudrey->relationships.at(0).characterId == friendKlein.id);  // linked again by name
+    CHECK(importAllSampleSets(friendApp, friendApp.storage.loadSampleSets()).addedCharacters.empty());
     fs::remove_all(root);
 }
 

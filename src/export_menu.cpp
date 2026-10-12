@@ -58,7 +58,7 @@ void exportPathway(App& app, const std::string& id) {
     if (!p) return;
     auto format = chooseFormat();
     if (!format) return;
-    exportSheets(app, exportName(*p), *format, {buildPathwaySheet(*p)}, p->name + " pathway");
+    exportSheets(app, exportName(*p), *format, {buildPathwaySheet(*p, app.db)}, p->name + " pathway");
 }
 
 void exportSefirah(App& app, const std::string& id) {

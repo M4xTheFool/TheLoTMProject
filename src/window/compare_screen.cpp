@@ -156,7 +156,7 @@ void drawCompareScreen(WindowState& w) {
         ImGui::Spacing();
         if (w.app.db.characters.size() < 2) {
             ImGui::TextDisabled("Save at least two characters to compare them.");
-            if (ImGui::TextLink("Add the Tarot Club or other samples")) {
+            if (ImGui::TextLink("Import the sample sets (the Tarot Club and more)")) {
                 w.switchTo = Tab::Settings;
                 w.showSampleSets = true;
             }

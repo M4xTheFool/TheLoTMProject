@@ -189,6 +189,69 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
     return report;
 }
 
+SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& sets) {
+    SampleImportReport total;
+    for (const SampleSet& set : sets) {
+        SampleImportReport report = importSampleSet(app, set);
+        for (auto& name : report.addedCharacters) total.addedCharacters.push_back(std::move(name));
+        for (auto& name : report.addedArtifacts) total.addedArtifacts.push_back(std::move(name));
+        for (auto& name : report.skipped) total.skipped.push_back(std::move(name));
+    }
+    return total;
+}
+
+SampleSet makeSampleSet(const Database& db, const std::string& title, const std::string& description,
+                        const std::vector<int>& characterIds, const std::vector<int>& artifactIds) {
+    SampleSet set;
+    set.title = title;
+    set.description = description;
+    auto picked = [](const std::vector<int>& ids, int id) { return std::find(ids.begin(), ids.end(), id) != ids.end(); };
+    std::vector<int> artifacts = artifactIds;
+    for (const auto& c : db.characters) {
+        if (!picked(characterIds, c.id)) continue;
+        Character copy = c;
+        for (Relationship& r : copy.relationships) {
+            if (r.characterId != 0 && !picked(characterIds, r.characterId)) {
+                if (const Character* other = db.findCharacter(r.characterId)) r.name = other->name;
+                r.characterId = 0;
+            }
+        }
+        for (int id : copy.artifactIds) {
+            if (!picked(artifacts, id)) artifacts.push_back(id);
+        }
+        set.characters.push_back(std::move(copy));
+    }
+    for (const auto& a : db.artifacts) {
+        if (picked(artifacts, a.id)) set.artifacts.push_back(a);
+    }
+    return set;
+}
+
+std::string sampleSetFileName(const std::string& title) {
+    std::string name;
+    for (unsigned char ch : title) {
+        if (ch == '\'') continue;  // "Max's" -> "maxs"
+        if (std::isalnum(ch) && ch < 128) name += static_cast<char>(std::tolower(ch));
+        else if (!name.empty() && name.back() != '_') name += '_';
+    }
+    while (!name.empty() && name.back() == '_') name.pop_back();
+    return (name.empty() ? "my_sample_set" : name) + ".json";
+}
+
+std::vector<std::string> namesInSampleSets(const std::vector<SampleSet>& sets, const std::string& exceptFile) {
+    std::vector<std::string> names;
+    auto lower = [](std::string text) {
+        for (char& ch : text) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        return text;
+    };
+    for (const SampleSet& set : sets) {
+        if (set.file.filename().string() == exceptFile) continue;
+        for (const auto& c : set.characters) names.push_back(lower(c.name));
+        for (const auto& a : set.artifacts) names.push_back(lower(a.name));
+    }
+    return names;
+}
+
 void saveCustomPathway(App& app, Pathway& p, bool isNew) {
     const auto backup = app.db.pathways;
     p.custom = true;

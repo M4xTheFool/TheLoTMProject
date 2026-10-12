@@ -124,6 +124,15 @@ struct WindowState {
     std::optional<std::vector<SampleSet>> sampleSets;
     std::string sampleSetsProblem;
     bool showSampleSets = false;  // scroll the Settings tab down to them on the next frame
+    // Settings > Share your own: packing your characters and Sealed Artifacts into a sample set.
+    struct Share {
+        std::string title;
+        std::string description;
+        std::vector<int> characterIds;
+        std::vector<int> artifactIds;
+        bool touched = false;  // ticked by hand, so a new title no longer changes the ticks
+        std::string pickedFor = "\x01";  // the file the default ticks were made for
+    } share;
 
     // The line at the bottom of the window: the result of the last save, export or error.
     std::string status;
@@ -153,6 +162,10 @@ bool saveSefirahDraft(WindowState& w);
 
 // Opens a saved character on the Characters tab (asking first about unsaved changes there).
 void openCharacter(WindowState& w, int id);
+// Shows a Sefirah on the Sefirot tab, in the editor when it is one of your own.
+void openSefirah(WindowState& w, const std::string& id);
+// Starts a new Sefirah of your own on the Sefirot tab, gathering this pathway.
+void openNewSefirah(WindowState& w, const std::string& pathwayId);
 
 // Shows the saved version of the open character again, after something else changed it on disk
 // (adding a sample set can add relationships to it). Does nothing while it has unsaved changes.
@@ -178,6 +191,9 @@ bool presetField(const char* label, std::string& value, const std::vector<std::s
 // Short entries (titles, aliases): one text box each, with a remove button, plus an "Add" box.
 bool listEditor(const char* id, std::vector<std::string>& items, const char* addHint);
 // Pathways grouped under their neighbouring pathways. noneLabel names the empty choice.
+// Abilities as rows of a name box and a description box, with buttons to move and remove each one,
+// and "+ Add an ability". Stored as "Name: what it does". Returns true when the list changed.
+bool abilityListEditor(std::vector<std::string>& abilities);
 bool pathwayCombo(const char* label, const Database& db, std::string& pathwayId, const char* noneLabel);
 // A slider from Sequence 9 (left) to Sequence 0 (right), labelled with the Sequence's name. Given
 // `above`, it has one more step past Sequence 0: Above the Sequence.

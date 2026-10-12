@@ -56,6 +56,8 @@ public:
 
     // Every sample set in data/samples, sorted by title. Throws StorageError for a broken file.
     std::vector<SampleSet> loadSampleSets() const;
+    // Writes a sample set to data/samples/<fileName>, replacing a file of that name.
+    std::filesystem::path saveSampleSet(const SampleSet& set, const std::string& fileName) const;
 
 private:
     std::filesystem::path dataDir_;

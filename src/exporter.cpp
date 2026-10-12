@@ -63,7 +63,7 @@ std::vector<Sheet> catalogueSheets(const Database& db) {
     for (const auto& c : db.characters) sheets.push_back(buildCharacterSheet(c, db));
     for (const auto& a : db.artifacts) sheets.push_back(buildArtifactSheet(a, db));
     for (const auto& p : db.pathways) {
-        if (p.custom) sheets.push_back(buildPathwaySheet(p));
+        if (p.custom) sheets.push_back(buildPathwaySheet(p, db));
     }
     for (const auto& s : db.sefirot) {
         if (!db.sefirahHolders(s.id).empty()) sheets.push_back(buildSefirahSheet(s, db));

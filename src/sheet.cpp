@@ -76,6 +76,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     sheet.kind = "Character";
     sheet.title = c.name.empty() ? "(unnamed)" : c.name;
     const Sefirah* groupSefirah = db.sefirahForPathway(c.pathwayId);
+    const Sefirah* gooSefirah = greatOldOneSefirah(c, db);
     const Pathway* second = isDualPathwayGod(c) ? db.findPathway(c.secondPathway.pathwayId) : nullptr;
     auto pathwayText = [&db](const Pathway* p, const std::string& id) {
         if (!p) return pathwayLabel(db, id);
@@ -84,8 +85,8 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     if (c.pathwayId.empty()) {
         sheet.subtitle = "Ordinary mortal";
     } else if (c.aboveSequence) {
-        const std::string goo = groupSefirah && !groupSefirah->greatOldOne.empty() ? groupSefirah->greatOldOne
-                                                                                  : "a Great Old One";
+        const std::string goo = gooSefirah && !gooSefirah->greatOldOne.empty() ? gooSefirah->greatOldOne
+                                                                              : "a Great Old One";
         sheet.subtitle = "Above the Sequence: " + goo + ", " + pathwayText(pathway, c.pathwayId);
     } else {
         const SequenceInfo* seq = pathway ? pathway->findSequence(c.sequence) : nullptr;
@@ -157,7 +158,8 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         Section above{"Above the Sequence"};
         above.paragraph("A Great Old One: past Sequence 0, holding a Sefirah and every Uniqueness of its pathway "
                         "group, and embodying an aspect of the universe.");
-        if (groupSefirah) above.field("Great Old One", groupSefirah->greatOldOne);
+        if (gooSefirah) above.field("Great Old One", gooSefirah->greatOldOne);
+        if (gooSefirah) above.field("Symbolism", gooSefirah->symbolism);
         std::vector<std::string> names;
         for (const Pathway* p : db.pathwayGroup(c.pathwayId)) names.push_back(p->name);
         above.field("Uniquenesses held", joinAnd(names) + (names.size() == 1 ? " pathway" : " pathways"));
@@ -214,6 +216,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     for (const AbilityGroup& group : abilityGroups(c, db)) {
         abilities.subheading(group.heading);
         if (!group.summary.empty()) abilities.paragraph(group.summary + ".");
+        abilities.field("Symbolism", group.symbolism);
         for (const auto& a : group.abilities) abilities.bullet(a);
         for (const auto& mode : group.movement) abilities.bullet("Movement: " + mode);
     }
@@ -325,6 +328,11 @@ Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
     overview.paragraph(s.description);
     addSection(sheet, overview);
 
+    Section above{"Above the Sequence"};
+    above.field("Symbolism", s.symbolism);
+    for (const auto& a : s.abilities) above.bullet(a);
+    if (!s.symbolism.empty() || !s.abilities.empty()) addSection(sheet, above);
+
     Section canon{"Known Holders"};
     for (const auto& line : s.knownHolders) canon.bullet(line);
     addSection(sheet, canon);
@@ -343,7 +351,7 @@ Sheet buildSefirahSheet(const Sefirah& s, const Database& db) {
     return sheet;
 }
 
-Sheet buildPathwaySheet(const Pathway& p) {
+Sheet buildPathwaySheet(const Pathway& p, const Database& db) {
     Sheet sheet;
     sheet.anchor = "p-" + p.id;
     sheet.kind = "Pathway";
@@ -377,6 +385,16 @@ Sheet buildPathwaySheet(const Pathway& p) {
         sequences.subheading("Sequence " + std::to_string(s.sequence) + (s.name.empty() ? "" : ": " + s.name));
         if (s.abilities.empty()) sequences.paragraph("No abilities written yet.");
         for (const auto& a : s.abilities) sequences.bullet(a);
+    }
+    // One more step past Sequence 0, written on the Sefirah that gathers the pathway.
+    const Sefirah* sefirah = db.sefirahForPathway(p.id);
+    sequences.subheading(aboveSequenceLabel(sefirah));
+    if (!sefirah) {
+        sequences.paragraph("No Sefirah gathers this pathway yet, so it has no Great Old One.");
+    } else {
+        sequences.paragraph("A Great Old One holds " + sefirah->name + " and the Uniqueness of every pathway it gathers.");
+        sequences.field("Symbolism", sefirah->symbolism);
+        for (const auto& a : sefirah->abilities) sequences.bullet(a);
     }
     addSection(sheet, sequences);
 

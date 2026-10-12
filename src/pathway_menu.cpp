@@ -146,20 +146,21 @@ void editAbility(std::vector<std::string>& abilities, size_t index) {
     }
 }
 
-void editAbilities(SequenceInfo& s) {
+}  // namespace
+
+void editAbilityList(std::vector<std::string>& abilities, const std::string& whose) {
     while (true) {
-        std::cout << "Abilities of " << sequenceLabel(nullptr, s.sequence) << (s.name.empty() ? "" : ": " + s.name)
-                  << ":\n";
-        if (s.abilities.empty()) std::cout << "  (none yet)\n";
-        for (size_t i = 0; i < s.abilities.size(); ++i) {
-            std::cout << "  " << (i + 1) << ") " << shorten(s.abilities[i], 90) << "\n";
+        std::cout << "Abilities of " << whose << ":\n";
+        if (abilities.empty()) std::cout << "  (none yet)\n";
+        for (size_t i = 0; i < abilities.size(); ++i) {
+            std::cout << "  " << (i + 1) << ") " << shorten(abilities[i], 90) << "\n";
         }
         const std::string value =
             ui::readLine("  Type a new ability's name to add it, a number to change one, or Enter when done: ");
         if (value.empty()) return;
         if (isNumber(value)) {
             const int index = std::stoi(value);
-            if (index >= 1 && index <= static_cast<int>(s.abilities.size())) editAbility(s.abilities, index - 1);
+            if (index >= 1 && index <= static_cast<int>(abilities.size())) editAbility(abilities, index - 1);
             else ui::info("There is no ability " + value + ".");
             continue;
         }
@@ -169,15 +170,17 @@ void editAbilities(SequenceInfo& s) {
             name = value;
             description = oneLine(ui::readMultiline("What does " + name + " do?", ""));
         }
-        s.abilities.push_back(joinAbility(name, description));
+        abilities.push_back(joinAbility(name, description));
     }
 }
+
+namespace {
 
 void stepSequence(Pathway& p, int sequence) {
     SequenceInfo& s = sequenceOf(p, sequence);
     ui::header("Sequence " + std::to_string(sequence));
     s.name = ui::readText("Name of Sequence " + std::to_string(sequence), s.name);
-    editAbilities(s);
+    editAbilityList(s.abilities, sequenceLabel(nullptr, s.sequence) + (s.name.empty() ? "" : ": " + s.name));
 }
 
 void printSummary(const Pathway& p) {
@@ -233,7 +236,7 @@ std::optional<std::string> runPathwayEditor(App& app, Pathway p, bool isNew, boo
         else if (pick == 1) stepStats(p);
         else if (pick == 2) stepLore(p);
         else if (pick >= 3 && pick <= 12) stepSequence(p, 12 - pick);
-        else if (pick == 13) std::cout << "\n" << renderText(buildPathwaySheet(p));
+        else if (pick == 13) std::cout << "\n" << renderText(buildPathwaySheet(p, app.db));
         else if (pick == 14) {
             if (savePathway(app, p, isNew)) return p.id;
         } else if (ui::yesNo("Discard these changes?", false)) {
@@ -276,7 +279,7 @@ void deletePathway(App& app, const std::string& id) {
 
 void viewPathway(App& app, std::string id) {
     while (const Pathway* p = app.db.findPathway(id)) {
-        std::cout << "\n" << renderText(buildPathwaySheet(*p));
+        std::cout << "\n" << renderText(buildPathwaySheet(*p, app.db));
         std::vector<std::string> options = {"Export"};
         if (p->custom) {
             options.push_back("Edit");

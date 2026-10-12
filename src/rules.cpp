@@ -137,10 +137,16 @@ std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db) 
     const Pathway* pathway = db.findPathway(c.pathwayId);
     if (!pathway) return groups;
     for (const SequenceInfo* s : abilitiesUpTo(*pathway, c.sequence)) {
-        groups.push_back({sequenceLabel(pathway, s->sequence), s->abilities, movementUnlockedAt(*pathway, s->sequence), {}, 0});
+        groups.push_back({sequenceLabel(pathway, s->sequence), s->abilities, movementUnlockedAt(*pathway, s->sequence), {}, 0, {}});
     }
     if (c.hasUniqueness && !c.uniquenessAbilities.empty()) {
-        groups.push_back({"From the Uniqueness: " + sequenceLabel(pathway, 0), c.uniquenessAbilities, {}, {}, 0});
+        groups.push_back({"From the Uniqueness: " + sequenceLabel(pathway, 0), c.uniquenessAbilities, {}, {}, 0, {}});
+    }
+    // Above the Sequence is one more step past Sequence 0, written on the Sefirah.
+    if (const Sefirah* s = aboveTheSequence(c) ? greatOldOneSefirah(c, db) : nullptr) {
+        if (!s->abilities.empty() || !s->symbolism.empty()) {
+            groups.push_back({aboveSequenceLabel(s), s->abilities, {}, {}, 0, s->symbolism});
+        }
     }
     // A dual-pathway god and a Great Old One have every ability of their extra pathways, Sequence 9 to 0.
     auto wholePathway = [&](const Pathway& other) {
@@ -161,6 +167,19 @@ std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db) 
         }
     }
     return groups;
+}
+
+const Sefirah* greatOldOneSefirah(const Character& c, const Database& db) {
+    if (const Sefirah* held = db.findSefirah(c.sefirahId)) {
+        const auto& ids = held->pathwayIds;
+        if (std::find(ids.begin(), ids.end(), c.pathwayId) != ids.end()) return held;
+    }
+    return db.sefirahForPathway(c.pathwayId);
+}
+
+std::string aboveSequenceLabel(const Sefirah* sefirah) {
+    if (!sefirah || sefirah->greatOldOne.empty()) return "Above the Sequence";
+    return "Above the Sequence: " + sefirah->greatOldOne;
 }
 
 int abilityCount(const Character& c, const Database& db) {

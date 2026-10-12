@@ -13,8 +13,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MovementUnlock, sequence, mode)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Pathway, id, name, god, group, primaryStat, secondaryStat,
                                                 speedGrade, speedNote, description, uniqueness, movement, sequences)
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Sefirah, id, name, alsoKnownAs, greatOldOne, pathwayIds, description,
-                                                knownHolders, notes)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Sefirah, id, name, alsoKnownAs, greatOldOne, symbolism, abilities,
+                                                pathwayIds, description, knownHolders, notes)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Appearance, hair, hairLength, hairStyle, eyes, skin, face, voice,
                                                 build, height, clothing, distinguishingMark, description)
