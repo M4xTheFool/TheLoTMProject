@@ -455,6 +455,84 @@ static void testSefirot() {
     CHECK(exportName(*castle) == "sefirah-sefirah-castle");
 }
 
+// Your own Sefirot: saved to custom_sefirot.json (sefirot.json is never written), edited and deleted
+// through the shared records, and taken away from their holders when deleted.
+static void testCustomSefirot() {
+    const fs::path temp = fs::temp_directory_path() / "lotm_tests_custom_sefirot";
+    fs::remove_all(temp);
+    fs::create_directories(temp);
+    const fs::path source = fs::path(LOTM_SOURCE_DIR) / "data";
+    fs::copy_file(source / "pathways.json", temp / "pathways.json");
+    fs::copy_file(source / "sefirot.json", temp / "sefirot.json");
+
+    App app{Database{}, Storage(temp), Dice{}};
+    app.storage.loadAll(app.db);
+    CHECK(app.db.sefirot.size() == 9);
+    CHECK(app.db.newSefirahId("Sefirah Castle") == "sefirah_castle_2");
+    CHECK(app.db.newSefirahId("Sefirah of Masks!") == "sefirah_of_masks");
+
+    Sefirah masks;
+    masks.name = "Sefirah of Masks";
+    masks.greatOldOne = "The Faceless";
+    masks.pathwayIds = {"spectator", "seer"};
+    masks.knownHolders = {"The first Faceless"};
+    saveCustomSefirah(app, masks, true);
+    CHECK(masks.id == "sefirah_of_masks" && masks.custom);
+    CHECK(fs::exists(temp / "custom_sefirot.json"));
+    CHECK(fs::file_size(source / "sefirot.json") == fs::file_size(temp / "sefirot.json"));  // never rewritten
+    // Seer is already gathered by Sefirah Castle, which the editors point out.
+    CHECK(app.db.otherSefirahFor("seer", masks.id) == app.db.findSefirah("sefirah_castle"));
+    CHECK(app.db.otherSefirahFor("seer", "sefirah_castle") == app.db.findSefirah("sefirah_of_masks"));
+
+    Character ada;
+    ada.name = "Ada";
+    ada.pathwayId = "spectator";
+    ada.sequence = 0;
+    ada.sefirahId = masks.id;
+    saveCharacter(app, ada, true);
+
+    Database reloaded;
+    app.storage.loadAll(reloaded);
+    const Sefirah* loaded = reloaded.findSefirah("sefirah_of_masks");
+    CHECK(reloaded.sefirot.size() == 10 && loaded && loaded->custom && loaded->greatOldOne == "The Faceless");
+    CHECK(!reloaded.findSefirah("sefirah_castle")->custom);
+    CHECK(sefirahLabel(reloaded, ada.sefirahId) == "Sefirah of Masks (The Faceless)");
+    CHECK(reloaded.sefirahHolders("sefirah_of_masks").size() == 1);
+
+    masks.description = "Every face it has worn.";
+    saveCustomSefirah(app, masks, false);
+    CHECK(app.db.sefirot.size() == 10 && app.db.findSefirah("sefirah_of_masks")->description == "Every face it has worn.");
+
+    bool refused = false;
+    try {
+        deleteCustomSefirah(app, "sefirah_castle");
+    } catch (const StorageError&) {
+        refused = true;
+    }
+    CHECK(refused && app.db.sefirot.size() == 10);
+    deleteCustomSefirah(app, "sefirah_of_masks");
+    CHECK(app.db.sefirot.size() == 9 && app.db.findCharacter(ada.id)->sefirahId.empty());
+    Database afterDelete;
+    app.storage.loadAll(afterDelete);
+    CHECK(afterDelete.sefirot.size() == 9 && afterDelete.characters.front().sefirahId.empty());
+
+    // An id used in both files is refused with a message naming the file.
+    Sefirah clash = masks;
+    clash.id = "chaos_sea";
+    clash.custom = true;
+    app.db.sefirot.push_back(clash);
+    app.storage.saveCustomSefirot(app.db);
+    refused = false;
+    try {
+        Database broken;
+        app.storage.loadAll(broken);
+    } catch (const StorageError& e) {
+        refused = std::string(e.what()).find("custom_sefirot.json") != std::string::npos;
+    }
+    CHECK(refused);
+    fs::remove_all(temp);
+}
+
 static void testPointBuy() {
     CHECK(pointBuyCost(8) == 0);
     CHECK(pointBuyCost(13) == 5);
@@ -1104,6 +1182,7 @@ int main() {
     testComparison();
     testShippedSamples();
     testSefirot();
+    testCustomSefirot();
     testRendering();
     if (failures == 0) {
         std::cout << "All checks passed.\n";

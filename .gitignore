@@ -5,7 +5,8 @@ out/
 .vs/
 *.user
 
-# Your own saves stay on your computer (pathways.json and custom_pathways.json are tracked)
+# Your own saves stay on your computer (pathways.json, custom_pathways.json, sefirot.json and
+# custom_sefirot.json are tracked)
 data/characters.json
 data/artifacts.json
 data/settings.json

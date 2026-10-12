@@ -47,6 +47,7 @@ bool saveEverything(WindowState& w) {
     if (w.characters.draft.dirty()) ok = saveCharacterDraft(w) && ok;
     if (w.artifacts.draft.dirty()) ok = saveArtifactDraft(w) && ok;
     if (w.pathways.draft.dirty()) ok = savePathwayDraft(w) && ok;
+    if (w.sefirot.draft.dirty()) ok = saveSefirahDraft(w) && ok;
     return ok;
 }
 

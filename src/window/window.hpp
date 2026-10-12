@@ -96,7 +96,8 @@ struct PathwayScreen {
 };
 
 struct SefirotScreen {
-    std::string selectedId;  // the Sefirah shown on the right
+    std::string selectedId;  // a Sefirah from sefirot.json shown read-only on the right
+    Draft<Sefirah> draft;    // one of your own Sefirot being edited
 };
 
 struct CompareScreen {
@@ -147,6 +148,7 @@ void drawSettingsScreen(WindowState& w);
 bool saveCharacterDraft(WindowState& w);
 bool saveArtifactDraft(WindowState& w);
 bool savePathwayDraft(WindowState& w);
+bool saveSefirahDraft(WindowState& w);
 
 // Opens a saved character on the Characters tab (asking first about unsaved changes there).
 void openCharacter(WindowState& w, int id);

@@ -636,7 +636,8 @@ void drawUnsavedQuestion(WindowState& w) {
 }
 
 bool hasUnsavedChanges(const WindowState& w) {
-    return w.characters.draft.dirty() || w.artifacts.draft.dirty() || w.pathways.draft.dirty();
+    return w.characters.draft.dirty() || w.artifacts.draft.dirty() || w.pathways.draft.dirty() ||
+           w.sefirot.draft.dirty();
 }
 
 }  // namespace lotm::window

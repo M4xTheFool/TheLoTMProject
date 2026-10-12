@@ -174,6 +174,39 @@ const std::vector<std::string> kCustomPathwaysAbout = {
     "and every id must be different from the ids in both files.",
     "Write each ability as \"Name: what it does\"."};
 
+// Same layout and key order as sefirot.json.
+ordered_json sefirahToJson(const Sefirah& s) {
+    ordered_json j;
+    j["id"] = s.id;
+    j["name"] = s.name;
+    j["alsoKnownAs"] = s.alsoKnownAs;
+    j["greatOldOne"] = s.greatOldOne;
+    j["pathwayIds"] = s.pathwayIds;
+    j["description"] = s.description;
+    j["knownHolders"] = s.knownHolders;
+    j["notes"] = s.notes;
+    return j;
+}
+
+const std::vector<std::string> kCustomSefirotAbout = {
+    "Your own Sefirot. The Sefirot tab (or menu) in the program creates, edits and deletes them,",
+    "and you can also edit this file by hand. It uses the same layout as sefirot.json, and every id",
+    "must be different from the ids in both files."};
+
+// Keeps the notes at the top of a file the program writes, if someone has rewritten them.
+ordered_json aboutLines(const fs::path& file, const std::vector<std::string>& fallback) {
+    ordered_json about = fallback;
+    std::error_code ec;
+    if (fs::exists(file, ec)) {
+        try {
+            const json old = readJsonFile(file);
+            if (old.contains("about")) about = old["about"];
+        } catch (const StorageError&) {
+        }
+    }
+    return about;
+}
+
 template <typename T>
 std::vector<T> readList(const fs::path& file, const char* key) {
     std::error_code ec;
@@ -218,6 +251,8 @@ fs::path Storage::backupsDir() const { return dataDir_ / "backups"; }
 
 fs::path Storage::customPathwaysFile() const { return dataDir_ / "custom_pathways.json"; }
 
+fs::path Storage::customSefirotFile() const { return dataDir_ / "custom_sefirot.json"; }
+
 fs::path Storage::samplesDir() const { return dataDir_ / "samples"; }
 
 void Storage::loadAll(Database& db) const {
@@ -240,13 +275,19 @@ void Storage::loadAll(Database& db) const {
                   [](const SequenceInfo& a, const SequenceInfo& b) { return a.sequence > b.sequence; });
     }
 
-    // The Sefirot are reference data like pathways.json: edited by hand, never written by the program.
+    // The canon Sefirot are reference data like pathways.json: edited by hand, never written by the
+    // program. Your own come after them, from custom_sefirot.json.
     db.sefirot = readList<Sefirah>(dataDir_ / "sefirot.json", "sefirot");
+    for (auto& s : readList<Sefirah>(customSefirotFile(), "sefirot")) {
+        s.custom = true;
+        db.sefirot.push_back(std::move(s));
+    }
     std::set<std::string> sefirahIds;
     for (const auto& s : db.sefirot) {
-        if (s.id.empty() || s.name.empty()) throw StorageError("sefirot.json: every Sefirah needs an id and a name.");
+        const std::string file = s.custom ? "custom_sefirot.json" : "sefirot.json";
+        if (s.id.empty() || s.name.empty()) throw StorageError(file + ": every Sefirah needs an id and a name.");
         if (!sefirahIds.insert(s.id).second) {
-            throw StorageError("sefirot.json: the id \"" + s.id + "\" is used twice. Give one of them a new id.");
+            throw StorageError(file + ": the id \"" + s.id + "\" is already used by another Sefirah. Give it a new id.");
         }
     }
 
@@ -277,16 +318,7 @@ void Storage::saveSettings(const Database& db) const {
 }
 
 void Storage::saveCustomPathways(const Database& db) const {
-    // Keeps the notes at the top of the file if someone has rewritten them.
-    ordered_json about = kCustomPathwaysAbout;
-    std::error_code ec;
-    if (fs::exists(customPathwaysFile(), ec)) {
-        try {
-            const json old = readJsonFile(customPathwaysFile());
-            if (old.contains("about")) about = old["about"];
-        } catch (const StorageError&) {
-        }
-    }
+    const ordered_json about = aboutLines(customPathwaysFile(), kCustomPathwaysAbout);
     ordered_json pathways = ordered_json::array();
     for (const auto& p : db.pathways) {
         if (p.custom) pathways.push_back(pathwayToJson(p));
@@ -296,6 +328,18 @@ void Storage::saveCustomPathways(const Database& db) const {
     file["version"] = 1;
     file["pathways"] = pathways;
     writeJsonFile(customPathwaysFile(), file, backupsDir(), db.settings.backupsToKeep);
+}
+
+void Storage::saveCustomSefirot(const Database& db) const {
+    ordered_json sefirot = ordered_json::array();
+    for (const auto& s : db.sefirot) {
+        if (s.custom) sefirot.push_back(sefirahToJson(s));
+    }
+    ordered_json file;
+    file["about"] = aboutLines(customSefirotFile(), kCustomSefirotAbout);
+    file["version"] = 1;
+    file["sefirot"] = sefirot;
+    writeJsonFile(customSefirotFile(), file, backupsDir(), db.settings.backupsToKeep);
 }
 
 std::vector<SampleSet> Storage::loadSampleSets() const {

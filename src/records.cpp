@@ -223,4 +223,47 @@ void deleteCustomPathway(App& app, const std::string& id) {
     }
 }
 
+void saveCustomSefirah(App& app, Sefirah& s, bool isNew) {
+    const auto backup = app.db.sefirot;
+    s.custom = true;
+    if (isNew) {
+        s.id = app.db.newSefirahId(s.name);
+        app.db.sefirot.push_back(s);
+    } else {
+        for (auto& stored : app.db.sefirot) {
+            if (stored.id == s.id) stored = s;
+        }
+    }
+    try {
+        app.storage.saveCustomSefirot(app.db);
+    } catch (const StorageError&) {
+        app.db.sefirot = backup;
+        throw;
+    }
+}
+
+void deleteCustomSefirah(App& app, const std::string& id) {
+    const Sefirah* s = app.db.findSefirah(id);
+    if (!s || !s->custom) throw StorageError("Only your own Sefirot can be deleted.");
+    const auto sefirotBackup = app.db.sefirot;
+    const auto charactersBackup = app.db.characters;
+    bool held = false;
+    for (auto& c : app.db.characters) {
+        if (c.sefirahId == id) {
+            c.sefirahId.clear();
+            held = true;
+        }
+    }
+    auto& list = app.db.sefirot;
+    list.erase(std::remove_if(list.begin(), list.end(), [&](const Sefirah& x) { return x.id == id; }), list.end());
+    try {
+        app.storage.saveCustomSefirot(app.db);
+        if (held) app.storage.saveCharacters(app.db);
+    } catch (const StorageError&) {
+        app.db.sefirot = sefirotBackup;
+        app.db.characters = charactersBackup;
+        throw;
+    }
+}
+
 }  // namespace lotm

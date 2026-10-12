@@ -1,8 +1,12 @@
-// Sefirot tab: the nine Sefirot of the story on the left; on the right what one is, the pathways
-// whose Uniquenesses it gathers, who held it in the story, and which of your characters hold it.
+// Sefirot tab: the nine Sefirot of the story and your own on the left; on the right what one is, the
+// pathways whose Uniquenesses it gathers, who held it in the story, and which of your characters hold
+// it. Your own Sefirot (custom_sefirot.json) are edited here; the story's can be copied.
+#include <algorithm>
+
 #include "records.hpp"
 #include "rules.hpp"
 #include "storage.hpp"
+#include "ui.hpp"
 #include "window.hpp"
 
 namespace lotm::window {
@@ -33,62 +37,46 @@ ImVec4 sefirahColour(const WindowState& w, const Sefirah& s) {
     return pathwayColour(w.app.db, s.pathwayIds.empty() ? std::string() : s.pathwayIds.front());
 }
 
-void drawDetails(WindowState& w, const Sefirah& s) {
-    const Database& db = w.app.db;
+void exportPopup(WindowState& w, const Sefirah& s) {
+    if (!ImGui::BeginPopup("export")) return;
+    const std::vector<Sheet> sheets = {buildSefirahSheet(s, w.app.db)};
+    if (ImGui::Selectable("HTML (opens in your browser, prints to PDF)")) {
+        exportAndReport(w, exportName(s), ExportFormat::Html, sheets, s.name);
+    }
+    if (ImGui::Selectable("Markdown (Discord, Obsidian, wikis)")) {
+        exportAndReport(w, exportName(s), ExportFormat::Markdown, sheets, s.name);
+    }
+    if (ImGui::Selectable("Plain text")) exportAndReport(w, exportName(s), ExportFormat::Text, sheets, s.name);
+    ImGui::EndPopup();
+}
+
+// The medallion, name and Great Old One at the top of the right side.
+void sefirahHeader(WindowState& w, const Sefirah& s) {
     const float font = ImGui::GetFontSize();
-    medallion(w, initials(s.name), sefirahColour(w, s), font * 2.1f);
+    medallion(w, initials(s.name.empty() ? "?" : s.name), sefirahColour(w, s), font * 2.1f);
     ImGui::SameLine(0.0f, font * 0.9f);
     ImGui::BeginGroup();
     ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.9f);
-    ImGui::TextUnformatted(s.name.c_str());
+    ImGui::TextUnformatted(s.name.empty() ? "(unnamed Sefirah)" : s.name.c_str());
     ImGui::PopFont();
-    ImGui::TextColored(palette().muted, "%s",
-                       s.greatOldOne.empty() ? "Sefirah" : ("Sefirah. Great Old One: " + s.greatOldOne).c_str());
-    if (ImGui::Button("Export...")) ImGui::OpenPopup("export");
-    if (ImGui::BeginPopup("export")) {
-        const std::vector<Sheet> sheets = {buildSefirahSheet(s, db)};
-        if (ImGui::Selectable("HTML (opens in your browser, prints to PDF)")) {
-            exportAndReport(w, exportName(s), ExportFormat::Html, sheets, s.name);
-        }
-        if (ImGui::Selectable("Markdown (Discord, Obsidian, wikis)")) {
-            exportAndReport(w, exportName(s), ExportFormat::Markdown, sheets, s.name);
-        }
-        if (ImGui::Selectable("Plain text")) exportAndReport(w, exportName(s), ExportFormat::Text, sheets, s.name);
-        ImGui::EndPopup();
-    }
-    ImGui::EndGroup();
+    std::string subtitle = s.custom ? "Your own Sefirah" : "Sefirah";
+    if (!s.greatOldOne.empty()) subtitle += ". Great Old One: " + s.greatOldOne;
+    ImGui::TextColored(palette().muted, "%s", subtitle.c_str());
+}
 
-    ImGui::Spacing();
-    heading(w, "Pathways");
-    ImGui::TextDisabled("Holding this Sefirah and the Uniqueness of every one of these makes a Great Old One.");
+void pathwayChips(const Database& db, const Sefirah& s) {
     for (size_t i = 0; i < s.pathwayIds.size(); ++i) {
         if (i > 0) ImGui::SameLine();
         const Pathway* p = db.findPathway(s.pathwayIds[i]);
         chip(p ? p->name + (p->god.empty() ? "" : " (" + p->god + ")") : s.pathwayIds[i] + " (not found)",
              pathwayColour(db, s.pathwayIds[i]));
     }
+    if (s.pathwayIds.empty()) ImGui::TextDisabled("No pathways yet.");
+}
 
-    ImGui::Spacing();
-    heading(w, "What it is");
-    if (!s.alsoKnownAs.empty()) {
-        std::string names;
-        for (const auto& name : s.alsoKnownAs) names += (names.empty() ? "" : ", ") + name;
-        ImGui::TextColored(palette().muted, "Also known as");
-        ImGui::SameLine();
-        ImGui::TextWrapped("%s", names.c_str());
-    }
-    ImGui::TextWrapped("%s", s.description.c_str());
-
-    if (!s.knownHolders.empty()) {
-        ImGui::Spacing();
-        heading(w, "Known holders in the story");
-        for (const auto& line : s.knownHolders) {
-            ImGui::Bullet();
-            ImGui::TextWrapped("%s", line.c_str());
-        }
-    }
-
-    ImGui::Spacing();
+// Which of your saved characters hold it, with buttons to give it to one or take it away.
+void yourHolders(WindowState& w, const Sefirah& s) {
+    const Database& db = w.app.db;
     heading(w, "Your characters who hold it");
     const bool unsaved = hasUnsavedChanges(w);
     const auto holders = db.sefirahHolders(s.id);
@@ -129,6 +117,185 @@ void drawDetails(WindowState& w, const Sefirah& s) {
         }
         ImGui::EndPopup();
     }
+}
+
+void openDraft(WindowState& w, const Sefirah& s, bool isNew) {
+    w.sefirot.selectedId.clear();
+    w.sefirot.draft.start(s, isNew);
+}
+
+void openNew(WindowState& w) {
+    Sefirah s;
+    s.custom = true;
+    openDraft(w, s, true);
+}
+
+void openCopy(WindowState& w, const Sefirah& from) {
+    Sefirah s = from;
+    s.id.clear();
+    s.name += " (copy)";
+    s.custom = true;
+    openDraft(w, s, true);
+}
+
+bool saveImpl(WindowState& w) {
+    auto& draft = w.sefirot.draft;
+    Sefirah& s = draft.value;
+    s.name = ui::trim(s.name);
+    if (s.name.empty()) {
+        setStatus(w, "Give the Sefirah a name before saving.", true);
+        return false;
+    }
+    for (auto* list : {&s.alsoKnownAs, &s.knownHolders}) {
+        list->erase(std::remove_if(list->begin(), list->end(), [](const std::string& x) { return ui::trim(x).empty(); }),
+                    list->end());
+    }
+    try {
+        saveCustomSefirah(w.app, s, draft.isNew);
+        setStatus(w, "Saved " + s.name + ". Characters can hold it now.");
+        openDraft(w, s, false);
+        return true;
+    } catch (const StorageError& e) {
+        setStatus(w, std::string("Saving failed: ") + e.what(), true);
+        return false;
+    }
+}
+
+// Tick the pathways it gathers, listed under their groups.
+void pathwayPicker(const Database& db, Sefirah& s) {
+    std::string group = "\x01";
+    for (const auto& p : db.pathways) {
+        const std::string thisGroup = p.custom ? "Your own pathways" : p.group;
+        if (thisGroup != group) {
+            group = thisGroup;
+            ImGui::TextDisabled("%s", group.c_str());
+        }
+        auto& ids = s.pathwayIds;
+        bool on = std::find(ids.begin(), ids.end(), p.id) != ids.end();
+        statusDot(pathwayColour(db, p.id));
+        if (ImGui::Checkbox((pathwayLabel(db, p.id) + "##" + p.id).c_str(), &on)) {
+            if (on) ids.push_back(p.id);
+            else ids.erase(std::remove(ids.begin(), ids.end(), p.id), ids.end());
+        }
+        if (const Sefirah* other = on ? db.otherSefirahFor(p.id, s.id) : nullptr) {
+            ImGui::SameLine();
+            ImGui::TextColored(palette().warning, "also gathered by %s", other->name.c_str());
+        }
+    }
+}
+
+void drawEditor(WindowState& w) {
+    auto& draft = w.sefirot.draft;
+    Sefirah& s = draft.value;
+    sefirahHeader(w, s);
+    EditorButtons buttons;
+    buttons.dirty = draft.dirty();
+    buttons.isNew = draft.isNew;
+    const Sheet sheet = buildSefirahSheet(s, w.app.db);
+    switch (drawEditorButtons(buttons)) {
+        case EditorAction::Save: saveImpl(w); break;
+        case EditorAction::Revert:
+            if (draft.isNew) draft.close();
+            else if (const Sefirah* saved = w.app.db.findSefirah(s.id)) openDraft(w, *saved, false);
+            break;
+        case EditorAction::ExportHtml: exportAndReport(w, exportName(s), ExportFormat::Html, {sheet}, s.name); break;
+        case EditorAction::ExportMarkdown:
+            exportAndReport(w, exportName(s), ExportFormat::Markdown, {sheet}, s.name);
+            break;
+        case EditorAction::ExportText: exportAndReport(w, exportName(s), ExportFormat::Text, {sheet}, s.name); break;
+        case EditorAction::Delete:
+            try {
+                const std::string name = s.name;
+                const size_t held = w.app.db.sefirahHolders(s.id).size();
+                deleteCustomSefirah(w.app, s.id);
+                draft.close();
+                reloadCharacterDraft(w);
+                std::string text = "Deleted " + name + ".";
+                if (held > 0) text += " The characters who held it no longer hold a Sefirah.";
+                if (w.app.db.settings.backupsToKeep > 0) text += " A copy is in the backups folder.";
+                setStatus(w, text);
+            } catch (const StorageError& e) {
+                setStatus(w, std::string("Deleting failed: ") + e.what(), true);
+            }
+            break;
+        default: break;
+    }
+    ImGui::EndGroup();
+    if (!draft.open) return;
+
+    ImGui::Spacing();
+    if (ImGui::BeginTabBar("sefirahTabs")) {
+        if (ImGui::BeginTabItem("Details", nullptr, draft.firstTabFlags())) {
+            ImGui::BeginChild("tab");
+            draft.focusNameOnce();
+            textField("Name", s.name, "e.g. Sefirah of Masks");
+            textField("Great Old One", s.greatOldOne, "who holds it with every Uniqueness of its pathways");
+            ImGui::SeparatorText("Also known as");
+            listEditor("aka", s.alsoKnownAs, "add another name");
+            ImGui::SeparatorText("Pathways it gathers");
+            ImGui::TextDisabled("Holding the Sefirah and the Uniqueness of each of these makes a Great Old One.");
+            pathwayPicker(w.app.db, s);
+            ImGui::SeparatorText("What it is");
+            multilineField("Description", s.description, 5);
+            ImGui::SeparatorText("Known holders in the story");
+            listEditor("holders", s.knownHolders, "add a holder, one line each");
+            ImGui::SeparatorText("Notes");
+            multilineField("Notes##notes", s.notes, 3);
+            if (!draft.isNew) {
+                ImGui::Spacing();
+                yourHolders(w, s);
+            }
+            ImGui::EndChild();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Sheet")) {
+            ImGui::BeginChild("tab");
+            drawSheet(w, sheet);
+            ImGui::EndChild();
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+}
+
+// A Sefirah from sefirot.json, read-only.
+void drawDetails(WindowState& w, const Sefirah& s) {
+    const Database& db = w.app.db;
+    sefirahHeader(w, s);
+    if (ImGui::Button("Copy into a new Sefirah of your own")) openCopy(w, s);
+    ImGui::SetItemTooltip("The Sefirot of the story are read-only here. A copy can be changed freely.");
+    ImGui::SameLine();
+    if (ImGui::Button("Export...")) ImGui::OpenPopup("export");
+    exportPopup(w, s);
+    ImGui::EndGroup();
+
+    ImGui::Spacing();
+    heading(w, "Pathways");
+    ImGui::TextDisabled("Holding this Sefirah and the Uniqueness of every one of these makes a Great Old One.");
+    pathwayChips(db, s);
+
+    ImGui::Spacing();
+    heading(w, "What it is");
+    if (!s.alsoKnownAs.empty()) {
+        std::string names;
+        for (const auto& name : s.alsoKnownAs) names += (names.empty() ? "" : ", ") + name;
+        ImGui::TextColored(palette().muted, "Also known as");
+        ImGui::SameLine();
+        ImGui::TextWrapped("%s", names.c_str());
+    }
+    ImGui::TextWrapped("%s", s.description.c_str());
+
+    if (!s.knownHolders.empty()) {
+        ImGui::Spacing();
+        heading(w, "Known holders in the story");
+        for (const auto& line : s.knownHolders) {
+            ImGui::Bullet();
+            ImGui::TextWrapped("%s", line.c_str());
+        }
+    }
+
+    ImGui::Spacing();
+    yourHolders(w, s);
 
     if (!s.notes.empty()) {
         ImGui::Spacing();
@@ -141,30 +308,62 @@ void drawDetails(WindowState& w, const Sefirah& s) {
 
 }  // namespace
 
+bool saveSefirahDraft(WindowState& w) { return saveImpl(w); }
+
 void drawSefirotScreen(WindowState& w) {
     auto& screen = w.sefirot;
+    auto& draft = screen.draft;
     const Database& db = w.app.db;
-    if (!db.findSefirah(screen.selectedId) && !db.sefirot.empty()) screen.selectedId = db.sefirot.front().id;
+    auto saveThis = [&w] { return saveImpl(w); };
+    if (!draft.open && !db.findSefirah(screen.selectedId) && !db.sefirot.empty()) {
+        screen.selectedId = db.sefirot.front().id;
+    }
 
-    // ---- the list
+    // ---- the list: the story's Sefirot, then your own
     ImGui::BeginChild("list", ImVec2(ImGui::GetFontSize() * 17.0f, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
+    if (ImGui::Button("+ New Sefirah", ImVec2(-FLT_MIN, 0))) {
+        whenSaved(w, draft.dirty(), saveThis, [&w] { openNew(w); });
+    }
     ImGui::TextWrapped("The sources of power and authority behind each group of pathways.");
     ImGui::Separator();
     if (db.sefirot.empty()) ImGui::TextDisabled("No Sefirot: sefirot.json is missing from the data folder.");
+    bool ownHeading = false;
     for (const auto& s : db.sefirot) {
+        if (s.custom && !ownHeading) {
+            ImGui::SeparatorText("Your own Sefirot");
+            ownHeading = true;
+        }
         const size_t held = db.sefirahHolders(s.id).size();
         std::string subtitle = s.greatOldOne.empty() ? "Sefirah" : s.greatOldOne;
         if (held > 0) subtitle += "  \xC2\xB7  held by " + std::to_string(held);
-        if (listCard(w, "s" + s.id, s.id == screen.selectedId, sefirahColour(w, s), initials(s.name), s.name, subtitle)) {
-            screen.selectedId = s.id;
+        const bool selected = s.custom ? (draft.open && !draft.isNew && draft.value.id == s.id)
+                                       : (!draft.open && s.id == screen.selectedId);
+        if (listCard(w, "s" + s.id, selected, sefirahColour(w, s), initials(s.name), s.name, subtitle) && !selected) {
+            const std::string id = s.id;
+            const bool custom = s.custom;
+            whenSaved(w, draft.dirty(), saveThis, [&w, id, custom] {
+                const Sefirah* found = w.app.db.findSefirah(id);
+                if (!found) return;
+                if (custom) {
+                    openDraft(w, *found, false);
+                } else {
+                    w.sefirot.draft.close();
+                    w.sefirot.selectedId = id;
+                }
+            });
         }
+    }
+    if (draft.open && draft.isNew) {
+        if (!ownHeading) ImGui::SeparatorText("Your own Sefirot");
+        ImGui::Selectable("(new Sefirah)", true);
     }
     ImGui::EndChild();
     ImGui::SameLine();
 
-    // ---- the details
+    // ---- the details, or the editor for one of your own
     ImGui::BeginChild("details", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding);
-    if (const Sefirah* s = db.findSefirah(screen.selectedId)) drawDetails(w, *s);
+    if (draft.open) drawEditor(w);
+    else if (const Sefirah* s = db.findSefirah(screen.selectedId)) drawDetails(w, *s);
     ImGui::EndChild();
 }
 
