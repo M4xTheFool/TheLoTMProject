@@ -1521,12 +1521,7 @@
         "beyonderCharacteristics": 1,
         "hasUniqueness": true,
         "pathwayId": "secrets_supplicant",
-        "uniquenessAbilities": [
-          "Divine Grazing: Absorbs souls, Beyonder characteristics and even higher symbols.",
-          "Authority of Degeneration: Awakens depravity in the living and corrupts bodies, powers, objects and even principles.",
-          "Authority of Sacrifice: Bears others' wounds, death or punishment, or sacrifices itself to secure a desired outcome.",
-          "Lord of Shadows: Rules the shadow world and spawns monsters from darkness that return after death."
-        ],
+        "uniquenessAbilities": [],
         "uniquenessForm": ""
       },
       "sefirahId": "chaos_sea",
@@ -1675,11 +1670,7 @@
         "beyonderCharacteristics": 1,
         "hasUniqueness": true,
         "pathwayId": "apprentice",
-        "uniquenessAbilities": [
-          "Authority of Doors: Governs space, sealing, entrances, exits, boundaries and alternate worlds.",
-          "Instant Passage: Moves instantly between the physical, spirit and astral worlds.",
-          "Absolute Sealing: Seals, or breaks seals on, beings, abilities, connections and even rules."
-        ],
+        "uniquenessAbilities": [],
         "uniquenessForm": ""
       },
       "sefirahId": "",
@@ -1980,7 +1971,7 @@
         17,
         19
       ],
-      "backstory": "A transmigrator from the Chaos Sea. Was not given any beyonder characteristic which allowed him to choose the pathway and seek it during the Ancient Sun Gods reign. After Salingers death he advanced to Sequence 1 and 0. Mostly stayed in the shadows.",
+      "backstory": "During the Ancient Sun Gods reign he collaborated with him and became a Seq 2. After Alista's death he advanced to Conqueror.",
       "beyonderCharacteristics": 1,
       "createdAt": "2026-10-12 11:38:27",
       "dossier": {
@@ -2075,6 +2066,12 @@
           "name": "Sharron",
           "note": "",
           "type": "Close friend"
+        },
+        {
+          "characterId": 18,
+          "name": "Renji",
+          "note": "",
+          "type": "Close friend"
         }
       ],
       "secondPathway": {
@@ -2105,11 +2102,12 @@
         "Eight",
         "War",
         "Ruler",
-        "God Killer"
+        "God Killer",
+        "Conqueror"
       ],
       "uniquenessAbilities": [],
       "uniquenessForm": "Right Eye - a silver pupil that contains a Makora wheel inside as the iris.",
-      "updatedAt": "2026-10-12 14:58:01"
+      "updatedAt": "2026-10-13 13:38:17"
     },
     {
       "aboveSequence": false,
@@ -2266,6 +2264,91 @@
       "uniquenessAbilities": [],
       "uniquenessForm": "",
       "updatedAt": "2026-10-12 14:36:05"
+    },
+    {
+      "aboveSequence": false,
+      "affiliation": {
+        "organization": "",
+        "rank": ""
+      },
+      "age": "?",
+      "aliases": [
+        "Conquerors Right Hand"
+      ],
+      "alignment": "Neutral Good",
+      "appearance": {
+        "build": "Muscular",
+        "clothing": "A suit of armor",
+        "description": "An outgoing, calm and really strong individual. People feel safe around him. He likes people and is basically Maxs speaker for the people. He walks around dignified, in a really shiny silver armor, that somehow is almost always covered in blood.",
+        "distinguishingMark": "",
+        "eyes": "Amber",
+        "face": "Sharp features",
+        "hair": "Grey",
+        "hairLength": "Cropped",
+        "hairStyle": "Curly",
+        "height": "Very tall",
+        "skin": "Fair",
+        "voice": "Deep"
+      },
+      "artifactIds": [],
+      "backstory": "Raised in the Broken City. Admired Max since childhood and became strong so he could be by his side. He is Maxs most loyal subject, a close friend and someone he can truly rely on. They joke around, sometimes even train together.",
+      "beyonderCharacteristics": 1,
+      "createdAt": "2026-10-13 13:01:08",
+      "dossier": {
+        "filedBy": "Troupe",
+        "lastSeen": "July 1360",
+        "recentActions": "Peaceful, no known incidents",
+        "recentActionsNote": "Protector of the Broken World. Right-Hand-Man of the Conqueror. ",
+        "remarks": "",
+        "status": "Unknown",
+        "threatLevel": ""
+      },
+      "gender": "Male",
+      "hasUniqueness": false,
+      "honorificName": [],
+      "id": 18,
+      "name": "Renji",
+      "notes": "",
+      "pathwayId": "warrior",
+      "relationships": [
+        {
+          "characterId": 16,
+          "name": "Max",
+          "note": "Closest Friend and Mentor",
+          "type": "Close friend"
+        }
+      ],
+      "secondPathway": {
+        "beyonderCharacteristics": 1,
+        "hasUniqueness": true,
+        "pathwayId": "",
+        "uniquenessAbilities": [],
+        "uniquenessForm": ""
+      },
+      "sefirahId": "",
+      "sequence": 3,
+      "shortDescription": "A very capable and loyal lieutenant.",
+      "stats": {
+        "base": [
+          16,
+          12,
+          14,
+          13,
+          13,
+          16
+        ],
+        "hp": 0,
+        "hpIncluded": false,
+        "speedBase": 14,
+        "spirituality": 50
+      },
+      "titles": [
+        "Protector",
+        "True Knight"
+      ],
+      "uniquenessAbilities": [],
+      "uniquenessForm": "",
+      "updatedAt": "2026-10-13 13:03:03"
     }
   ],
   "artifacts": [
@@ -2481,12 +2564,12 @@
       "name": "Sheathe of Order",
       "notes": "When sheathing the Sword of Entropy, all of the drawbacks of both items cancel out, as long as they're withing 10 meters of each other and the sword is sheathed at least for 5 minutes once every 6 hours.",
       "pathwayId": "arbiter",
-      "sequenceLevel": 3,
-      "updatedAt": "2026-10-12 13:02:48",
+      "sequenceLevel": 2,
+      "updatedAt": "2026-10-13 10:13:33",
       "visualDescription": "Its a simple brown sheathe with the Justiciar symbol on it. "
     },
     {
-      "ability": "Traveling through the Spirit World and Astral World.",
+      "ability": "Traveling through the Spirit World and Astral World. And even allows to leave the forsaken land of the gods for Angel and above.",
       "createdAt": "2026-10-12 14:53:01",
       "drawback": "The longer it is equipped the higher the mental and physical exhaustion. Can kill if used for over 15 minutes for mid Sequence Beyonders. The tolerance goes up with Sequences of course.",
       "id": 19,
@@ -2494,8 +2577,20 @@
       "notes": "",
       "pathwayId": "apprentice",
       "sequenceLevel": 3,
-      "updatedAt": "2026-10-12 14:56:06",
+      "updatedAt": "2026-10-13 10:18:38",
       "visualDescription": "Silver ring with a black/blue gem, lthat looks like outer space."
+    },
+    {
+      "ability": "Allows the user to perform the Flame Jump ability if the Sequence 7: Magician.",
+      "createdAt": "2026-10-13 12:16:56",
+      "drawback": "The wearer can't choose what orientation they'll be in after jumping (where they're facing). And more thirsty.",
+      "id": 20,
+      "name": "The Flamejumper",
+      "notes": "",
+      "pathwayId": "seer",
+      "sequenceLevel": 7,
+      "updatedAt": "2026-10-13 12:24:29",
+      "visualDescription": "Brown leather belt with a weird texture."
     }
   ]
 }
