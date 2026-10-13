@@ -37,10 +37,13 @@ bool searchesForId(const std::string& search, char prefix, int id) {
     return !digits.empty() && digits.size() <= 6 && std::stoi(digits) == id;
 }
 
-bool commonMatch(const RecordFilter& f, const std::string& name, const std::string& pathwayId, int band) {
+// pathwayIds: the record's pathway, and for a mixed-pathway Beyonder the ones they took Sequences from.
+bool commonMatch(const RecordFilter& f, const std::string& name, const std::vector<std::string>& pathwayIds, int band) {
     if (f.letter != 0 && firstLetter(name) != f.letter) return false;
     if (f.power != kAnyPower && band != f.power) return false;
-    if (!f.pathwayId.empty() && pathwayId != f.pathwayId) return false;
+    if (!f.pathwayId.empty() && std::find(pathwayIds.begin(), pathwayIds.end(), f.pathwayId) == pathwayIds.end()) {
+        return false;
+    }
     return true;
 }
 
@@ -128,13 +131,15 @@ std::vector<char> firstLetters(const std::vector<std::string>& names) {
 }
 
 bool matches(const RecordFilter& f, const Character& c) {
-    if (!commonMatch(f, c.name, c.pathwayId, powerBand(c))) return false;
+    std::vector<std::string> pathways = earlierPathwayIds(c);
+    pathways.push_back(c.pathwayId);
+    if (!commonMatch(f, c.name, pathways, powerBand(c))) return false;
     if (f.search.empty() || contains(c.name, f.search) || searchesForId(f.search, 'C', c.id)) return true;
     return std::any_of(c.aliases.begin(), c.aliases.end(), [&](const std::string& a) { return contains(a, f.search); });
 }
 
 bool matches(const RecordFilter& f, const Artifact& a) {
-    if (!commonMatch(f, a.name, a.pathwayId, powerBand(a))) return false;
+    if (!commonMatch(f, a.name, {a.pathwayId}, powerBand(a))) return false;
     return f.search.empty() || contains(a.name, f.search) || searchesForId(f.search, 'A', a.id);
 }
 

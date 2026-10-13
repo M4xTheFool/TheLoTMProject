@@ -183,7 +183,9 @@ const Sefirah* Database::otherSefirahFor(const std::string& pathwayId, const std
 std::vector<std::string> Database::pathwayUsers(const std::string& id) const {
     std::vector<std::string> users;
     for (const auto& c : characters) {
-        if (c.pathwayId == id) users.push_back(c.name + " (" + characterCode(c.id) + ")");
+        const bool mixedIn = std::any_of(c.mixedSequences.begin(), c.mixedSequences.end(),
+                                         [&](const SequenceStep& step) { return step.pathwayId == id; });
+        if (c.pathwayId == id || mixedIn) users.push_back(c.name + " (" + characterCode(c.id) + ")");
     }
     for (const auto& a : artifacts) {
         if (a.pathwayId == id) users.push_back(a.name + " (" + artifactCode(a.id) + ")");

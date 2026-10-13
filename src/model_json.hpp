@@ -25,8 +25,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Dossier, filedBy, recentActions,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StatBlock, base, speedBase, hpIncluded, hp, spirituality)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SecondPathway, pathwayId, beyonderCharacteristics, hasUniqueness,
                                                 uniquenessForm, uniquenessAbilities)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SequenceStep, sequence, pathwayId)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, appearance, age, gender, shortDescription,
-                                                backstory, pathwayId, sequence, alignment, titles, aliases,
+                                                backstory, pathwayId, sequence, mixedSequences, stateOfMind,
+                                                stateOfMindNote, alignment, titles, aliases,
                                                 honorificName, beyonderCharacteristics, hasUniqueness, uniquenessForm,
                                                 uniquenessAbilities, aboveSequence, secondPathway, sefirahId, stats,
                                                 artifactIds, affiliation, relationships, dossier, notes, createdAt,

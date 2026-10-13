@@ -1,25 +1,27 @@
 #include "sheet.hpp"
 
+#include <algorithm>
 #include <cctype>
 
+#include "pathway_colours.hpp"
 #include "rules.hpp"
 
 namespace lotm {
 
 void Section::field(const std::string& label, const std::string& text) {
-    if (!text.empty()) blocks.push_back({BlockKind::Field, label, text, {}});
+    if (!text.empty()) blocks.push_back({BlockKind::Field, label, text, {}, {}});
 }
 
 void Section::paragraph(const std::string& text) {
-    if (!text.empty()) blocks.push_back({BlockKind::Paragraph, "", text, {}});
+    if (!text.empty()) blocks.push_back({BlockKind::Paragraph, "", text, {}, {}});
 }
 
-void Section::bullet(const std::string& text) { blocks.push_back({BlockKind::Bullet, "", text, {}}); }
+void Section::bullet(const std::string& text) { blocks.push_back({BlockKind::Bullet, "", text, {}, {}}); }
 
-void Section::subheading(const std::string& text) { blocks.push_back({BlockKind::Subheading, "", text, {}}); }
+void Section::subheading(const std::string& text) { blocks.push_back({BlockKind::Subheading, "", text, {}, {}}); }
 
 void Section::quote(const std::string& text) {
-    if (!text.empty()) blocks.push_back({BlockKind::Quote, "", text, {}});
+    if (!text.empty()) blocks.push_back({BlockKind::Quote, "", text, {}, {}});
 }
 
 namespace {
@@ -60,6 +62,46 @@ std::string joinAnd(const std::vector<std::string>& items) {
     return join(std::vector<std::string>(items.begin(), items.end() - 1)) + " and " + items.back();
 }
 
+std::string pathwayColourHex(const Database& db, const std::string& pathwayId) {
+    return hexColour(pathwayRgb(db, pathwayId));
+}
+
+// The colour a threat level or state of mind is shown in, from the mildest (0) up.
+std::string toneForLevel(int level) {
+    static const char* kTones[] = {"good", "gold", "orange"};
+    if (level < 0) return "muted";
+    return level < 3 ? kTones[level] : "danger";
+}
+
+// "Spectator pathway (Visionary)"
+std::string pathwayWithGod(const Database& db, const std::string& id) {
+    const Pathway* p = db.findPathway(id);
+    if (!p) return pathwayLabel(db, id);
+    return p->name + " pathway" + (p->god.empty() ? "" : " (" + p->god + ")");
+}
+
+// The Sequence ladder, and below it every switch of pathway on the way up.
+Section ladderSection(const Character& c, const Database& db) {
+    Section ladder{"Sequence Ladder"};
+    if (c.pathwayId.empty()) return ladder;
+    ladder.blocks.push_back({BlockKind::Ladder, "", "", {}, ladderRungs(c, db)});
+    const auto switches = pathwaySwitches(c, db);
+    for (const PathwaySwitch& change : switches) {
+        ladder.field("Switch at Sequence " + std::to_string(change.atSequence),
+                     "From the " + pathwayWithGod(db, change.fromPathwayId) + " to the " +
+                         pathwayWithGod(db, change.toPathwayId) + ". " +
+                         (change.neighbouring ? "Neighbouring pathways, a safe switch."
+                                              : "Not neighbours: a risky switch that tends to cost sanity."));
+    }
+    if (!switches.empty()) {
+        const Pathway* now = db.findPathway(c.pathwayId);
+        ladder.paragraph("Each Sequence gives the abilities of the pathway it was taken from. Stat bonuses and the "
+                         "speed grade follow the pathway they are on now" +
+                         (now ? std::string(", the ") + now->name + " pathway." : std::string(".")));
+    }
+    return ladder;
+}
+
 std::string artifactLine(const Artifact& a, const Database& db) {
     std::string line = artifactCode(a.id);
     if (!a.pathwayId.empty()) line += ", " + pathwayLabel(db, a.pathwayId) + " pathway";
@@ -68,6 +110,43 @@ std::string artifactLine(const Artifact& a, const Database& db) {
 }
 
 }  // namespace
+
+std::vector<LadderRung> ladderRungs(const Character& c, const Database& db) {
+    std::vector<LadderRung> rungs;
+    if (c.pathwayId.empty()) return rungs;
+    const auto switches = pathwaySwitches(c, db);
+    for (int sequence = 9; sequence >= c.sequence; --sequence) {
+        LadderRung rung;
+        rung.sequence = sequence;
+        rung.pathwayId = pathwayIdAt(c, sequence);
+        const Pathway* p = db.findPathway(rung.pathwayId);
+        rung.pathway = p ? p->name : rung.pathwayId + " (not found)";
+        const SequenceInfo* info = p ? p->findSequence(sequence) : nullptr;
+        rung.name = info && !info->name.empty() ? info->name : "Sequence " + std::to_string(sequence);
+        rung.colour = pathwayColourHex(db, rung.pathwayId);
+        rung.current = sequence == c.sequence && !c.aboveSequence;
+        for (const PathwaySwitch& change : switches) {
+            if (change.atSequence != sequence) continue;
+            rung.switched = true;
+            rung.risky = !change.neighbouring;
+        }
+        rungs.push_back(rung);
+    }
+    if (aboveTheSequence(c)) {
+        const Sefirah* goo = greatOldOneSefirah(c, db);
+        LadderRung rung;
+        rung.sequence = 0;
+        rung.above = true;
+        rung.name = goo && !goo->greatOldOne.empty() ? goo->greatOldOne : "Great Old One";
+        rung.pathwayId = c.pathwayId;
+        const Pathway* p = db.findPathway(c.pathwayId);
+        rung.pathway = p ? p->name : c.pathwayId;
+        rung.colour = pathwayColourHex(db, c.pathwayId);
+        rung.current = true;
+        rungs.push_back(rung);
+    }
+    return rungs;
+}
 
 Sheet buildCharacterSheet(const Character& c, const Database& db) {
     const Pathway* pathway = db.findPathway(c.pathwayId);
@@ -94,12 +173,50 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
                          ", " + pathwayText(pathway, c.pathwayId);
         if (isDualPathwayGod(c)) sheet.subtitle += " and " + pathwayText(second, c.secondPathway.pathwayId);
     }
+    if (const auto earlier = earlierPathwayIds(c); !earlier.empty()) {
+        std::vector<std::string> names;
+        for (const auto& id : earlier) {
+            const Pathway* p = db.findPathway(id);
+            names.push_back(p ? p->name : id);
+        }
+        sheet.subtitle += ", switched from the " + joinAnd(names) + (names.size() == 1 ? " pathway" : " pathways");
+    }
+
+    // Badges under the title: power tier, a mixed or dual pathway, the Sefirah, state of mind, threat.
+    if (!c.pathwayId.empty()) {
+        sheet.badges.push_back({speedTierOf(c).name, "pathway", c.pathwayId, pathwayColourHex(db, c.pathwayId)});
+    }
+    if (const auto earlier = earlierPathwayIds(c); !earlier.empty()) {
+        if (riskySwitch(c, db)) sheet.badges.push_back({"Mixed pathways, risky switch", "danger", "", ""});
+        else sheet.badges.push_back({"Mixed pathways", "pathway", earlier.front(), pathwayColourHex(db, earlier.front())});
+    }
+    if (isDualPathwayGod(c)) {
+        sheet.badges.push_back({"Dual-pathway god", "pathway", c.secondPathway.pathwayId,
+                                pathwayColourHex(db, c.secondPathway.pathwayId)});
+    }
+    if (const Sefirah* held = db.findSefirah(c.sefirahId)) sheet.badges.push_back({held->name, "gold", "", ""});
+    if (!c.stateOfMind.empty()) {
+        sheet.badges.push_back({c.stateOfMind,
+                                toneForLevel(stateOfMindLevel(c.stateOfMind)),
+                                "", ""});
+    }
+    {
+        const std::string threat = threatLevelOf(c);
+        const auto level = std::find(kThreatLevels.begin(), kThreatLevels.end(), threat);
+        const int index = level == kThreatLevels.end() ? -1 : static_cast<int>(level - kThreatLevels.begin());
+        sheet.badges.push_back({"Threat: " + threat, toneForLevel(index), "", ""});
+    }
 
     Section identity{"Identity"};
     identity.field("ID", characterCode(c.id));
     identity.field("Aliases", join(c.aliases));
     identity.field("Titles", join(c.titles));
     identity.field("Alignment", c.alignment);
+    if (!c.stateOfMind.empty() || !c.stateOfMindNote.empty()) {
+        std::string mind = c.stateOfMind.empty() ? c.stateOfMindNote : c.stateOfMind;
+        if (!c.stateOfMind.empty() && !c.stateOfMindNote.empty()) mind += ": " + c.stateOfMindNote;
+        identity.field("State of mind", mind);
+    }
     identity.field("Age", c.age);
     identity.field("Gender", c.gender);
     if (sequenceOneChoices(c)) identity.field("Beyonder characteristics", std::to_string(c.beyonderCharacteristics));
@@ -110,6 +227,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         identity.field("Affiliation", org);
     }
     addSection(sheet, identity);
+    addSection(sheet, ladderSection(c, db));
 
     Section looks{"Appearance"};
     looks.field("Hair", describeHair(c.appearance));
@@ -132,7 +250,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
     }
     addSection(sheet, about);
 
-    std::vector<std::string> honorificLines;  // the window keeps three lines, some of them maybe empty
+    std::vector<std::string> honorificLines;  // the window shows empty boxes to fill in; they aren't lines
     for (const auto& line : c.honorificName) {
         if (!line.empty()) honorificLines.push_back(line);
     }
@@ -184,7 +302,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
 
     // Stat block
     Section stats{"Stat Block"};
-    Block table{BlockKind::Stats, "", "", {}};
+    Block table{BlockKind::Stats, "", "", {}, {}};
     const auto bonus = statBonuses(c, pathway);
     const auto totals = statTotals(c, pathway);
     for (int i = 0; i < kStatCount; ++i) {

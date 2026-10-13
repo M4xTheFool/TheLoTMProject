@@ -449,6 +449,153 @@ static void testDualPathway() {
     CHECK(noUniqueness.secondPathway.beyonderCharacteristics == 2);
 }
 
+// Max's example: a Sequence 5 Spectator who drank a Sequence 4 Demoness (Assassin pathway) potion.
+static void testMixedPathways() {
+    Database db = godDatabase();
+    auto extra = [](const std::string& id, const std::string& name, const std::string& god, const std::string& group) {
+        Pathway p;
+        p.id = id;
+        p.name = name;
+        p.god = god;
+        p.group = group;
+        p.primaryStat = "DEX";
+        p.secondaryStat = "CHA";
+        for (int s = 9; s >= 0; --s) {
+            p.sequences.push_back({s, name + " " + std::to_string(s), {name + " power " + std::to_string(s) + ": does things"}});
+        }
+        return p;
+    };
+    db.pathways.push_back(extra("spectator", "Spectator", "Visionary", "Visionary / Sun / Tyrant / White Tower / Hanged Man"));
+    db.pathways.push_back(extra("assassin", "Assassin", "Demoness", "Red Priest / Demoness"));
+
+    Character c;
+    c.id = 1;
+    c.name = "Mixed Mira";
+    c.pathwayId = "spectator";
+    c.sequence = 5;
+    CHECK(!isMixedPathway(c) && pathwaySwitches(c, db).empty());
+    CHECK(switchPathway(c, "assassin"));
+    CHECK(c.pathwayId == "assassin" && c.sequence == 4);
+    CHECK(c.mixedSequences.size() == 5 && c.mixedSequences.front().sequence == 9 && c.mixedSequences.back().sequence == 5);
+    CHECK(pathwayIdAt(c, 9) == "spectator" && pathwayIdAt(c, 5) == "spectator" && pathwayIdAt(c, 4) == "assassin");
+    CHECK(isMixedPathway(c) && earlierPathwayIds(c) == std::vector<std::string>{"spectator"});
+    const auto switches = pathwaySwitches(c, db);
+    CHECK(switches.size() == 1 && switches[0].atSequence == 4 && switches[0].fromPathwayId == "spectator");
+    CHECK(switches[0].toPathwayId == "assassin" && !switches[0].neighbouring && riskySwitch(c, db));
+    CHECK(normalizeCharacter(c).empty() && c.mixedSequences.size() == 5);
+
+    // Each Sequence's abilities come from its own pathway; stat bonuses follow the pathway they are on now.
+    const auto groups = abilityGroups(c, db);
+    CHECK(groups.size() == 6);
+    CHECK(groups[4].heading == "Sequence 5: Spectator 5 (Spectator pathway)" && groups[4].pathwayId == "spectator");
+    CHECK(groups[5].heading == "Sequence 4: Assassin 4 (Assassin pathway)");
+    CHECK(groups[5].abilities == std::vector<std::string>{"Assassin power 4: does things"});
+    CHECK(abilityCount(c, db) == 6);
+
+    // The sheet: subtitle, badges, the ladder and the switch, in every format.
+    c.stateOfMind = "Half mad";
+    c.stateOfMindNote = "hears the Demoness whisper";
+    const Sheet sheet = buildCharacterSheet(c, db);
+    CHECK(sheet.subtitle == "Sequence 4 Assassin 4, Assassin pathway (Demoness), switched from the Spectator pathway");
+    CHECK(std::any_of(sheet.badges.begin(), sheet.badges.end(),
+                      [](const Badge& b) { return b.text == "Mixed pathways, risky switch" && b.tone == "danger"; }));
+    CHECK(std::any_of(sheet.badges.begin(), sheet.badges.end(),
+                      [](const Badge& b) { return b.text == "Half mad" && b.tone == "orange"; }));
+    const auto rungs = ladderRungs(c, db);
+    CHECK(rungs.size() == 6 && rungs[4].pathwayId == "spectator" && !rungs[4].switched);
+    CHECK(rungs[5].switched && rungs[5].risky && rungs[5].current && rungs[5].name == "Assassin 4");
+    CHECK(rungs[0].colour == "#eca04e" && rungs[5].colour == "#de5a5a");
+    const std::string text = renderText(sheet);
+    CHECK(text.find("State of mind: Half mad: hears the Demoness whisper") != std::string::npos);
+    CHECK(text.find("-- Sequence Ladder --") != std::string::npos);
+    CHECK(text.find("Sequences 9-5  Spectator pathway: Spectator 9, Spectator 8, Spectator 7, Spectator 6, Spectator 5") !=
+          std::string::npos);
+    CHECK(text.find("Sequence 4     Assassin pathway: Assassin 4 (now)") != std::string::npos);
+    CHECK(text.find("Switch at Sequence 4: From the Spectator pathway (Visionary) to the Assassin pathway (Demoness). "
+                    "Not neighbours") != std::string::npos);
+    CHECK(text.find("\n Saint | Mixed pathways, risky switch | Half mad | Threat: High\n") != std::string::npos);
+    const std::string markdown = renderMarkdown(sheet);
+    CHECK(markdown.find("- **Sequences 9-5**, Spectator pathway: Spectator 9") != std::string::npos);
+    const std::string html = renderHtmlPage("Mira", {sheet}, "auto");
+    CHECK(html.find("class=\"rung current switched risky\" style=\"--cd:#de5a5a;--cl:#8a3838\"") != std::string::npos);
+    CHECK(html.find("<span class=\"badge tone-orange\">Half mad</span>") != std::string::npos);
+
+    // Saved and loaded again; an older save without these fields loads as one pathway.
+    const Character back = nlohmann::json(c).get<Character>();
+    CHECK(back.mixedSequences.size() == 5 && back.mixedSequences[0].pathwayId == "spectator");
+    CHECK(back.stateOfMind == "Half mad" && back.stateOfMindNote == "hears the Demoness whisper");
+    const Character old = nlohmann::json::parse(R"({"id": 2, "name": "Old", "pathwayId": "seer", "sequence": 4})").get<Character>();
+    CHECK(old.mixedSequences.empty() && old.stateOfMind.empty() && !isMixedPathway(old));
+
+    // A neighbouring switch is safe.
+    Character neighbour;
+    neighbour.pathwayId = "seer";
+    neighbour.sequence = 7;
+    CHECK(switchPathway(neighbour, "marauder") && neighbour.sequence == 6);
+    CHECK(pathwaySwitches(neighbour, db).at(0).neighbouring && !riskySwitch(neighbour, db));
+    // Switching back to an earlier pathway: only the Sequences from other pathways stay listed.
+    Character back2 = c;
+    CHECK(switchPathway(back2, "spectator") && back2.sequence == 3);
+    CHECK(back2.mixedSequences.size() == 1 && back2.mixedSequences[0].sequence == 4 &&
+          back2.mixedSequences[0].pathwayId == "assassin");
+    CHECK(pathwaySwitches(back2, db).size() == 2);
+    // No switching for a mortal, a Sequence 0 god, Above the Sequence, or to their own pathway.
+    Character mortal;
+    CHECK(!switchPathway(mortal, "seer"));
+    Character god;
+    god.pathwayId = "seer";
+    god.sequence = 0;
+    CHECK(!switchPathway(god, "marauder"));
+    CHECK(!switchPathway(c, "assassin"));
+
+    // Moving down to a weaker Sequence drops the mixed Sequences they no longer hold under it.
+    Character weaker = c;
+    weaker.sequence = 6;
+    CHECK(normalizeCharacter(weaker).size() == 1);
+    CHECK(weaker.mixedSequences.size() == 3 && weaker.mixedSequences.back().sequence == 7);
+    Character mortalAgain = c;
+    mortalAgain.pathwayId.clear();
+    normalizeCharacter(mortalAgain);
+    CHECK(mortalAgain.mixedSequences.empty());
+
+    // Lists: the pathway filter finds them under either pathway, and a pathway in use can't be deleted.
+    db.characters = {c};
+    RecordFilter filter;
+    filter.pathwayId = "spectator";
+    CHECK(filterCharacters(db, filter).size() == 1);
+    filter.pathwayId = "seer";
+    CHECK(filterCharacters(db, filter).empty());
+    CHECK(db.pathwayUsers("spectator") == std::vector<std::string>{"Mixed Mira (C-001)"});
+
+    // Compare shows where they switched from, and their state of mind.
+    Character other;
+    other.id = 2;
+    other.name = "Plain Pat";
+    db.characters.push_back(other);
+    const Comparison result = buildComparison({&db.characters[0], &db.characters[1]}, db);
+    CHECK(result.sections[0].rows[0].values[0] == "Assassin (Demoness), switched from Spectator (Visionary)");
+    CHECK(std::any_of(result.sections[0].rows.begin(), result.sections[0].rows.end(), [](const CompareRow& row) {
+        return row.label == "State of mind" && row.values[0] == "Half mad" && row.values[1].empty();
+    }));
+
+    CHECK(stateOfMindLevel("Sane") == 0 && stateOfMindLevel("Lost control") == 4 && stateOfMindLevel("Dreamy") == -1);
+}
+
+// Honorific names can be longer than three lines; blank lines are not part of the name.
+static void testLongHonorificName() {
+    Database db = godDatabase();
+    Character c;
+    c.name = "Klein";
+    c.pathwayId = "seer";
+    c.sequence = 3;
+    c.honorificName = {"The Fool that doesn't belong to this era,", "", "The mysterious ruler above the gray fog;",
+                       "The King of Yellow and Black who wields good luck.", "Line four", "Line five"};
+    CHECK(normalizeCharacter(c).empty());
+    CHECK(c.honorificName.size() == 5 && c.honorificName[1] == "The mysterious ruler above the gray fog;");
+    const std::string text = renderText(buildCharacterSheet(c, db));
+    CHECK(text.find("\"Line five\"") != std::string::npos);
+}
+
 static void testSefirot() {
     const Storage source(fs::path(LOTM_SOURCE_DIR) / "data");
     Database db;
@@ -1218,6 +1365,8 @@ static void testSampleImport() {
 }
 
 // The sample sets that ship in data/samples load, fit the rules, and import into empty saves cleanly.
+// Sets shared with Settings > Share your own live there too, so the checks allow anything the program
+// lets you enter: your own status or relationship type, and stats up to 99 (typed in the console).
 static void testShippedSamples() {
     const Storage source(fs::path(LOTM_SOURCE_DIR) / "data");
     Database db;
@@ -1250,10 +1399,12 @@ static void testShippedSamples() {
             }
             if (!known(kAlignments, c.alignment)) fail(c.name + ": unknown alignment " + c.alignment);
             if (!known(kRecentActions, c.dossier.recentActions)) fail(c.name + ": unknown recent actions");
-            if (!known(kStatuses, c.dossier.status)) fail(c.name + ": unknown status " + c.dossier.status);
             if (!known(kThreatLevels, c.dossier.threatLevel)) fail(c.name + ": unknown threat level " + c.dossier.threatLevel);
             for (int score : c.stats.base) {
-                if (score < 3 || score > 18) fail(c.name + ": a base stat outside 3-18");
+                if (score < 1 || score > 99) fail(c.name + ": a base stat outside 1-99");
+            }
+            for (const SequenceStep& step : c.mixedSequences) {
+                if (!db.findPathway(step.pathwayId)) fail(c.name + ": a Sequence from an unknown pathway " + step.pathwayId);
             }
             Character copy = c;
             if (!normalizeCharacter(copy).empty()) fail(c.name + ": has fields that don't apply at its Sequence");
@@ -1263,7 +1414,6 @@ static void testShippedSamples() {
                 if (!found) fail(c.name + ": holds a Sealed Artifact the set doesn't have");
             }
             for (const Relationship& r : c.relationships) {
-                if (!known(kRelationshipTypes, r.type)) fail(c.name + ": unknown relationship type " + r.type);
                 if (r.characterId == 0) continue;
                 const Character* other = findSampleCharacter(r.characterId);
                 if (!other) {
@@ -1362,6 +1512,8 @@ int main() {
     testAbilitiesAndEligibility();
     testAboveTheSequence();
     testDualPathway();
+    testMixedPathways();
+    testLongHonorificName();
     testPointBuy();
     testDice();
     testThreatLevel();

@@ -51,8 +51,43 @@ bool isDualPathwayGod(const Character& c);
 // "Sequence 7", "Sequence 0" or "Above the Sequence"; "Mortal" without a pathway.
 std::string levelName(const Character& c);
 
+// ---- Mixed pathways and switching
+
+// The pathway a Sequence they hold came from: their pathway now, unless mixedSequences names another.
+std::string pathwayIdAt(const Character& c, int sequence);
+// True when a Sequence they hold came from another pathway than the one they are on now.
+bool isMixedPathway(const Character& c);
+// The other pathways they took Sequences from, weakest Sequence first, each once.
+std::vector<std::string> earlierPathwayIds(const Character& c);
+// Neighbouring pathways share a Sefirah or a group. Switching between them is safe; switching to
+// any other pathway tends to cost a Beyonder their sanity.
+bool neighbouringPathways(const Database& db, const std::string& a, const std::string& b);
+
+struct PathwaySwitch {
+    int atSequence = 9;  // the first Sequence from the new pathway
+    std::string fromPathwayId;
+    std::string toPathwayId;
+    bool neighbouring = true;
+};
+// Every place their pathway changes on the way up, weakest Sequence first.
+std::vector<PathwaySwitch> pathwaySwitches(const Character& c, const Database& db);
+// True when a switch went to a pathway that isn't a neighbour of the one before.
+bool riskySwitch(const Character& c, const Database& db);
+// Switching the way it happens in the story: they drink the next Sequence's potion of another pathway.
+// The Sequences they hold keep their pathway, and they go on one Sequence stronger on the new one.
+// Returns false and changes nothing for a mortal, a Sequence 0 god (who takes a second pathway
+// instead), Above the Sequence, or their own pathway.
+bool switchPathway(Character& c, const std::string& newPathwayId);
+
+// States of mind, sanest first. Anything else typed in is kept as the user's own words.
+inline const std::vector<std::string> kStatesOfMind = {"Sane", "Not completely sane", "Half mad", "Mad",
+                                                       "Lost control"};
+// 0 for Sane up to 4 for Lost control; -1 when nothing is recorded or it is in the user's own words.
+int stateOfMindLevel(const std::string& state);
+
 // Every power a character has, grouped the way the sheet shows them:
-//   - their pathway, Sequence 9 down to theirs;
+//   - their pathway, Sequence 9 down to theirs (each Sequence from the pathway it came from, for a
+//     mixed-pathway Beyonder);
 //   - the Sequence 0 powers a Sequence 1 Uniqueness grants;
 //   - a dual-pathway god's second pathway, and Above the Sequence every other pathway in their group:
 //     these grant the whole pathway, Sequence 9 to 0, so they are one line each, not written out.
@@ -65,6 +100,7 @@ struct AbilityGroup {
     std::string summary;
     int wholePathwayCount = 0;
     std::string symbolism;  // Above the Sequence: what the Great Old One symbolizes
+    std::string pathwayId;  // the pathway the group comes from, for its colour
 };
 std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db);
 // The Sefirah whose Great Old One a character Above the Sequence is: the one they hold when it gathers
@@ -99,7 +135,8 @@ inline constexpr int kPointBuyBudget = 27;
 int pointBuyCost(int score);  // -1 when the score is outside 8-15
 
 // Cleans up fields that no longer apply before saving (honorific name above Sequence 3,
-// a Uniqueness away from Sequence 1, a second pathway below Sequence 0 ...).
+// a Uniqueness away from Sequence 1, a second pathway below Sequence 0, mixed Sequences they no
+// longer hold ...).
 // Returns notes describing anything that was removed.
 std::vector<std::string> normalizeCharacter(Character& c);
 

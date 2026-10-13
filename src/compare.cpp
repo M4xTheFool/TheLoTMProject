@@ -164,6 +164,7 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
         if (c.pathwayId.empty()) return "Ordinary mortal";
         std::string text = pathwayLabel(db, c.pathwayId);
         if (isDualPathwayGod(c)) text += " and " + pathwayLabel(db, c.secondPathway.pathwayId);
+        for (const auto& id : earlierPathwayIds(c)) text += ", switched from " + pathwayLabel(db, id);
         return text;
     })));
     overview.rows.push_back(rankedRow(
@@ -189,6 +190,7 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
             const auto it = std::find(kThreatLevels.begin(), kThreatLevels.end(), threatLevelOf(c));
             return it == kThreatLevels.end() ? kMissing : static_cast<int>(it - kThreatLevels.begin());
         })));
+    overview.rows.push_back(textRow("State of mind", each([](const Character& c, const Pathway*) { return c.stateOfMind; })));
     overview.rows.push_back(textRow("Sefirah", each([&](const Character& c, const Pathway*) {
         return c.sefirahId.empty() ? std::string() : sefirahLabel(db, c.sefirahId);
     })));

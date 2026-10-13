@@ -12,12 +12,13 @@ It comes as two programs that share the same saves:
 
 - **Character Creator:** name, looks (hair colour, length and style, eyes, skin, face, build, height,
   voice, clothing) and bio, one of the 22 pathways or one of your own, Sequence 9 to 0 with every ability
-  described, or Above the Sequence (a Great Old One), alignment, titles, aliases, honorific name (Sequence
-  3 and up), Beyonder characteristics and the Uniqueness with its look and the Sequence 0 powers it grants
-  (Sequence 1), a second pathway for a dual-pathway god, the Sefirah they hold, affiliation, two-way
-  relationships (pick one of your saved characters or type any name), a D&D-style stat block (roll,
-  re-roll, type or point-buy), Speed, optional HP, Spirituality, the Sealed Artifacts the character holds,
-  and a dossier with an automatic threat level.
+  described, or Above the Sequence (a Great Old One), a switch to another pathway on the way up (a
+  mixed-pathway Beyonder, shown on a Sequence ladder) and their state of mind, alignment, titles, aliases,
+  honorific name with as many lines as you need (Sequence 3 and up), Beyonder characteristics and the
+  Uniqueness with its look and the Sequence 0 powers it grants (Sequence 1), a second pathway for a
+  dual-pathway god, the Sefirah they hold, affiliation, two-way relationships (pick one of your saved
+  characters or type any name), a D&D-style stat block (roll, re-roll, type or point-buy), Speed, optional
+  HP, Spirituality, the Sealed Artifacts the character holds, and a dossier with an automatic threat level.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
 - **Pathways:** read any pathway Sequence by Sequence, create and edit your own inside the program, start
   one from a copy of a built-in pathway, and export a pathway as a sheet. The Acrobat pathway from the

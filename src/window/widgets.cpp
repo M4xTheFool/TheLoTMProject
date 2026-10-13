@@ -25,6 +25,12 @@ void label(const char* text) {
 
 std::string hidden(const char* text) { return std::string("##") + text; }
 
+// Between the warning amber and the danger red: Half mad, and a High threat.
+ImVec4 orange() {
+    const ImVec4 a = palette().warning, b = palette().danger;
+    return ImVec4(a.x + (b.x - a.x) * 0.45f, a.y + (b.y - a.y) * 0.45f, a.z + (b.z - a.z) * 0.45f, 1.0f);
+}
+
 ImU32 colourU32(const ImVec4& c, float alpha = 1.0f) { return ImGui::GetColorU32(ImVec4(c.x, c.y, c.z, c.w * alpha)); }
 
 // Cuts text to fit a width, ending it with "..." when something had to go.
@@ -40,10 +46,22 @@ std::string fitText(const std::string& text, ImFont* font, float size, float wid
     return cut + "...";
 }
 
-void drawMedallion(const WindowState& w, ImVec2 centre, float radius, const ImVec4& colour, const std::string& text) {
+// `ring`, when given, draws the ring in those colours in equal parts, clockwise from the top.
+void drawMedallion(const WindowState& w, ImVec2 centre, float radius, const ImVec4& colour, const std::string& text,
+                   const std::vector<ImVec4>& ring = {}) {
     ImDrawList* draw = ImGui::GetWindowDrawList();
     draw->AddCircleFilled(centre, radius, colourU32(colour, 0.16f));
-    draw->AddCircle(centre, radius, colourU32(colour), 0, std::max(1.5f, radius * 0.08f));
+    const float thickness = std::max(1.5f, radius * 0.08f);
+    if (ring.size() > 1) {
+        const float part = 6.2831853f / static_cast<float>(ring.size());
+        for (size_t i = 0; i < ring.size(); ++i) {
+            const float start = -1.5707963f + part * static_cast<float>(i);
+            draw->PathArcTo(centre, radius, start, start + part, 12);
+            draw->PathStroke(colourU32(ring[i]), ImDrawFlags_None, thickness * 1.5f);
+        }
+    } else {
+        draw->AddCircle(centre, radius, colourU32(colour), 0, thickness);
+    }
     if (text.empty()) return;
     ImFont* font = w.fonts.bold;
     const float size = radius * (text.size() > 2 ? 0.72f : 0.86f);
@@ -466,7 +484,8 @@ void statusDot(const ImVec4& colour) {
 }
 
 bool listCard(const WindowState& w, const std::string& id, bool selected, const ImVec4& colour,
-              const std::string& badge, const std::string& title, const std::string& subtitle) {
+              const std::string& badge, const std::string& title, const std::string& subtitle,
+              const CardMarks& marks) {
     const float font = ImGui::GetFontSize();
     const float pad = font * 0.4f;
     const float height = ImGui::GetTextLineHeight() * 2.0f + pad * 2.0f;
@@ -481,7 +500,13 @@ bool listCard(const WindowState& w, const std::string& id, bool selected, const 
         draw->AddRectFilled(at, ImVec2(at.x + font * 0.18f, at.y + height), colourU32(palette().gold), font * 0.1f);
     }
     const float radius = height * 0.34f;
-    drawMedallion(w, ImVec2(at.x + pad + radius + font * 0.2f, at.y + height * 0.5f), radius, colour, badge);
+    const ImVec2 centre(at.x + pad + radius + font * 0.2f, at.y + height * 0.5f);
+    drawMedallion(w, centre, radius, colour, badge, marks.ring);
+    if (marks.dot) {
+        const ImVec2 dot(centre.x + radius * 0.74f, centre.y - radius * 0.74f);
+        draw->AddCircleFilled(dot, radius * 0.3f, ImGui::GetColorU32(ImGuiCol_ChildBg));
+        draw->AddCircleFilled(dot, radius * 0.22f, colourU32(marks.dotColour));
+    }
     const float textX = at.x + pad * 2.0f + radius * 2.0f + font * 0.3f;
     const float room = at.x + width - textX - pad;
     ImFont* titleFont = selected ? w.fonts.bold : ImGui::GetFont();
@@ -490,6 +515,127 @@ bool listCard(const WindowState& w, const std::string& id, bool selected, const 
     draw->AddText(ImGui::GetFont(), font * 0.9f, ImVec2(textX, at.y + pad + ImGui::GetTextLineHeight()),
                   ImGui::GetColorU32(ImGuiCol_TextDisabled), fitText(subtitle, ImGui::GetFont(), font * 0.9f, room).c_str());
     return clicked;
+}
+
+void chipRow(const std::vector<std::pair<std::string, ImVec4>>& chips) {
+    const float right = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
+    const float gap = ImGui::GetStyle().ItemSpacing.x * 0.6f;
+    for (size_t i = 0; i < chips.size(); ++i) {
+        const float width = ImGui::CalcTextSize(chips[i].first.c_str()).x + ImGui::GetFontSize() * 1.1f;
+        if (i > 0) {
+            ImGui::SameLine(0.0f, gap);
+            if (ImGui::GetCursorScreenPos().x + width > right) ImGui::NewLine();
+        }
+        chip(chips[i].first, chips[i].second);
+    }
+}
+
+ImVec4 badgeColour(const WindowState& w, const Badge& badge) {
+    if (badge.tone == "pathway") return pathwayColour(w.app.db, badge.pathwayId);
+    if (badge.tone == "gold") return palette().gold;
+    if (badge.tone == "good") return palette().success;
+    if (badge.tone == "orange") return orange();
+    if (badge.tone == "danger") return palette().danger;
+    return palette().muted;
+}
+
+void badgeRow(const WindowState& w, const std::vector<Badge>& badges) {
+    std::vector<std::pair<std::string, ImVec4>> chips;
+    for (const Badge& badge : badges) chips.push_back({badge.text, badgeColour(w, badge)});
+    chipRow(chips);
+}
+
+ImVec4 stateOfMindColour(const std::string& state) {
+    switch (stateOfMindLevel(state)) {
+        case 0: return palette().success;
+        case 1: return palette().gold;
+        case 2: return orange();
+        case 3: return palette().danger;
+        case 4: {  // Lost control: deeper than Mad
+            const ImVec4 d = palette().danger;
+            return ImVec4(d.x * 0.75f, d.y * 0.45f, d.z * 0.85f + 0.1f, d.w);
+        }
+        default: return palette().muted;
+    }
+}
+
+void sequenceLadder(const WindowState& w, const std::vector<LadderRung>& rungs) {
+    if (rungs.empty()) return;
+    const float font = ImGui::GetFontSize();
+    const float avail = ImGui::GetContentRegionAvail().x;
+    const int count = static_cast<int>(rungs.size());
+    const int perRow = std::clamp(static_cast<int>(avail / (font * 4.4f)), 1, count);
+    const float step = std::min(avail / static_cast<float>(perRow), font * 6.5f);
+    const float radius = font * 0.95f;
+    const float rowHeight = radius * 2.0f + font * 2.1f;
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    const ImVec2 origin = ImGui::GetCursorScreenPos();
+    const LadderRung* hovered = nullptr;
+    for (int i = 0; i < count; ++i) {
+        const LadderRung& rung = rungs[static_cast<size_t>(i)];
+        const int row = i / perRow, column = i % perRow;
+        const ImVec2 centre(origin.x + step * (static_cast<float>(column) + 0.5f),
+                            origin.y + radius + font * 0.3f + rowHeight * static_cast<float>(row));
+        const ImVec4 colour = pathwayColour(w.app.db, rung.pathwayId);
+        if (column > 0) {  // the line from the Sequence before
+            const ImVec2 from(centre.x - step + radius + 3.0f, centre.y), to(centre.x - radius - 3.0f, centre.y);
+            if (!rung.switched) {
+                draw->AddLine(from, to, colourU32(colour, 0.7f), 2.5f);
+            } else {
+                const ImVec4 dash = rung.risky ? palette().danger : colour;
+                for (float x = from.x; x < to.x; x += 9.0f) {
+                    draw->AddLine(ImVec2(x, centre.y), ImVec2(std::min(x + 5.0f, to.x), centre.y), colourU32(dash), 2.5f);
+                }
+                const ImVec2 mid((from.x + to.x) * 0.5f, centre.y);
+                const float d = font * 0.28f;
+                draw->AddQuadFilled(ImVec2(mid.x, mid.y - d), ImVec2(mid.x + d, mid.y), ImVec2(mid.x, mid.y + d),
+                                    ImVec2(mid.x - d, mid.y), colourU32(rung.risky ? palette().danger : palette().gold));
+            }
+        }
+        if (rung.current) draw->AddCircle(centre, radius + 4.0f, colourU32(palette().gold), 0, 2.0f);
+        drawMedallion(w, centre, radius, colour, rung.above ? "\xE2\x88\x9E" : std::to_string(rung.sequence));
+        if (rung.risky) {  // a red "!" on a switch to a pathway that isn't a neighbour
+            const ImVec2 mark(centre.x + radius * 0.78f, centre.y - radius * 0.78f);
+            draw->AddCircleFilled(mark, font * 0.36f, colourU32(palette().danger));
+            const ImVec2 size = w.fonts.bold->CalcTextSizeA(font * 0.62f, FLT_MAX, 0.0f, "!");
+            draw->AddText(w.fonts.bold, font * 0.62f, ImVec2(mark.x - size.x * 0.5f, mark.y - size.y * 0.5f),
+                          ImGui::GetColorU32(ImGuiCol_ChildBg), "!");
+        }
+        ImFont* nameFont = rung.current ? w.fonts.bold : ImGui::GetFont();
+        const std::string name = fitText(rung.name, nameFont, font * 0.8f, step - 4.0f);
+        const ImVec2 nameSize = nameFont->CalcTextSizeA(font * 0.8f, FLT_MAX, 0.0f, name.c_str());
+        draw->AddText(nameFont, font * 0.8f, ImVec2(centre.x - nameSize.x * 0.5f, centre.y + radius + font * 0.3f),
+                      ImGui::GetColorU32(rung.current ? ImGuiCol_Text : ImGuiCol_TextDisabled), name.c_str());
+        const ImVec2 cellMin(centre.x - step * 0.5f, centre.y - radius), cellMax(centre.x + step * 0.5f, centre.y + radius + font * 1.4f);
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(cellMin, cellMax)) hovered = &rung;
+    }
+    const int rows = (count + perRow - 1) / perRow;
+    ImGui::Dummy(ImVec2(avail, rowHeight * static_cast<float>(rows)));
+    if (hovered && ImGui::BeginTooltip()) {
+        if (hovered->above) ImGui::Text("Above the Sequence: %s", hovered->name.c_str());
+        else ImGui::Text("Sequence %d: %s", hovered->sequence, hovered->name.c_str());
+        ImGui::TextDisabled("%s pathway%s", hovered->pathway.c_str(), hovered->current ? ", where they are now" : "");
+        if (hovered->switched) {
+            ImGui::TextColored(hovered->risky ? palette().danger : palette().gold, "%s",
+                               hovered->risky ? "Switched here from a pathway that isn't a neighbour"
+                                              : "Switched here from a neighbouring pathway");
+        }
+        ImGui::EndTooltip();
+    }
+    // The pathways on the ladder, and what the switch marks mean.
+    std::vector<std::pair<std::string, ImVec4>> keys;
+    std::vector<std::string> seen;
+    bool switched = false, risky = false;
+    for (const LadderRung& rung : rungs) {
+        switched = switched || rung.switched;
+        risky = risky || rung.risky;
+        if (rung.above || std::find(seen.begin(), seen.end(), rung.pathwayId) != seen.end()) continue;
+        seen.push_back(rung.pathwayId);
+        keys.push_back({rung.pathway + " pathway", pathwayColour(w.app.db, rung.pathwayId)});
+    }
+    if (switched) keys.push_back({"dashed: a switch of pathway", palette().gold});
+    if (risky) keys.push_back({"red: not a neighbour", palette().danger});
+    if (keys.size() > 1 || switched) chipRow(keys);
 }
 
 void statBoxes(const WindowState& w, const std::vector<StatRow>& stats) {
@@ -580,6 +726,7 @@ void drawSheet(const WindowState& w, const Sheet& sheet) {
     ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
     ImGui::TextWrapped("%s", sheet.subtitle.c_str());
     ImGui::PopStyleColor();
+    badgeRow(w, sheet.badges);
 
     for (const auto& section : sheet.sections) {
         ImGui::Spacing();
@@ -633,6 +780,9 @@ void drawSheet(const WindowState& w, const Sheet& sheet) {
                 }
                 case BlockKind::Stats:
                     statBoxes(w, block.stats);
+                    break;
+                case BlockKind::Ladder:
+                    sequenceLadder(w, block.rungs);
                     break;
             }
         }

@@ -132,25 +132,109 @@ std::string levelName(const Character& c) {
     return "Sequence " + std::to_string(c.sequence);
 }
 
+std::string pathwayIdAt(const Character& c, int sequence) {
+    if (sequence > c.sequence) {  // weaker than their Sequence now
+        for (const SequenceStep& step : c.mixedSequences) {
+            if (step.sequence == sequence && !step.pathwayId.empty()) return step.pathwayId;
+        }
+    }
+    return c.pathwayId;
+}
+
+bool isMixedPathway(const Character& c) { return !earlierPathwayIds(c).empty(); }
+
+std::vector<std::string> earlierPathwayIds(const Character& c) {
+    std::vector<std::string> ids;
+    if (c.pathwayId.empty()) return ids;
+    for (int s = 9; s > c.sequence; --s) {
+        const std::string id = pathwayIdAt(c, s);
+        if (id != c.pathwayId && std::find(ids.begin(), ids.end(), id) == ids.end()) ids.push_back(id);
+    }
+    return ids;
+}
+
+bool neighbouringPathways(const Database& db, const std::string& a, const std::string& b) {
+    if (a == b) return true;
+    const auto group = db.pathwayGroup(a);
+    return std::any_of(group.begin(), group.end(), [&](const Pathway* p) { return p->id == b; });
+}
+
+std::vector<PathwaySwitch> pathwaySwitches(const Character& c, const Database& db) {
+    std::vector<PathwaySwitch> switches;
+    if (c.pathwayId.empty()) return switches;
+    for (int s = 8; s >= c.sequence; --s) {
+        const std::string from = pathwayIdAt(c, s + 1);
+        const std::string to = pathwayIdAt(c, s);
+        if (from != to) switches.push_back({s, from, to, neighbouringPathways(db, from, to)});
+    }
+    return switches;
+}
+
+bool riskySwitch(const Character& c, const Database& db) {
+    const auto switches = pathwaySwitches(c, db);
+    return std::any_of(switches.begin(), switches.end(), [](const PathwaySwitch& s) { return !s.neighbouring; });
+}
+
+bool switchPathway(Character& c, const std::string& newPathwayId) {
+    if (c.pathwayId.empty() || c.aboveSequence || c.sequence <= 0 || newPathwayId.empty() ||
+        newPathwayId == c.pathwayId) {
+        return false;
+    }
+    std::vector<SequenceStep> held;
+    for (int s = 9; s >= c.sequence; --s) {
+        const std::string id = pathwayIdAt(c, s);
+        if (id != newPathwayId) held.push_back({s, id});  // a Sequence from the new pathway needs no entry
+    }
+    c.mixedSequences = held;
+    c.pathwayId = newPathwayId;
+    c.sequence -= 1;
+    return true;
+}
+
+int stateOfMindLevel(const std::string& state) {
+    const auto it = std::find(kStatesOfMind.begin(), kStatesOfMind.end(), state);
+    return it == kStatesOfMind.end() ? -1 : static_cast<int>(it - kStatesOfMind.begin());
+}
+
 std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db) {
     std::vector<AbilityGroup> groups;
     const Pathway* pathway = db.findPathway(c.pathwayId);
     if (!pathway) return groups;
-    for (const SequenceInfo* s : abilitiesUpTo(*pathway, c.sequence)) {
-        groups.push_back({sequenceLabel(pathway, s->sequence), s->abilities, movementUnlockedAt(*pathway, s->sequence), {}, 0, {}});
+    // Sequence 9 up to theirs, each from the pathway it came from.
+    const bool mixed = isMixedPathway(c);
+    for (int sequence = 9; sequence >= c.sequence; --sequence) {
+        const Pathway* from = db.findPathway(pathwayIdAt(c, sequence));
+        const SequenceInfo* s = from ? from->findSequence(sequence) : nullptr;
+        if (!s) continue;
+        AbilityGroup group;
+        group.heading = sequenceLabel(from, sequence) + (mixed ? " (" + from->name + " pathway)" : "");
+        group.abilities = s->abilities;
+        group.movement = movementUnlockedAt(*from, sequence);
+        group.pathwayId = from->id;
+        groups.push_back(group);
     }
     if (c.hasUniqueness && !c.uniquenessAbilities.empty()) {
-        groups.push_back({"From the Uniqueness: " + sequenceLabel(pathway, 0), c.uniquenessAbilities, {}, {}, 0, {}});
+        AbilityGroup group;
+        group.heading = "From the Uniqueness: " + sequenceLabel(pathway, 0);
+        group.abilities = c.uniquenessAbilities;
+        group.pathwayId = pathway->id;
+        groups.push_back(group);
     }
     // Above the Sequence is one more step past Sequence 0, written on the Sefirah.
     if (const Sefirah* s = aboveTheSequence(c) ? greatOldOneSefirah(c, db) : nullptr) {
         if (!s->abilities.empty() || !s->symbolism.empty()) {
-            groups.push_back({aboveSequenceLabel(s), s->abilities, {}, {}, 0, s->symbolism});
+            AbilityGroup group;
+            group.heading = aboveSequenceLabel(s);
+            group.abilities = s->abilities;
+            group.symbolism = s->symbolism;
+            group.pathwayId = pathway->id;
+            groups.push_back(group);
         }
     }
     // A dual-pathway god and a Great Old One have every ability of their extra pathways, Sequence 9 to 0.
     auto wholePathway = [&](const Pathway& other) {
         AbilityGroup group;
+        group.pathwayId = other.id;
         group.heading = pathwayLabel(db, other.id);
         group.summary = "All abilities of the " + other.name + " pathway" +
                         (other.god.empty() ? "" : " (" + other.god + ")") + ", Sequence 9 to 0";
@@ -259,10 +343,41 @@ std::vector<std::string> normalizeCharacter(Character& c) {
     }
     if (c.aboveSequence) c.sequence = 0;  // a Great Old One is past Sequence 0 of its pathway
     c.sequence = std::clamp(c.sequence, 0, 9);
+    // Blank honorific lines (the window shows empty boxes to fill in) are not part of the name.
+    auto& honorific = c.honorificName;
+    honorific.erase(std::remove_if(honorific.begin(), honorific.end(),
+                                   [](const std::string& line) {
+                                       return line.find_first_not_of(" \t") == std::string::npos;
+                                   }),
+                    honorific.end());
     if (!honorificEligible(c) && !c.honorificName.empty()) {
         c.honorificName.clear();
         notes.push_back("Honorific name removed: it needs Sequence 3 or stronger.");
     }
+
+    // Mixed Sequences: only Sequences weaker than the one they are on now can come from another
+    // pathway, each listed once (the last entry wins), weakest first.
+    std::vector<SequenceStep> steps;
+    bool droppedHeld = false;
+    for (const SequenceStep& step : c.mixedSequences) {
+        if (c.pathwayId.empty() || step.pathwayId.empty() || step.pathwayId == c.pathwayId) continue;
+        if (step.sequence < 0 || step.sequence > 9) continue;
+        if (step.sequence <= c.sequence) {
+            droppedHeld = true;
+            continue;
+        }
+        steps.erase(std::remove_if(steps.begin(), steps.end(),
+                                   [&](const SequenceStep& s) { return s.sequence == step.sequence; }),
+                    steps.end());
+        steps.push_back(step);
+    }
+    std::sort(steps.begin(), steps.end(), [](const SequenceStep& a, const SequenceStep& b) { return a.sequence > b.sequence; });
+    if (droppedHeld) {
+        notes.push_back("Mixed Sequences removed from Sequence " + std::to_string(c.sequence) +
+                        " up: the Sequence they are on comes from their pathway now, and they don't hold the "
+                        "stronger ones.");
+    }
+    c.mixedSequences = steps;
     if (!sequenceOneChoices(c)) {
         if (c.hasUniqueness && !absorbedUniqueness(c)) {
             notes.push_back("Uniqueness removed: only Sequence 1 can hold one.");

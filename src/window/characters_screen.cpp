@@ -31,8 +31,11 @@ void open(WindowState& w, const Character& c, bool isNew) {
     for (auto& r : copy.relationships) {
         if (const Character* other = w.app.db.findCharacter(r.characterId)) r.name = other->name;
     }
-    copy.honorificName.resize(3);
+    // Three boxes to fill in to start with; a longer honorific name keeps all its lines.
+    if (copy.honorificName.size() < 3) copy.honorificName.resize(3);
     w.characters.draft.start(copy, isNew);
+    w.characters.editLadder = isMixedPathway(copy);
+    w.characters.switchTo.clear();
     w.characters.lastRolls = {};
     w.characters.lastSpeedRoll.clear();
 }
@@ -80,10 +83,23 @@ bool saveImpl(WindowState& w) {
 // ---------------------------------------------------------------- tabs
 
 // The top of the editor: a medallion with the initials in the pathway's colour, the name, and chips
-// for the Sequence, tier, threat level and affiliation.
-void header(WindowState& w, const Character& c, bool isNew, const std::string& subtitle) {
+// for the power tier, a mixed or dual pathway, the Sefirah, state of mind, threat level and affiliation.
+void header(WindowState& w, const Character& c, bool isNew, const Sheet& sheet) {
     const float font = ImGui::GetFontSize();
+    CardMarks marks;
+    for (int s = 9; isMixedPathway(c) && s >= c.sequence; --s) marks.ring.push_back(pathwayColour(w.app.db, pathwayIdAt(c, s)));
+    const ImVec2 at = ImGui::GetCursorScreenPos();
     medallion(w, initials(c.name.empty() ? "?" : c.name), pathwayColour(w.app.db, c.pathwayId), font * 2.1f);
+    if (marks.ring.size() > 1) {  // a mixed-pathway Beyonder: a thin ring of their pathways around it
+        ImDrawList* draw = ImGui::GetWindowDrawList();
+        const ImVec2 centre(at.x + font * 2.1f, at.y + font * 2.1f);
+        const float part = 6.2831853f / static_cast<float>(marks.ring.size());
+        for (size_t i = 0; i < marks.ring.size(); ++i) {
+            const float start = -1.5707963f + part * static_cast<float>(i);
+            draw->PathArcTo(centre, font * 2.1f + 4.0f, start + 0.04f, start + part - 0.04f, 16);
+            draw->PathStroke(ImGui::GetColorU32(marks.ring[i]), ImDrawFlags_None, 3.0f);
+        }
+    }
     ImGui::SameLine(0.0f, font * 0.9f);
     ImGui::BeginGroup();
     ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.9f);
@@ -92,33 +108,19 @@ void header(WindowState& w, const Character& c, bool isNew, const std::string& s
     ImGui::SameLine();
     ImGui::AlignTextToFramePadding();
     ImGui::TextDisabled("%s", isNew ? "new" : characterCode(c.id).c_str());
-    ImGui::TextColored(palette().muted, "%s", subtitle.c_str());
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    ImGui::TextWrapped("%s", sheet.subtitle.c_str());
+    ImGui::PopStyleColor();
 
-    const ImVec4 pathway = pathwayColour(w.app.db, c.pathwayId);
-    if (!c.pathwayId.empty()) {
-        chip(speedTierOf(c).name, pathway);
-        ImGui::SameLine();
-    }
-    if (isDualPathwayGod(c)) {
-        chip("Dual-pathway god", pathwayColour(w.app.db, c.secondPathway.pathwayId));
-        ImGui::SameLine();
-    }
-    if (const Sefirah* s = w.app.db.findSefirah(c.sefirahId)) {
-        chip(s->name, palette().gold);
-        ImGui::SameLine();
-    }
-    const std::string threat = threatLevelOf(c);
-    chip("Threat: " + threat, threatColour(threat));
+    std::vector<std::pair<std::string, ImVec4>> chips;
+    for (const Badge& badge : sheet.badges) chips.push_back({badge.text, badgeColour(w, badge)});
     if (!c.affiliation.organization.empty()) {
-        ImGui::SameLine();
-        chip(c.affiliation.rank.empty() ? c.affiliation.organization
-                                        : c.affiliation.organization + ", " + c.affiliation.rank,
-             palette().muted);
+        chips.push_back({c.affiliation.rank.empty() ? c.affiliation.organization
+                                                    : c.affiliation.organization + ", " + c.affiliation.rank,
+                         palette().muted});
     }
-    if (c.stats.hpIncluded) {
-        ImGui::SameLine();
-        chip("HP " + std::to_string(c.stats.hp), palette().muted);
-    }
+    if (c.stats.hpIncluded) chips.push_back({"HP " + std::to_string(c.stats.hp), palette().muted});
+    chipRow(chips);
     ImGui::EndGroup();
     ImGui::Spacing();
 }
@@ -244,6 +246,152 @@ void secondPathwaySection(WindowState& w, Character& c) {
     ImGui::Unindent();
 }
 
+// Five steps from Sane to Lost control, coloured green to red: click one to pick it, again to clear it.
+// A state of mind in your own words goes in the box below.
+void stateOfMindSection(Character& c, bool risky) {
+    ImGui::SeparatorText("State of mind");
+    if (risky && c.stateOfMind.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().warning);
+        ImGui::TextWrapped("They switched to a pathway that isn't a neighbour, which tends to cost a Beyonder their "
+                           "sanity. How are they holding up?");
+        ImGui::PopStyleColor();
+    }
+    const float gap = ImGui::GetStyle().ItemInnerSpacing.x;
+    const int count = static_cast<int>(kStatesOfMind.size());
+    const float width = (ImGui::GetContentRegionAvail().x - gap * static_cast<float>(count - 1)) / static_cast<float>(count);
+    const float height = ImGui::GetFrameHeight() * 1.25f;
+    const int level = stateOfMindLevel(c.stateOfMind);
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    for (int i = 0; i < count; ++i) {
+        const std::string& state = kStatesOfMind[static_cast<size_t>(i)];
+        if (i > 0) ImGui::SameLine(0.0f, gap);
+        const ImVec2 at = ImGui::GetCursorScreenPos();
+        ImGui::PushID(i);
+        if (ImGui::InvisibleButton("mind", ImVec2(width, height))) c.stateOfMind = level == i ? "" : state;
+        const bool hovered = ImGui::IsItemHovered();
+        ImGui::PopID();
+        const ImVec4 colour = stateOfMindColour(state);
+        const ImVec2 end(at.x + width, at.y + height);
+        const bool on = level == i;
+        const float rounding = ImGui::GetStyle().FrameRounding;
+        draw->AddRectFilled(at, end, ImGui::GetColorU32(ImVec4(colour.x, colour.y, colour.z, on ? 0.9f : hovered ? 0.25f : 0.12f)),
+                            rounding);
+        draw->AddRect(at, end, ImGui::GetColorU32(ImVec4(colour.x, colour.y, colour.z, on ? 1.0f : 0.5f)), rounding);
+        const ImVec2 size = ImGui::CalcTextSize(state.c_str());
+        const ImU32 text = on ? ImGui::GetColorU32(ImGuiCol_ChildBg) : ImGui::GetColorU32(colour);
+        ImGui::PushClipRect(at, end, true);
+        draw->AddText(ImVec2(at.x + std::max(4.0f, (width - size.x) * 0.5f), at.y + (height - size.y) * 0.5f), text,
+                      state.c_str());
+        ImGui::PopClipRect();
+    }
+    std::string own = level < 0 ? c.stateOfMind : "";
+    fieldLabel("In your own words");
+    if (ImGui::InputTextWithHint("##ownMind", "or describe a state of mind of your own", &own)) c.stateOfMind = own;
+    textField("More about it", c.stateOfMindNote, "what shook them, how it shows");
+}
+
+// Which pathway each Sequence came from: the switches so far, "Switch to another pathway", and a
+// pathway box for every Sequence they hold.
+void switchesSection(WindowState& w, Character& c) {
+    const Database& db = w.app.db;
+    auto& screen = w.characters;
+    ImGui::SeparatorText("Pathway switches");
+    const auto switches = pathwaySwitches(c, db);
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    if (switches.empty()) {
+        ImGui::TextWrapped("Every Sequence came from the %s pathway. A Beyonder can switch on the way up: to a "
+                           "neighbouring pathway safely, to any other at a cost to their sanity.",
+                           db.findPathway(c.pathwayId) ? db.findPathway(c.pathwayId)->name.c_str() : "same");
+    }
+    ImGui::PopStyleColor();
+    for (const PathwaySwitch& change : switches) {
+        statusDot(change.neighbouring ? palette().success : palette().danger);
+        ImGui::TextWrapped("Sequence %d: from %s to %s. %s", change.atSequence,
+                           pathwayLabel(db, change.fromPathwayId).c_str(), pathwayLabel(db, change.toPathwayId).c_str(),
+                           change.neighbouring ? "Neighbouring pathways, a safe switch."
+                                               : "Not neighbours: a risky switch that tends to cost sanity.");
+    }
+    if (!switches.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        ImGui::TextWrapped("Each Sequence gives the abilities of its own pathway; stat bonuses and the speed grade "
+                           "follow the pathway they are on now.");
+        ImGui::PopStyleColor();
+    }
+
+    const bool canSwitch = c.sequence > 0 && !c.aboveSequence;
+    ImGui::BeginDisabled(!canSwitch);
+    if (ImGui::Button("Switch to another pathway...")) {
+        screen.switchTo.clear();
+        ImGui::OpenPopup("switchPathway");
+    }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("%s", canSwitch ? "They drink the next Sequence's potion of another pathway."
+                                          : "A Sequence 0 god takes a second pathway instead (below).");
+    ImGui::SameLine();
+    if (ImGui::Button(screen.editLadder ? "Hide the pathway of each Sequence" : "Choose the pathway of each Sequence")) {
+        screen.editLadder = !screen.editLadder;
+    }
+    if (isMixedPathway(c)) {
+        ImGui::SameLine();
+        if (ImGui::Button("Make them one pathway again")) c.mixedSequences.clear();
+    }
+
+    ImGui::SetNextWindowSize(ImVec2(ImGui::GetFontSize() * 30.0f, 0.0f));
+    if (ImGui::BeginPopup("switchPathway")) {
+        ImGui::TextWrapped("They drink the Sequence %d potion of another pathway. Sequences 9 to %d keep the pathways "
+                           "they came from.",
+                           c.sequence - 1, c.sequence);
+        pathwayCombo("New pathway", db, screen.switchTo, "Pick a pathway");
+        const bool same = screen.switchTo == c.pathwayId;
+        if (same) {
+            ImGui::TextColored(palette().muted, "That is their pathway already.");
+        } else if (!screen.switchTo.empty()) {
+            const Pathway* next = db.findPathway(screen.switchTo);
+            const SequenceInfo* info = next ? next->findSequence(c.sequence - 1) : nullptr;
+            ImGui::TextWrapped("They become Sequence %d%s%s of the %s pathway.", c.sequence - 1, info ? " " : "",
+                               info ? info->name.c_str() : "", next ? next->name.c_str() : "new");
+            if (!neighbouringPathways(db, c.pathwayId, screen.switchTo)) {
+                ImGui::TextColored(palette().danger, "Not a neighbour: a risky switch that tends to cost sanity.");
+            } else {
+                ImGui::TextColored(palette().success, "A neighbouring pathway: a safe switch.");
+            }
+        }
+        ImGui::BeginDisabled(screen.switchTo.empty() || same);
+        if (ImGui::Button("Switch")) {
+            switchPathway(c, screen.switchTo);
+            screen.switchTo.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+
+    if (!screen.editLadder) return;
+    ImGui::Spacing();
+    if (c.sequence >= 9) {
+        ImGui::TextDisabled("Sequence 9 is their only Sequence, and it comes from the pathway they are on now.");
+        return;
+    }
+    ImGui::TextDisabled("Sequences weaker than theirs can come from another pathway.");
+    for (int sequence = 9; sequence > c.sequence; --sequence) {
+        std::string picked = pathwayIdAt(c, sequence);
+        const std::string label = "Sequence " + std::to_string(sequence);
+        if (pathwayCombo(label.c_str(), db, picked, "Their pathway now")) {
+            auto& steps = c.mixedSequences;
+            steps.erase(std::remove_if(steps.begin(), steps.end(),
+                                       [&](const SequenceStep& step) { return step.sequence == sequence; }),
+                        steps.end());
+            if (!picked.empty() && picked != c.pathwayId) steps.push_back({sequence, picked});
+            std::sort(steps.begin(), steps.end(),
+                      [](const SequenceStep& a, const SequenceStep& b) { return a.sequence > b.sequence; });
+        }
+    }
+    fieldLabel(("Sequence " + std::to_string(c.sequence)).c_str());
+    ImGui::TextDisabled("%s, their pathway now (change it at the top)", pathwayLabel(db, c.pathwayId).c_str());
+}
+
 void pathwayTab(WindowState& w, Character& c) {
     const Database& db = w.app.db;
     pathwayCombo("Pathway", db, c.pathwayId, "No pathway (ordinary mortal)");
@@ -251,6 +399,7 @@ void pathwayTab(WindowState& w, Character& c) {
     if (!p) {
         ImGui::Spacing();
         ImGui::TextDisabled("Ordinary mortals have no Sequence. Choose a pathway to give them one.");
+        stateOfMindSection(c, false);
         return;
     }
     ImGui::Spacing();
@@ -271,6 +420,9 @@ void pathwayTab(WindowState& w, Character& c) {
     const SpeedTier tier = speedTierOf(c);
     ImGui::TextWrapped("Speed tier %d, %s. Speed grade %s. Stat bonuses at this Sequence: %s.", tier.tier,
                        tier.name.c_str(), p->speedGrade.c_str(), bonuses.empty() ? "none" : bonuses.c_str());
+
+    ImGui::SeparatorText("Sequence ladder");
+    sequenceLadder(w, ladderRungs(c, db));
 
     if (c.aboveSequence) {
         ImGui::SeparatorText("Above the Sequence");
@@ -320,10 +472,17 @@ void pathwayTab(WindowState& w, Character& c) {
         if (s->abilities.empty()) ImGui::TextDisabled("No abilities written for this Sequence yet.");
         for (const auto& a : s->abilities) ImGui::BulletText("%s", a.c_str());
     }
+    switchesSection(w, c);
+    stateOfMindSection(c, riskySwitch(c, db));
+
+    ImGui::Spacing();
     const std::string header = "Every ability they have (" + std::to_string(abilityCount(c, db)) + ")";
     if (ImGui::CollapsingHeader(header.c_str())) {
+        const bool mixed = isMixedPathway(c);
         for (const AbilityGroup& group : abilityGroups(c, db)) {
-            ImGui::TextColored(palette().gold, "%s", group.heading.c_str());
+            // In the pathway's colour when more than one pathway is involved.
+            const bool tinted = (mixed || !group.summary.empty()) && !group.pathwayId.empty();
+            ImGui::TextColored(tinted ? pathwayColour(db, group.pathwayId) : palette().gold, "%s", group.heading.c_str());
             if (!group.summary.empty()) ImGui::TextWrapped("%s.", group.summary.c_str());
             if (!group.symbolism.empty()) ImGui::TextWrapped("Symbolism: %s", group.symbolism.c_str());
             for (const auto& a : group.abilities) ImGui::BulletText("%s", a.c_str());
@@ -377,6 +536,36 @@ void uniquenessSection(WindowState& w, Character& c) {
     ImGui::Unindent();
 }
 
+// The honorific name's lines: a box each with buttons to move it up and remove it, and "+ Add a line".
+void honorificEditor(std::vector<std::string>& lines) {
+    static constexpr const char* kHints[] = {"The ... who ...", "The ... of ...", "The ... that ..."};
+    int moveUp = -1, remove = -1;
+    const ImVec2 square(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
+    const float inner = ImGui::GetStyle().ItemInnerSpacing.x;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        ImGui::PushID(static_cast<int>(i));
+        fieldLabel(("Line " + std::to_string(i + 1)).c_str());
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - square.x * 2.0f - inner * 2.0f);
+        ImGui::InputTextWithHint("##line", i < 3 ? kHints[i] : "The ...", &lines[i]);
+        ImGui::SameLine(0.0f, inner);
+        ImGui::BeginDisabled(i == 0);
+        if (ImGui::Button("^", square)) moveUp = static_cast<int>(i);
+        ImGui::EndDisabled();
+        ImGui::SetItemTooltip("Move up");
+        ImGui::SameLine(0.0f, inner);
+        if (ImGui::Button("x", square)) remove = static_cast<int>(i);
+        ImGui::SetItemTooltip("Remove this line");
+        ImGui::PopID();
+    }
+    if (moveUp > 0) std::swap(lines[static_cast<size_t>(moveUp)], lines[static_cast<size_t>(moveUp) - 1]);
+    if (remove >= 0) lines.erase(lines.begin() + remove);
+    if (ImGui::Button("+ Add a line")) lines.push_back("");
+    const auto written = std::count_if(lines.begin(), lines.end(), [](const std::string& l) { return !ui::trim(l).empty(); });
+    ImGui::SameLine();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextDisabled("%d %s written", static_cast<int>(written), written == 1 ? "line" : "lines");
+}
+
 void customizationTab(WindowState& w, Character& c) {
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Alignment");
@@ -397,11 +586,8 @@ void customizationTab(WindowState& w, Character& c) {
 
     ImGui::SeparatorText("Honorific name");
     if (honorificEligible(c)) {
-        ImGui::TextDisabled("Three lines that, when spoken, reach the character.");
-        c.honorificName.resize(3);
-        textField("Line 1", c.honorificName[0], "The ... who ...");
-        textField("Line 2", c.honorificName[1], "The ... of ...");
-        textField("Line 3", c.honorificName[2], "The ... that ...");
+        ImGui::TextDisabled("Lines that, when spoken, reach the character. Usually three, but it can be longer.");
+        honorificEditor(c.honorificName);
     } else {
         ImGui::TextDisabled("Available from Sequence 3 upward.");
     }
@@ -717,11 +903,23 @@ void drawCharactersScreen(WindowState& w) {
             subtitle = (seq && !seq->name.empty() ? seq->name : "Sequence " + std::to_string(c.sequence)) +
                        (pathway ? ", " + pathway->name : "");
         }
+        // A mixed-pathway Beyonder's ring shows each Sequence's pathway; a dot shows a shaken state of mind.
+        CardMarks marks;
+        const auto earlier = earlierPathwayIds(c);
+        if (!earlier.empty()) {
+            const Pathway* first = w.app.db.findPathway(earlier.front());
+            subtitle += " (from " + (first ? first->name : earlier.front()) + (earlier.size() > 1 ? " and more)" : ")");
+            for (int s = 9; s >= c.sequence; --s) marks.ring.push_back(pathwayColour(w.app.db, pathwayIdAt(c, s)));
+        }
+        if (!c.stateOfMind.empty() && stateOfMindLevel(c.stateOfMind) != 0) {
+            marks.dot = true;
+            marks.dotColour = stateOfMindColour(c.stateOfMind);
+        }
         // The badge is the Sequence; Above the Sequence it is an infinity sign.
         const std::string badge =
             c.pathwayId.empty() ? "-" : c.aboveSequence ? "\xE2\x88\x9E" : std::to_string(c.sequence);
         if (listCard(w, "c" + std::to_string(c.id), selected, pathwayColour(w.app.db, c.pathwayId), badge, c.name,
-                     subtitle) &&
+                     subtitle, marks) &&
             !selected) {
             const int id = c.id;
             whenSaved(w, draft.dirty(), saveThis, [&w, id] {
@@ -734,6 +932,11 @@ void drawCharactersScreen(WindowState& w) {
                                      : c.aboveSequence   ? std::string("Above the Sequence")
                                                          : sequenceLabel(pathway, c.sequence)))
                                        .c_str());
+            for (const PathwaySwitch& change : pathwaySwitches(c, w.app.db)) {
+                ImGui::TextColored(change.neighbouring ? palette().muted : palette().danger, "Switched at Sequence %d from %s",
+                                   change.atSequence, pathwayLabel(w.app.db, change.fromPathwayId).c_str());
+            }
+            if (!c.stateOfMind.empty()) ImGui::TextColored(stateOfMindColour(c.stateOfMind), "%s", c.stateOfMind.c_str());
             if (!c.shortDescription.empty()) ImGui::TextDisabled("%s", c.shortDescription.c_str());
             ImGui::EndTooltip();
         }
@@ -757,7 +960,7 @@ void drawCharactersScreen(WindowState& w) {
     }
     Character& c = draft.value;
     const Sheet sheet = buildCharacterSheet(c, w.app.db);
-    header(w, c, draft.isNew, sheet.subtitle);
+    header(w, c, draft.isNew, sheet);
     EditorButtons buttons;
     buttons.dirty = draft.dirty();
     buttons.isNew = draft.isNew;

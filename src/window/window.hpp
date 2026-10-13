@@ -80,6 +80,8 @@ struct Draft {
 
 struct CharacterScreen {
     Draft<Character> draft;
+    bool editLadder = false;     // the Pathway tab shows a pathway box for every Sequence
+    std::string switchTo;        // the pathway picked in "Switch to another pathway"
     RecordFilter filter = RecordFilter::inIdOrder();  // the order they were made in until sorted
     std::array<std::string, kStatCount> lastRolls;  // "6, 4, 3, (1) = 13" shown next to each stat
     std::string lastSpeedRoll;
@@ -224,10 +226,28 @@ void medallion(const WindowState& w, const std::string& text, const ImVec4& colo
 void chip(const std::string& text, const ImVec4& colour);
 // A coloured dot in front of the next text on the line.
 void statusDot(const ImVec4& colour);
+// Extra marks on a list card's medallion.
+struct CardMarks {
+    std::vector<ImVec4> ring;  // the ring in these colours, in equal parts: a mixed-pathway Beyonder's Sequences
+    bool dot = false;          // a small dot at the top right in dotColour: their state of mind
+    ImVec4 dotColour;
+};
 // One row of a list on the left: a medallion with `badge`, the title, and a muted line below.
 // Returns true when clicked. `id` must be unique in the list.
 bool listCard(const WindowState& w, const std::string& id, bool selected, const ImVec4& colour,
-              const std::string& badge, const std::string& title, const std::string& subtitle);
+              const std::string& badge, const std::string& title, const std::string& subtitle,
+              const CardMarks& marks = {});
+// Chips on as many lines as they need.
+void chipRow(const std::vector<std::pair<std::string, ImVec4>>& chips);
+// The colour a sheet's badge is drawn in, and a row of them.
+ImVec4 badgeColour(const WindowState& w, const Badge& badge);
+void badgeRow(const WindowState& w, const std::vector<Badge>& badges);
+// A state of mind's colour: green for Sane through red for Mad and Lost control; muted for your own words.
+ImVec4 stateOfMindColour(const std::string& state);
+// The Sequence ladder: a medallion for each Sequence from 9 up to theirs in the colour of the pathway it
+// came from, joined by a line that turns dashed at a switch of pathway (red when not a neighbour), with
+// the pathways named below.
+void sequenceLadder(const WindowState& w, const std::vector<LadderRung>& rungs);
 // The six stats as boxes: the total large, the modifier below, base and bonus small.
 void statBoxes(const WindowState& w, const std::vector<StatRow>& stats);
 // The six stats on one chart with six spokes, one outline per set of totals, in the Compare colours.

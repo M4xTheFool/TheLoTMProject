@@ -9,6 +9,7 @@
 #include "list_filter.hpp"
 #include "records.hpp"
 #include "render.hpp"
+#include "rules.hpp"
 #include "sheet.hpp"
 #include "ui.hpp"
 
@@ -129,6 +130,7 @@ void browseCharacters(App& app) {
             const Character& c = *rows[i];
             const Pathway* p = app.db.findPathway(c.pathwayId);
             std::string path = !p ? "Mortal" : c.aboveSequence ? p->name + ", Above" : p->name + ", Seq " + std::to_string(c.sequence);
+            if (isMixedPathway(c)) path += " (mixed)";
             std::cout << "  " << pad(std::to_string(i + 1) + ")", 5) << pad(characterCode(c.id), 7) << pad(c.name, 26)
                       << pad(path, 26) << c.alignment << "\n";
         }

@@ -140,6 +140,14 @@ struct SecondPathway {
     bool empty() const { return pathwayId.empty(); }
 };
 
+// A Sequence a mixed-pathway Beyonder took from another pathway than the one they are on now. A
+// Sequence 4 Witch (Assassin pathway, Demoness) who climbed the Spectator pathway up to Sequence 5
+// has Sequences 9 to 5 listed here with "spectator".
+struct SequenceStep {
+    int sequence = 9;
+    std::string pathwayId;
+};
+
 struct Character {
     int id = 0;
     std::string name;
@@ -148,12 +156,19 @@ struct Character {
     std::string gender;
     std::string shortDescription;
     std::string backstory;
-    std::string pathwayId;  // empty = ordinary mortal
+    std::string pathwayId;  // empty = ordinary mortal; a mixed-pathway Beyonder's pathway now
     int sequence = 9;
+    // A mixed-pathway Beyonder: the Sequences weaker than their current one that came from another
+    // pathway, weakest first. Every Sequence not listed came from pathwayId. Empty = one pathway.
+    std::vector<SequenceStep> mixedSequences;
+    // State of mind, often shaken by switching to a pathway that isn't a neighbour: one of
+    // kStatesOfMind in rules.hpp, or your own words. Empty = not recorded.
+    std::string stateOfMind;
+    std::string stateOfMindNote;
     std::string alignment;
     std::vector<std::string> titles;
     std::vector<std::string> aliases;
-    std::vector<std::string> honorificName;  // three lines, Sequence 3 and stronger only
+    std::vector<std::string> honorificName;  // usually three lines, sometimes more; Sequence 3 and stronger only
     int beyonderCharacteristics = 1;  // Sequence 1 only: 1 or 2
     bool hasUniqueness = false;       // Sequence 1 only
     std::string uniquenessForm;
@@ -233,7 +248,8 @@ struct Database {
     std::string newSefirahId(const std::string& name) const;
     // Another Sefirah that already gathers this pathway, or nullptr.
     const Sefirah* otherSefirahFor(const std::string& pathwayId, const std::string& sefirahId) const;
-    // Names of the characters and Sealed Artifacts that belong to this pathway.
+    // Names of the characters and Sealed Artifacts that belong to this pathway (a mixed-pathway
+    // Beyonder with a Sequence from it too).
     std::vector<std::string> pathwayUsers(const std::string& id) const;
 };
 
