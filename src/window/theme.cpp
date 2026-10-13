@@ -1,10 +1,9 @@
 // The window's look: two colour themes (night and parchment), the fonts, and a colour for
 // every pathway group.
 #include <cmath>
-#include <functional>
 #include <initializer_list>
-#include <map>
 
+#include "pathway_colours.hpp"
 #include "window.hpp"
 
 namespace fs = std::filesystem;
@@ -204,34 +203,9 @@ void applyTheme(const std::string& theme, float dpiScale) {
 ImVec4 backgroundColour() { return ImGui::GetStyle().Colors[ImGuiCol_WindowBg]; }
 
 ImVec4 pathwayColour(const Database& db, const std::string& pathwayId) {
-    static const std::map<std::string, ImVec4> kGroups = {
-        {"Fool / Door / Error", rgb(160, 128, 220)},
-        {"Visionary / Sun / Tyrant / White Tower / Hanged Man", rgb(236, 160, 78)},
-        {"Darkness / Death / Twilight Giant", rgb(112, 140, 220)},
-        {"Red Priest / Demoness", rgb(222, 90, 90)},
-        {"Mother / Moon", rgb(122, 196, 118)},
-        {"Abyss / Chained", rgb(196, 98, 150)},
-        {"Black Emperor / Justiciar", rgb(160, 174, 192)},
-        {"Hermit / Paragon", rgb(84, 190, 190)},
-        {"Wheel of Fortune", rgb(214, 200, 96)},
-    };
-    ImVec4 colour = rgb(150, 145, 138);  // mortals and unknown pathways
-    if (const Pathway* p = db.findPathway(pathwayId)) {
-        if (auto it = kGroups.find(p->group); it != kGroups.end()) {
-            colour = it->second;
-        } else {
-            // Your own pathways: a hue picked from the group's name (or the pathway's), the same every time.
-            const std::string key = p->group.empty() ? p->id : p->group;
-            const float hue = static_cast<float>(std::hash<std::string>{}(key) % 360) / 360.0f;
-            ImGui::ColorConvertHSVtoRGB(hue, 0.5f, 0.86f, colour.x, colour.y, colour.z);
-        }
-    }
-    if (parchment) {  // darker, so it reads on the light background
-        colour.x *= 0.62f;
-        colour.y *= 0.62f;
-        colour.z *= 0.62f;
-    }
-    return colour;
+    // The same colours as the HTML export (pathway_colours.cpp), darker on parchment so they read.
+    const Rgb colour = parchment ? onLightBackground(pathwayRgb(db, pathwayId)) : pathwayRgb(db, pathwayId);
+    return rgb(colour.r, colour.g, colour.b);
 }
 
 Fonts loadFonts(const fs::path& dataDir) {

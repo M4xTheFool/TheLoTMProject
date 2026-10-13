@@ -29,7 +29,7 @@ struct RecordFilter {
     std::string search;      // part of the name or an alias, or an ID: "C-012", "c12" or "12"
     char letter = 0;         // the name's first letter, 'A' to 'Z'; 0 for any
     int power = kAnyPower;   // a power band, or kAnyPower
-    std::string pathwayId;   // empty for any pathway
+    std::string pathwayId;   // empty for any pathway; a mixed-pathway Beyonder matches each of theirs
     SortOrder sort = SortOrder::Name;
 
     bool active() const;     // anything set besides the sort order

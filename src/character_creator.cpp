@@ -90,9 +90,11 @@ void stepSequence(const App& app, Character& c) {
             ui::info("They hold " + sefirahLabel(app.db, own->id) + " now; change it in Customization.");
         }
     }
-    const auto all = abilitiesUpTo(*p, c.sequence);
-    size_t count = 0;
-    for (const SequenceInfo* s : all) count += s->abilities.size();
+    size_t count = 0;  // each Sequence from the pathway it came from
+    for (int s = 9; s >= c.sequence; --s) {
+        const Pathway* from = app.db.findPathway(pathwayIdAt(c, s));
+        if (const SequenceInfo* info = from ? from->findSequence(s) : nullptr) count += info->abilities.size();
+    }
     if (const SequenceInfo* s = p->findSequence(c.sequence)) {
         ui::info(sequenceLabel(p, c.sequence) + " adds:");
         for (const auto& a : s->abilities) ui::info("  - " + a);
@@ -103,6 +105,106 @@ void stepSequence(const App& app, Character& c) {
     if (dualPathwayEligible(c)) ui::info("A Sequence 0 god can also take a second pathway in Customization.");
     ui::info("The sheet lists " + std::to_string(count) + " abilities from Sequence 9 down to " +
              std::to_string(c.sequence) + (c.aboveSequence ? ", plus every ability of the other pathways in their group." : "."));
+}
+
+// ---------------------------------------------------------------- pathway switches and state of mind
+
+// Sequence 9 up to theirs, with the pathway each came from, and every switch of pathway.
+void printLadder(const App& app, const Character& c) {
+    std::cout << "Their Sequences, weakest first:\n";
+    for (int s = 9; s >= c.sequence; --s) {
+        const std::string id = pathwayIdAt(c, s);
+        const Pathway* p = app.db.findPathway(id);
+        const SequenceInfo* info = p ? p->findSequence(s) : nullptr;
+        std::string name = info && !info->name.empty() ? info->name : "(no name yet)";
+        if (name.size() < 22) name += std::string(22 - name.size(), ' ');
+        std::cout << "  " << s << ") " << name << (p ? p->name + " pathway" : id + " (pathway not found)")
+                  << (s == c.sequence ? (c.aboveSequence ? "  <- then Above the Sequence" : "  <- now") : "") << "\n";
+    }
+    for (const PathwaySwitch& change : pathwaySwitches(c, app.db)) {
+        ui::info("Switch at Sequence " + std::to_string(change.atSequence) + ": from " +
+                 pathwayLabel(app.db, change.fromPathwayId) + " to " + pathwayLabel(app.db, change.toPathwayId) +
+                 (change.neighbouring ? ", neighbouring pathways." : ", NOT neighbours: a risky switch."));
+    }
+}
+
+void stepPathwaySwitches(const App& app, Character& c) {
+    ui::header("Pathway switches and state of mind");
+    if (c.pathwayId.empty()) {
+        ui::info("Ordinary mortals have no pathway to switch.");
+    } else {
+        ui::info("A Beyonder can switch pathways on the way up: to a neighbouring pathway (the same Sefirah or group)");
+        ui::info("safely, to any other at a cost to their sanity. Each Sequence keeps the abilities of the pathway it");
+        ui::info("came from; stat bonuses and the speed grade follow the pathway they are on now.");
+        while (true) {
+            ui::blank();
+            printLadder(app, c);
+            const bool canSwitch = c.sequence > 0 && !c.aboveSequence;
+            std::string prompt = "  ";
+            if (canSwitch) prompt += "S switches to another pathway (on to Sequence " + std::to_string(c.sequence - 1) + "), ";
+            if (c.sequence < 9) prompt += "9-" + std::to_string(c.sequence + 1) + " picks that Sequence's pathway, ";
+            if (isMixedPathway(c)) prompt += "O makes them one pathway again, ";
+            const std::string value = ui::readLine(prompt + "Enter when done: ");
+            if (value.empty()) break;
+            if ((value == "s" || value == "S") && canSwitch) {
+                const int pick = choosePathway(app, "They drink the Sequence " + std::to_string(c.sequence - 1) +
+                                                        " potion of which pathway?",
+                                               "Cancel", false);
+                if (pick < 0) continue;
+                const std::string from = c.pathwayId;
+                if (!switchPathway(c, app.db.pathways[pick].id)) {
+                    ui::info("That is their pathway already.");
+                    continue;
+                }
+                const SequenceInfo* now = app.db.pathways[pick].findSequence(c.sequence);
+                ui::info("Now Sequence " + std::to_string(c.sequence) + (now && !now->name.empty() ? " " + now->name : "") +
+                         " of the " + app.db.pathways[pick].name + " pathway.");
+                if (!neighbouringPathways(app.db, from, c.pathwayId)) {
+                    ui::info("Not a neighbour of the pathway before: a risky switch that tends to cost sanity.");
+                }
+                continue;
+            }
+            if ((value == "o" || value == "O") && isMixedPathway(c)) {
+                c.mixedSequences.clear();
+                continue;
+            }
+            int sequence = -1;
+            try {
+                size_t used = 0;
+                sequence = std::stoi(value, &used);
+                if (used != value.size()) sequence = -1;
+            } catch (const std::exception&) {
+            }
+            if (sequence <= c.sequence || sequence > 9) {
+                ui::info(c.sequence < 9 ? "Type S, a Sequence from 9 to " + std::to_string(c.sequence + 1) + ", or Enter."
+                                        : "Type S or press Enter.");
+                continue;
+            }
+            const std::string current = pathwayLabel(app.db, pathwayIdAt(c, sequence));
+            const int pick = choosePathway(app, "Sequence " + std::to_string(sequence) + " came from which pathway? [current: " +
+                                                    current + "]",
+                                           "Their pathway now (" + pathwayLabel(app.db, c.pathwayId) + ")", true);
+            if (pick == ui::Choice::kKeep) continue;
+            auto& steps = c.mixedSequences;
+            steps.erase(std::remove_if(steps.begin(), steps.end(),
+                                       [&](const SequenceStep& step) { return step.sequence == sequence; }),
+                        steps.end());
+            if (pick >= 0 && app.db.pathways[pick].id != c.pathwayId) steps.push_back({sequence, app.db.pathways[pick].id});
+            std::sort(steps.begin(), steps.end(),
+                      [](const SequenceStep& a, const SequenceStep& b) { return a.sequence > b.sequence; });
+        }
+    }
+
+    ui::blank();
+    if (riskySwitch(c, app.db)) {
+        ui::info("They switched to a pathway that isn't a neighbour, which tends to cost a Beyonder their sanity.");
+    }
+    c.stateOfMind = ui::choosePreset("State of mind", kStatesOfMind, c.stateOfMind);
+    if (!c.stateOfMind.empty()) {
+        c.stateOfMindNote = ui::readText("More about their state of mind (optional)", c.stateOfMindNote);
+    } else {
+        c.stateOfMindNote.clear();
+    }
 }
 
 // ---------------------------------------------------------------- step 5
@@ -209,12 +311,13 @@ void stepCustomization(const App& app, Character& c) {
 
     ui::blank();
     if (honorificEligible(c)) {
-        ui::info("Honorific name: three lines that, when spoken, reach the character.");
+        ui::info("Honorific name: lines that, when spoken, reach the character. Usually three, but it can be longer.");
         ui::info("Example shape: \"The ... who ...\" / \"The ... of ...\" / \"The ... that ...\"");
         if (ui::yesNo("Write or change the honorific name?", c.honorificName.empty())) {
             std::vector<std::string> lines = c.honorificName;
-            lines.resize(3);
-            for (int i = 0; i < 3; ++i) lines[i] = ui::readText("  Line " + std::to_string(i + 1), lines[i]);
+            const int count = ui::readInt("How many lines", 1, 20, std::max<int>(3, static_cast<int>(lines.size())));
+            lines.resize(static_cast<size_t>(count));
+            for (int i = 0; i < count; ++i) lines[i] = ui::readText("  Line " + std::to_string(i + 1), lines[i]);
             lines.erase(std::remove(lines.begin(), lines.end(), std::string()), lines.end());
             c.honorificName = lines;
         }
@@ -585,7 +688,12 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
         stepName(c);
         stepLooks(c);
         stepPathway(app, c, false);
-        if (!c.pathwayId.empty()) stepSequence(app, c);
+        if (!c.pathwayId.empty()) {
+            stepSequence(app, c);
+            if (ui::yesNo("Did they switch pathways on the way up (a mixed-pathway Beyonder)?", false)) {
+                stepPathwaySwitches(app, c);
+            }
+        }
         stepCustomization(app, c);
         stepAffiliation(app, c);
         stepStats(app, c);
@@ -599,6 +707,7 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
         std::cout << renderText(buildCharacterSheet(c, app.db));
         int pick = ui::choose("\nChange something, or save:",
                               {"Name", "Looks and bio", "Pathway", "Sequence",
+                               "Pathway switches and state of mind (a mixed-pathway Beyonder)",
                                "Customization (alignment, titles, aliases, honorific, Uniqueness, second pathway, Sefirah)",
                                "Affiliation and relationships", "Stat block, HP and Spirituality",
                                "Sealed Artifacts", "Dossier (threat level, status, remarks)", "Notes", "Save"},
@@ -608,13 +717,14 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
             case 1: stepLooks(c); break;
             case 2: stepPathway(app, c, true); break;
             case 3: stepSequence(app, c); break;
-            case 4: stepCustomization(app, c); break;
-            case 5: stepAffiliation(app, c); break;
-            case 6: stepStats(app, c); break;
-            case 7: stepArtifacts(app, c); break;
-            case 8: stepDossier(c); break;
-            case 9: stepNotes(c); break;
-            case 10:
+            case 4: stepPathwaySwitches(app, c); break;
+            case 5: stepCustomization(app, c); break;
+            case 6: stepAffiliation(app, c); break;
+            case 7: stepStats(app, c); break;
+            case 8: stepArtifacts(app, c); break;
+            case 9: stepDossier(c); break;
+            case 10: stepNotes(c); break;
+            case 11:
                 if (save(app, c, isNew)) return c.id;
                 break;
             default:
