@@ -15,6 +15,7 @@
 #include "exporter.hpp"
 #include "list_filter.hpp"
 #include "model_json.hpp"
+#include "organizations.hpp"
 #include "presets.hpp"
 #include "records.hpp"
 #include "render.hpp"
@@ -37,6 +38,15 @@ static int failures = 0;
             ++failures;                                                                    \
         }                                                                                  \
     } while (false)
+
+// The default ticks for sharing, in three lists.
+static void sharePicks(const Database& db, const std::vector<SampleSet>& sets, const std::string& fileName,
+                       std::vector<int>& characters, std::vector<int>& artifacts, std::vector<int>& events) {
+    const SharePicks picks = defaultSharePicks(db, sets, fileName);
+    characters = picks.characterIds;
+    artifacts = picks.artifactIds;
+    events = picks.eventIds;
+}
 
 static Pathway warrior() {
     Pathway p;
@@ -1452,7 +1462,8 @@ static void testSampleImport() {
     // sample set of their own; the glove comes along, and the links to Klein and Dunn keep only names.
     CHECK(sampleSetFileName("Max's Characters!") == "maxs_characters.json");
     CHECK(sampleSetFileName("???") == "my_sample_set.json");
-    const SampleSet shared = makeSampleSet(app.db, "Max's Characters", "Mine.", {addedAudrey->id, addedLeonard->id}, {}, {});
+    const SampleSet shared =
+        makeSampleSet(app.db, "Max's Characters", "Mine.", {{addedAudrey->id, addedLeonard->id}, {}, {}, {}});
     CHECK(shared.characters.size() == 2 && shared.artifacts.size() == 1 && shared.artifacts[0].name == "Creeping Hunger");
     const Relationship& toKlein = shared.characters[0].relationships.at(0);
     CHECK(toKlein.characterId == 0 && toKlein.name == "Klein Moretti");
@@ -1514,10 +1525,10 @@ static void testSampleImport() {
     CHECK(sampleSetFileFor(renamed, "max's CHARACTERS") == "max.json");
     CHECK(sampleSetFileFor(renamed, "Something new") == "something_new.json");
     std::vector<int> pickedCharacters, pickedArtifacts, pickedEvents;
-    defaultSharePicks(friendApp.db, renamed, "max.json", pickedCharacters, pickedArtifacts, pickedEvents);
+    sharePicks(friendApp.db, renamed, "max.json", pickedCharacters, pickedArtifacts, pickedEvents);
     CHECK(pickedCharacters.size() == 2 && pickedArtifacts.size() == 1);
     CHECK(std::find(pickedCharacters.begin(), pickedCharacters.end(), friendOwn.id) == pickedCharacters.end());
-    defaultSharePicks(friendApp.db, renamed, "something_new.json", pickedCharacters, pickedArtifacts, pickedEvents);
+    sharePicks(friendApp.db, renamed, "something_new.json", pickedCharacters, pickedArtifacts, pickedEvents);
     CHECK(pickedCharacters.size() == 2 && pickedArtifacts.empty());  // Klein and Fors, in no set yet
     fs::remove_all(root);
 }
@@ -2080,7 +2091,7 @@ static void testSampleSetEvents() {
 
     // A new sample set starts with every event ticked; "the ones with your ticked characters" are Klein's.
     std::vector<int> pickedCharacters, pickedArtifacts, pickedEvents;
-    defaultSharePicks(app.db, {}, "kleins_story.json", pickedCharacters, pickedArtifacts, pickedEvents);
+    sharePicks(app.db, {}, "kleins_story.json", pickedCharacters, pickedArtifacts, pickedEvents);
     CHECK((pickedEvents == std::vector<int>{both, ball, storm}));
     std::vector<int> picked = eventsWithCharacters(app.db, {klein.id});
     CHECK(picked == std::vector<int>{both});
@@ -2088,7 +2099,7 @@ static void testSampleSetEvents() {
     // Sharing Klein, his event and the storm: the glove (held in a stage) and the mask (at his event)
     // come along. Audrey stays a name.
     picked.push_back(storm);
-    const SampleSet set = makeSampleSet(app.db, "Klein's Story", "", {klein.id}, {}, picked);
+    const SampleSet set = makeSampleSet(app.db, "Klein's Story", "", {{klein.id}, {}, picked, {}});
     CHECK(set.characters.size() == 1 && set.artifacts.size() == 2);
     CHECK(set.events.size() == 2 && set.events[0].title == "The first gathering" && set.events[1].title == "A storm at sea");
     CHECK(set.events[0].people[1].characterId == 0 && set.events[0].people[1].name == "Audrey Hall");
@@ -2096,14 +2107,14 @@ static void testSampleSetEvents() {
     const auto loaded = app.storage.loadSampleSets();
     CHECK(loaded.size() == 1 && loaded[0].events.size() == 2 && loaded[0].events[0].people.size() == 2);
     // Only events: Audrey's ball on its own, with Audrey as a name.
-    const SampleSet ballOnly = makeSampleSet(app.db, "The ball", "", {}, {}, {ball});
+    const SampleSet ballOnly = makeSampleSet(app.db, "The ball", "", {{}, {}, {ball}, {}});
     CHECK(ballOnly.characters.empty() && ballOnly.events.size() == 1 && ballOnly.events[0].people[0].characterId == 0);
     // Sharing Klein's set again ticks its events and a new one with Klein in it; a new set ticks the
     // events no set has yet.
     const int later = event("Klein returns", "1352", {who(klein.id, "", "")});
-    defaultSharePicks(app.db, loaded, file.filename().string(), pickedCharacters, pickedArtifacts, pickedEvents);
+    sharePicks(app.db, loaded, file.filename().string(), pickedCharacters, pickedArtifacts, pickedEvents);
     CHECK((pickedCharacters == std::vector<int>{klein.id} && pickedEvents == std::vector<int>{both, storm, later}));
-    defaultSharePicks(app.db, loaded, "something_new.json", pickedCharacters, pickedArtifacts, pickedEvents);
+    sharePicks(app.db, loaded, "something_new.json", pickedCharacters, pickedArtifacts, pickedEvents);
     CHECK((pickedEvents == std::vector<int>{ball, later}));
     CHECK(eventInSampleSets(loaded, "something_new.json", *app.db.findEvent(storm)));
     CHECK(!eventInSampleSets(loaded, file.filename().string(), *app.db.findEvent(storm)));
@@ -2276,13 +2287,13 @@ static void testEventChanges() {
     CHECK(app.db.findCharacter(amon.id)->stages[0].secondPathway.pathwayId == "apprentice");
 
     // Shared, the change travels with Klein's event; a friend who imports it has it for their Klein.
-    const SampleSet set = makeSampleSet(app.db, "Angels", "", {klein.id}, {}, {rise.id});
+    const SampleSet set = makeSampleSet(app.db, "Angels", "", {{klein.id}, {}, {rise.id}, {}});
     CHECK(set.events.size() == 1 && set.events[0].people.size() == 2 && set.events[0].people[0].changed);
     // Shared without Klein, he is a name at it, with his change, for when he comes from another set.
-    const SampleSet eventOnly = makeSampleSet(app.db, "Amon", "", {}, {}, {rise.id});
+    const SampleSet eventOnly = makeSampleSet(app.db, "Amon", "", {{}, {}, {rise.id}, {}});
     CHECK(eventOnly.events.size() == 1 && eventOnly.events[0].people[0].characterId == 0 &&
           eventOnly.events[0].people[0].name == "Klein Moretti" && eventOnly.events[0].people[0].changed);
-    const SampleSet kleinOnly = makeSampleSet(app.db, "Klein", "", {klein.id}, {}, {});
+    const SampleSet kleinOnly = makeSampleSet(app.db, "Klein", "", {{klein.id}, {}, {}, {}});
     const fs::path other = root / "other";
     fs::create_directories(other / "samples");
     fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", other / "pathways.json");
@@ -2311,6 +2322,205 @@ static void testEventChanges() {
     // Deleting Klein keeps him in the event by name, without the change.
     deleteCharacter(app, klein.id);
     CHECK(app.db.findEvent(rise.id)->people[0].characterId == 0 && !app.db.findEvent(rise.id)->people[0].changed);
+    fs::remove_all(root);
+}
+
+// Organizations: who belongs to one, renaming it everywhere, its strength, and sharing it.
+static void testOrganizations() {
+    const fs::path root = fs::temp_directory_path() / "lotm_tests_organizations";
+    fs::remove_all(root);
+    fs::create_directories(root / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+    App app{Database{}, Storage(root / "data"), Dice{}};
+    app.storage.loadAll(app.db);
+
+    auto person = [&](const std::string& name, const std::string& organization, const std::string& rank, int sequence) {
+        Character c;
+        c.id = app.db.nextCharacterId();
+        c.name = name;
+        c.pathwayId = "seer";
+        c.sequence = sequence;
+        c.affiliation = {organization, rank};
+        saveCharacter(app, c, true);
+        return c.id;
+    };
+    const int klein = person("Klein Moretti", "Tarot Club", "The Fool", 0);
+    const int audrey = person("Audrey Hall", "tarot club ", "Justice", 2);
+    const int alger = person("Alger Wilson", "The Club above the grey fog", "The Hanged Man", 2);
+    const int derrick = person("Derrick Berg", "Tarot Club", "The Sun", 4);
+    const int dunn = person("Dunn Smith", "Nighthawks (Church of the Evernight Goddess)", "Captain", 7);
+    const int amon = person("Amon", "Independent", "", 0);
+    app.db.findCharacter(amon)->aboveSequence = true;
+
+    // An organization isn't saved yet: the names your characters use are offered, most used first.
+    std::vector<UnsavedOrganization> unsaved = organizationsNotSaved(app.db);
+    CHECK(unsaved.size() == 3 && unsaved[0].name == "Tarot Club" && unsaved[0].members == 3);
+    const Organization fromMembers = organizationFromMembers(app.db, "Tarot Club");
+    CHECK(fromMembers.name == "Tarot Club" && fromMembers.ranks.size() == 3);
+
+    Organization club;
+    club.id = app.db.nextOrganizationId();
+    club.name = "Tarot Club";
+    club.alsoKnownAs = {"The Club above the grey fog", " "};
+    club.leader = "klein moretti";  // typed, linked to the saved character when saved
+    club.ranks = {"The Fool", "The World", "Justice", "The Hanged Man", "The Sun"};
+    club.otherMembers = {"Will Auceptin", ""};
+    CHECK(saveOrganization(app, club, true) == 0);
+    CHECK(club.leaderId == klein && club.leader == "Klein Moretti");
+    CHECK(club.alsoKnownAs.size() == 1 && club.otherMembers.size() == 1);  // empty lines go
+    CHECK(organizationCode(club.id) == "O-001");
+    Organization hawks;
+    hawks.id = app.db.nextOrganizationId();
+    hawks.name = "Nighthawks";
+    hawks.leader = "Dunn Smith";
+    saveOrganization(app, hawks, true);
+    const Organization* savedClub = app.db.findOrganization(club.id);
+
+    // Who names it: its name or another name it goes by (any capitals), or the part before a bracket.
+    CHECK(namesOrganization(*savedClub, " TAROT CLUB"));
+    CHECK(namesOrganization(*savedClub, "the club above the grey fog"));
+    CHECK(!namesOrganization(*savedClub, "Tarot"));
+    CHECK(organizationNamed(app.db, "Nighthawks (Church of the Evernight Goddess)") == app.db.findOrganization(hawks.id));
+    CHECK(organizationNamed(app.db, "Independent") == nullptr && isIndependent(" independent") && isIndependent(""));
+    // A second organization with the exact name takes it from one that only matches before the bracket.
+    Organization church;
+    church.id = 99;
+    church.name = "Nighthawks (Church of the Evernight Goddess)";
+    CHECK(belongsTo(app.db, church, "Nighthawks (Church of the Evernight Goddess)"));
+    CHECK(!belongsTo(app.db, church, "Nighthawks"));
+
+    // Members: the leader, then by its ranks, then everyone else by name.
+    const std::vector<Member> members = membersOf(*savedClub, app.db);
+    CHECK(members.size() == 4);
+    CHECK(members[0].character->id == klein && members[0].leader && members[0].rankIndex == 0);
+    CHECK(members[1].character->id == audrey && members[2].character->id == alger && members[3].character->id == derrick);
+    CHECK(memberRole(members[0]) == "The Fool, leader" && memberRole(members[1]) == "Justice");
+    Member chief{members[0].character, "Leader", -1, true};
+    CHECK(memberRole(chief) == "Leader");
+    CHECK(leaderName(*app.db.findOrganization(hawks.id), app.db) == "Dunn Smith");
+    CHECK(app.db.findOrganization(hawks.id)->leaderId == dunn);
+
+    // Its strength comes from its saved members.
+    const OrganizationStrength strength = organizationStrength(*savedClub, app.db);
+    CHECK(strength.members == 4 && strength.others == 1);
+    CHECK(strength.strongest && strength.strongest->id == klein);
+    CHECK(strength.tiers[5] == 1 && strength.tiers[4] == 2 && strength.tiers[3] == 1);
+    CHECK(tierCounts(strength) == "1 god, 2 angels and 1 saint");
+    CHECK(powerScore(*app.db.findCharacter(amon)) == 11 && powerScore(*app.db.findCharacter(dunn)) == 3);
+
+    // Suggestions: your own first, then names nobody has written up, then the ready-made ones.
+    const std::vector<std::string> suggestions = organizationSuggestions(app.db);
+    CHECK(suggestions.size() > 3 && suggestions[0] == "Nighthawks" && suggestions[1] == "Tarot Club");
+    CHECK(std::count(suggestions.begin(), suggestions.end(), "Tarot Club") == 1);
+    const std::vector<std::string> keepers = keeperSuggestions(app.db);
+    CHECK(std::none_of(keepers.begin(), keepers.end(), [](const std::string& k) { return isIndependent(k); }));
+    const std::vector<std::string> ranks = rankSuggestions(app.db, "the club above the grey fog");
+    CHECK(ranks.size() == 5 && ranks[0] == "The Fool");
+    CHECK(organizationsNotSaved(app.db).empty());
+
+    // Joining and leaving change the character's affiliation.
+    joinOrganization(app, amon, *savedClub, " The World ");
+    CHECK(app.db.findCharacter(amon)->affiliation.organization == "Tarot Club");
+    CHECK(app.db.findCharacter(amon)->affiliation.rank == "The World");
+    CHECK(membersOf(*app.db.findOrganization(club.id), app.db)[1].character->id == amon);
+    leaveOrganization(app, amon);
+    CHECK(isIndependent(app.db.findCharacter(amon)->affiliation.organization));
+
+    // Someone who belonged to it in a stage, and left.
+    Character* dunnNow = app.db.findCharacter(dunn);
+    CharacterStage early;
+    early.date = date("1349");
+    early.affiliation = {"Tarot Club", "The Hermit"};
+    dunnNow->stages = {early};
+    dunnNow->nowSince = date("1350");
+    dunnNow->dossier.filedBy = "Tarot Club";
+    saveCharacter(app, *dunnNow, false);
+    const std::vector<FormerMember> former = formerMembersOf(*app.db.findOrganization(club.id), app.db);
+    CHECK(former.size() == 1 && former[0].character->id == dunn && former[0].rank == "The Hermit");
+    CHECK(formerMemberDates(former[0]) == "1349 to 1350");
+
+    // Renaming it renames it on every character that used the old name: now, in a stage, who filed a
+    // dossier. Alger's other name for it still names it, so it stays as he wrote it.
+    Organization renamed = *app.db.findOrganization(club.id);
+    renamed.name = "The Tarot Club";
+    CHECK(saveOrganization(app, renamed, false) == 4);  // Klein, Audrey, Derrick and Dunn
+    CHECK(app.db.findCharacter(klein)->affiliation.organization == "The Tarot Club");
+    CHECK(app.db.findCharacter(audrey)->affiliation.organization == "The Tarot Club");
+    CHECK(app.db.findCharacter(alger)->affiliation.organization == "The Club above the grey fog");
+    CHECK(app.db.findCharacter(dunn)->stages[0].affiliation.organization == "The Tarot Club");
+    CHECK(app.db.findCharacter(dunn)->dossier.filedBy == "The Tarot Club");
+    CHECK(membersOf(*app.db.findOrganization(club.id), app.db).size() == 4);
+
+    // Saved and read back.
+    {
+        Database reloaded;
+        app.storage.loadAll(reloaded);
+        CHECK(reloaded.organizations.size() == 2);
+        const Organization* back = reloaded.findOrganization(club.id);
+        CHECK(back && back->name == "The Tarot Club" && back->leaderId == klein && back->ranks.size() == 5);
+        CHECK(back && back->alsoKnownAs == std::vector<std::string>{"The Club above the grey fog"});
+        CHECK(reloaded.findCharacter(klein)->affiliation.organization == "The Tarot Club");
+    }
+
+    // The sheet lists its ranks and members.
+    const Sheet sheet = buildOrganizationSheet(*app.db.findOrganization(club.id), app.db);
+    CHECK(sheet.title == "The Tarot Club" && sheet.kind == "Organization" && sheet.anchor == "o-1");
+    const std::string text = renderText(sheet);
+    CHECK(text.find("Klein Moretti (C-001), The Fool, leader") != std::string::npos);
+    CHECK(text.find("Will Auceptin") != std::string::npos);
+    CHECK(text.find("Former Members") != std::string::npos);
+    CHECK(exportName(*app.db.findOrganization(club.id)) == "organization-1-the-tarot-club");
+
+    // Side by side: Klein knows Dunn, who is in the Nighthawks now.
+    Character* kleinNow = app.db.findCharacter(klein);
+    kleinNow->relationships.push_back({dunn, "Dunn Smith", "Friend", ""});
+    const Comparison side = buildOrganizationComparison({app.db.findOrganization(club.id), app.db.findOrganization(hawks.id)}, app.db);
+    CHECK(side.names == std::vector<std::string>({"The Tarot Club", "Nighthawks"}));
+    CHECK(side.sections.size() == 2 && side.sections[1].heading == "Strength");
+    CHECK(side.sections[1].rows[0].label == "Members" && side.sections[1].rows[0].highest == std::vector<bool>({true, false}));
+    CHECK(side.between.size() == 1 && side.between[0].find("Klein Moretti (The Tarot Club)") != std::string::npos);
+
+    // Sharing Audrey takes her organization along; its leader isn't shared, so goes by name.
+    const SampleSet set = makeSampleSet(app.db, "Audrey", "", {{audrey}, {}, {}, {}});
+    CHECK(set.organizations.size() == 1 && set.organizations[0].name == "The Tarot Club");
+    CHECK(set.organizations[0].leaderId == 0 && set.organizations[0].leader == "Klein Moretti");
+    app.storage.saveSampleSet(set, sampleSetFileName(set.title));
+    const auto loaded = app.storage.loadSampleSets();
+    CHECK(loaded.size() == 1 && loaded[0].organizations.size() == 1);
+
+    // A friend imports it: the organization comes too, and links its leader by name once he exists.
+    const fs::path friendRoot = root / "friend";
+    fs::create_directories(friendRoot / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", friendRoot / "data" / "pathways.json");
+    App friendApp{Database{}, Storage(friendRoot / "data"), Dice{}};
+    friendApp.storage.loadAll(friendApp.db);
+    const SampleImportReport report = importSampleSet(friendApp, loaded[0]);
+    CHECK(report.addedOrganizations == std::vector<std::string>{"The Tarot Club"});
+    CHECK(friendApp.db.organizations.size() == 1 && friendApp.db.organizations[0].leaderId == 0);
+    CHECK(membersOf(friendApp.db.organizations[0], friendApp.db).size() == 1);
+    Character friendsKlein;
+    friendsKlein.id = friendApp.db.nextCharacterId();
+    friendsKlein.name = "Klein Moretti";
+    saveCharacter(friendApp, friendsKlein, true);
+    CHECK(friendApp.db.organizations[0].leaderId == friendsKlein.id);
+    friendsKlein.name = "Gehrman Sparrow";
+    saveCharacter(friendApp, friendsKlein, false);
+    CHECK(friendApp.db.organizations[0].leader == "Gehrman Sparrow");
+    {
+        Database reloaded;
+        friendApp.storage.loadAll(reloaded);
+        CHECK(reloaded.organizations.size() == 1 && reloaded.organizations[0].leaderId == friendsKlein.id);
+    }
+    const SampleImportReport again = importSampleSet(friendApp, loaded[0]);
+    CHECK(again.addedOrganizations.empty() && friendApp.db.organizations.size() == 1);  // same name, same one
+
+    // Deleting its leader keeps their name as the leader.
+    deleteCharacter(app, klein);
+    const Organization* leaderless = app.db.findOrganization(club.id);
+    CHECK(leaderless->leaderId == 0 && leaderless->leader == "Klein Moretti");
+    deleteOrganization(app, hawks.id);
+    CHECK(app.db.findOrganization(hawks.id) == nullptr && app.db.organizations.size() == 1);
+    CHECK(app.db.findCharacter(dunn)->affiliation.organization == "Nighthawks (Church of the Evernight Goddess)");
     fs::remove_all(root);
 }
 
@@ -2349,6 +2559,7 @@ int main() {
     testStoryEvents();
     testSampleSetEvents();
     testEventChanges();
+    testOrganizations();
     if (failures == 0) {
         std::cout << "All checks passed.\n";
         return 0;

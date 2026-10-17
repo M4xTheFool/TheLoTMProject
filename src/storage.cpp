@@ -296,6 +296,7 @@ void Storage::loadAll(Database& db) const {
     db.characters = readList<Character>(dataDir_ / "characters.json", "characters");
     db.artifacts = readList<Artifact>(dataDir_ / "artifacts.json", "artifacts");
     db.events = readList<StoryEvent>(dataDir_ / "events.json", "events");
+    db.organizations = readList<Organization>(dataDir_ / "organizations.json", "organizations");
 
     if (fs::exists(dataDir_ / "settings.json", ec)) {
         try {
@@ -319,6 +320,11 @@ void Storage::saveArtifacts(const Database& db) const {
 void Storage::saveEvents(const Database& db) const {
     writeJsonFile(dataDir_ / "events.json", json{{"version", 1}, {"events", db.events}}, backupsDir(),
                   db.settings.backupsToKeep);
+}
+
+void Storage::saveOrganizations(const Database& db) const {
+    writeJsonFile(dataDir_ / "organizations.json", json{{"version", 1}, {"organizations", db.organizations}},
+                  backupsDir(), db.settings.backupsToKeep);
 }
 
 void Storage::saveSettings(const Database& db) const {
@@ -360,6 +366,7 @@ fs::path Storage::saveSampleSet(const SampleSet& set, const std::string& fileNam
     data["characters"] = ordered_json(json(set.characters));
     data["artifacts"] = ordered_json(json(set.artifacts));
     if (!set.events.empty()) data["events"] = ordered_json(json(set.events));
+    if (!set.organizations.empty()) data["organizations"] = ordered_json(json(set.organizations));
     const fs::path file = samplesDir() / fileName;
     writeJsonFile(file, data, backupsDir(), 0);  // the old version is in git
     return file;
@@ -380,6 +387,7 @@ std::vector<SampleSet> Storage::loadSampleSets() const {
             set.characters = data.value("characters", json::array()).get<std::vector<Character>>();
             set.artifacts = data.value("artifacts", json::array()).get<std::vector<Artifact>>();
             set.events = data.value("events", json::array()).get<std::vector<StoryEvent>>();
+            set.organizations = data.value("organizations", json::array()).get<std::vector<Organization>>();
         } catch (const json::exception& e) {
             throw StorageError("samples/" + entry.path().filename().string() +
                                " has an entry in the wrong shape.\nDetails: " + e.what());

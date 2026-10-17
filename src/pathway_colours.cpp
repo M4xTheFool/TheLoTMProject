@@ -1,5 +1,6 @@
 #include "pathway_colours.hpp"
 
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -57,6 +58,18 @@ Rgb pathwayRgb(const Database& db, const std::string& pathwayId) {
     if (auto it = kGroups.find(p->group); it != kGroups.end()) return it->second;
     const std::string key = p->group.empty() ? p->id : p->group;
     return fromHsv(static_cast<float>(textHash(key) % 360) / 360.0f, 0.5f, 0.86f);
+}
+
+Rgb organizationRgb(const Database& db, const Organization& o) {
+    for (const auto& id : o.pathwayIds) {
+        if (db.findPathway(id)) return pathwayRgb(db, id);
+    }
+    if (const Character* leader = o.leaderId != 0 ? db.findCharacter(o.leaderId) : nullptr) {
+        if (db.findPathway(leader->pathwayId)) return pathwayRgb(db, leader->pathwayId);
+    }
+    std::string name;
+    for (unsigned char ch : o.name) name += static_cast<char>(std::tolower(ch));
+    return fromHsv(static_cast<float>(textHash("organization " + name) % 360) / 360.0f, 0.45f, 0.84f);
 }
 
 Rgb onLightBackground(const Rgb& colour) {

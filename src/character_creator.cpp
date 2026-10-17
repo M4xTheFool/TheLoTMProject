@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "app.hpp"
+#include "organizations.hpp"
 #include "presets.hpp"
 #include "records.hpp"
 #include "relations.hpp"
@@ -447,9 +448,11 @@ void editRelationships(const App& app, Character& c) {
 
 void stepAffiliation(const App& app, Character& c) {
     ui::header("6. Affiliation and relationships");
-    c.affiliation.organization = ui::choosePreset("Organization", kOrganizations, c.affiliation.organization);
+    c.affiliation.organization = ui::choosePreset("Organization", organizationSuggestions(app.db), c.affiliation.organization);
     if (!c.affiliation.organization.empty()) {
-        c.affiliation.rank = ui::readText("Rank or role", c.affiliation.rank);
+        const auto ranks = rankSuggestions(app.db, c.affiliation.organization);
+        c.affiliation.rank = ranks.empty() ? ui::readText("Rank or role", c.affiliation.rank)
+                                           : ui::choosePreset("Rank or role", ranks, c.affiliation.rank);
     } else {
         c.affiliation.rank.clear();
     }
@@ -626,13 +629,11 @@ void stepArtifacts(App& app, Character& c) {
 
 // ---------------------------------------------------------------- step 9
 
-void stepDossier(Character& c) {
+void stepDossier(const App& app, Character& c) {
     ui::header("9. Dossier");
     ui::info("An official file on the character, as the Nighthawks or another agency would keep it. All optional.");
     Dossier& d = c.dossier;
-    std::vector<std::string> keepers = kOrganizations;
-    keepers.erase(std::remove(keepers.begin(), keepers.end(), "Independent"), keepers.end());
-    d.filedBy = ui::choosePreset("Filed by", keepers, d.filedBy);
+    d.filedBy = ui::choosePreset("Filed by", keeperSuggestions(app.db), d.filedBy);
 
     std::string current = d.recentActions.empty() ? "" : " [current: " + d.recentActions + "]";
     int pick = ui::choose("Recent actions" + current, kRecentActions, "Nothing on file", true);
@@ -705,7 +706,7 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
         stepAffiliation(app, c);
         stepStats(app, c);
         stepArtifacts(app, c);
-        stepDossier(c);
+        stepDossier(app, c);
         stepNotes(c);
     }
 
@@ -730,7 +731,7 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
             case 6: stepAffiliation(app, c); break;
             case 7: stepStats(app, c); break;
             case 8: stepArtifacts(app, c); break;
-            case 9: stepDossier(c); break;
+            case 9: stepDossier(app, c); break;
             case 10: stepNotes(c); break;
             case 11: editStages(app, c); break;
             case 12:

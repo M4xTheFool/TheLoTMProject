@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "model_json.hpp"
+#include "organizations.hpp"
 #include "relations.hpp"
 #include "rules.hpp"
 #include "story.hpp"
@@ -18,6 +19,19 @@ bool sameName(const std::string& a, const std::string& b) {
     return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [](unsigned char x, unsigned char y) {
                return std::tolower(x) == std::tolower(y);
            });
+}
+
+std::string trimmed(const std::string& text) {
+    const auto first = text.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) return "";
+    const auto last = text.find_last_not_of(" \t\r\n");
+    return text.substr(first, last - first + 1);
+}
+
+// Trims each line and drops the empty ones.
+void tidyLines(std::vector<std::string>& lines) {
+    for (auto& line : lines) line = trimmed(line);
+    lines.erase(std::remove(lines.begin(), lines.end(), std::string()), lines.end());
 }
 
 }  // namespace
@@ -36,10 +50,22 @@ CharacterSaveReport saveCharacter(App& app, Character& c, bool isNew) {
     } else if (Character* existing = app.db.findCharacter(c.id)) {
         *existing = c;
     }
+    // An organization led by someone typed by name gets them as its leader once they are saved, and one
+    // they lead follows a new name.
+    const auto organizationsBackup = app.db.organizations;
+    bool leadersChanged = false;
+    for (Organization& o : app.db.organizations) {
+        const int leaderId = o.leaderId;
+        const std::string leader = o.leader;
+        linkLeaderByName(app.db, o);
+        leadersChanged = leadersChanged || o.leaderId != leaderId || o.leader != leader;
+    }
     try {
         app.storage.saveCharacters(app.db);
+        if (leadersChanged) app.storage.saveOrganizations(app.db);
     } catch (const StorageError&) {
         app.db.characters = backup;
+        app.db.organizations = organizationsBackup;
         throw;
     }
     return report;
@@ -87,12 +113,22 @@ void deleteCharacter(App& app, int id) {
             inEvents = true;
         }
     }
+    const auto organizationsBackup = app.db.organizations;
+    bool led = false;
+    for (auto& o : app.db.organizations) {
+        if (o.leaderId != id) continue;
+        o.leaderId = 0;
+        if (!name.empty()) o.leader = name;
+        led = true;
+    }
     try {
         app.storage.saveCharacters(app.db);
         if (inEvents) app.storage.saveEvents(app.db);
+        if (led) app.storage.saveOrganizations(app.db);
     } catch (const StorageError&) {
         app.db.characters = backup;
         app.db.events = eventsBackup;
+        app.db.organizations = organizationsBackup;
         throw;
     }
 }
@@ -209,6 +245,104 @@ void deleteEvent(App& app, int id) {
     }
 }
 
+int saveOrganization(App& app, Organization& o, bool isNew) {
+    const auto organizationsBackup = app.db.organizations;
+    const auto charactersBackup = app.db.characters;
+    const auto eventsBackup = app.db.events;
+    o.name = trimmed(o.name);
+    tidyLines(o.alsoKnownAs);
+    tidyLines(o.ranks);
+    tidyLines(o.otherMembers);
+    std::vector<std::string> pathways;
+    for (const auto& id : o.pathwayIds) {
+        if (!id.empty() && std::find(pathways.begin(), pathways.end(), id) == pathways.end()) pathways.push_back(id);
+    }
+    o.pathwayIds = pathways;
+    linkLeaderByName(app.db, o);
+    const std::string now = nowTimestamp();
+    o.updatedAt = now;
+
+    // A new name goes to every affiliation that named it by the old one, or that the new name wouldn't
+    // match any more. One that still names it (another name it is known as) stays as typed.
+    int renamed = 0;
+    bool charactersChanged = false, eventsChanged = false;
+    const Organization* saved = isNew ? nullptr : app.db.findOrganization(o.id);
+    if (saved && saved->name != o.name && !o.name.empty()) {
+        auto rename = [&](std::string& text) {
+            if (organizationNamed(app.db, text) != saved) return false;
+            if (!sameName(trimmed(text), saved->name) && namesOrganization(o, text)) return false;
+            text = o.name;
+            return true;
+        };
+        for (Character& c : app.db.characters) {
+            bool changed = rename(c.affiliation.organization);
+            for (CharacterStage& stage : c.stages) changed = rename(stage.affiliation.organization) || changed;
+            changed = rename(c.dossier.filedBy) || changed;
+            if (!changed) continue;
+            c.updatedAt = now;
+            ++renamed;
+            charactersChanged = true;
+        }
+        for (StoryEvent& e : app.db.events) {
+            bool changed = false;
+            for (EventPerson& p : e.people) {
+                if (p.changed) changed = rename(p.change.affiliation.organization) || changed;
+            }
+            if (!changed) continue;
+            e.updatedAt = now;
+            eventsChanged = true;
+        }
+    }
+
+    if (isNew) {
+        if (o.id <= 0 || app.db.findOrganization(o.id)) o.id = app.db.nextOrganizationId();
+        o.createdAt = now;
+        app.db.organizations.push_back(o);
+    } else if (Organization* existing = app.db.findOrganization(o.id)) {
+        *existing = o;
+    }
+    try {
+        app.storage.saveOrganizations(app.db);
+        if (charactersChanged) app.storage.saveCharacters(app.db);
+        if (eventsChanged) app.storage.saveEvents(app.db);
+    } catch (const StorageError&) {
+        app.db.organizations = organizationsBackup;
+        app.db.characters = charactersBackup;
+        app.db.events = eventsBackup;
+        throw;
+    }
+    return renamed;
+}
+
+void deleteOrganization(App& app, int id) {
+    const auto backup = app.db.organizations;
+    auto& list = app.db.organizations;
+    list.erase(std::remove_if(list.begin(), list.end(), [id](const Organization& o) { return o.id == id; }), list.end());
+    try {
+        app.storage.saveOrganizations(app.db);
+    } catch (const StorageError&) {
+        app.db.organizations = backup;
+        throw;
+    }
+}
+
+void joinOrganization(App& app, int characterId, const Organization& o, const std::string& rank) {
+    const Character* saved = app.db.findCharacter(characterId);
+    if (!saved) throw StorageError("That character no longer exists.");
+    Character c = *saved;
+    c.affiliation.organization = o.name;
+    c.affiliation.rank = trimmed(rank);
+    saveCharacter(app, c, false);
+}
+
+void leaveOrganization(App& app, int characterId) {
+    const Character* saved = app.db.findCharacter(characterId);
+    if (!saved) throw StorageError("That character no longer exists.");
+    Character c = *saved;
+    c.affiliation = Affiliation{};
+    saveCharacter(app, c, false);
+}
+
 // The same record apart from when it was created and edited.
 template <typename Record>
 bool sameDetails(Record a, Record b) {
@@ -225,6 +359,7 @@ SampleImportReport importParts(App& app, const SampleSet& set, bool records, boo
     const auto charactersBackup = app.db.characters;
     const auto artifactsBackup = app.db.artifacts;
     const auto eventsBackup = app.db.events;
+    const auto organizationsBackup = app.db.organizations;
     const std::string now = nowTimestamp();
     // A set's own edit time is kept, so a newer version shared later can be told apart. A record
     // with no edit time (written by hand) never counts as newer than a saved one.
@@ -351,6 +486,36 @@ SampleImportReport importParts(App& app, const SampleSet& set, bool records, boo
         charactersChanged = true;
     }
 
+    // Organizations: the same name is the same organization. A leader is linked to the set's characters
+    // as they are saved here, or by name.
+    bool organizationsChanged = false;
+    for (Organization o : records ? set.organizations : std::vector<Organization>{}) {
+        const auto leader = characterIds.find(o.leaderId);
+        o.leaderId = o.leaderId != 0 && leader != characterIds.end() ? leader->second : 0;
+        linkLeaderByName(app.db, o);
+        const auto saved = std::find_if(app.db.organizations.begin(), app.db.organizations.end(),
+                                        [&](const Organization& x) { return sameName(x.name, o.name); });
+        if (saved != app.db.organizations.end()) {
+            o.id = saved->id;
+            o.createdAt = saved->createdAt;
+            const bool isNewer = newer(o.updatedAt, saved->updatedAt);
+            o.updatedAt = editedAt(o.updatedAt);
+            if (isNewer && !sameDetails(o, *saved)) {
+                *saved = o;
+                organizationsChanged = true;
+                report.updated.push_back(o.name);
+            } else {
+                report.skipped.push_back(o.name);
+            }
+            continue;
+        }
+        o.id = app.db.nextOrganizationId();
+        o.createdAt = o.updatedAt = editedAt(o.updatedAt);
+        app.db.organizations.push_back(o);
+        organizationsChanged = true;
+        report.addedOrganizations.push_back(o.name);
+    }
+
     // Story events: the same title and date is the same event. People are linked to the set's
     // characters as they are saved here, or by name.
     bool eventsChanged = false;
@@ -398,10 +563,12 @@ SampleImportReport importParts(App& app, const SampleSet& set, bool records, boo
         if (artifactsChanged) app.storage.saveArtifacts(app.db);
         if (charactersChanged) app.storage.saveCharacters(app.db);
         if (eventsChanged) app.storage.saveEvents(app.db);
+        if (organizationsChanged) app.storage.saveOrganizations(app.db);
     } catch (const StorageError&) {
         app.db.characters = charactersBackup;
         app.db.artifacts = artifactsBackup;
         app.db.events = eventsBackup;
+        app.db.organizations = organizationsBackup;
         throw;
     }
     return report;
@@ -417,6 +584,7 @@ SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& s
         for (auto& name : report.addedCharacters) total.addedCharacters.push_back(std::move(name));
         for (auto& name : report.addedArtifacts) total.addedArtifacts.push_back(std::move(name));
         for (auto& name : report.addedEvents) total.addedEvents.push_back(std::move(name));
+        for (auto& name : report.addedOrganizations) total.addedOrganizations.push_back(std::move(name));
         for (auto& name : report.updated) total.updated.push_back(std::move(name));
         for (auto& name : report.skipped) total.skipped.push_back(std::move(name));
     };
@@ -427,13 +595,20 @@ SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& s
 }
 
 SampleSet makeSampleSet(const Database& db, const std::string& title, const std::string& description,
-                        const std::vector<int>& characterIds, const std::vector<int>& artifactIds,
-                        const std::vector<int>& eventIds) {
+                        const SharePicks& picks) {
     SampleSet set;
     set.title = title;
     set.description = description;
     auto picked = [](const std::vector<int>& ids, int id) { return std::find(ids.begin(), ids.end(), id) != ids.end(); };
-    std::vector<int> artifacts = artifactIds;
+    const std::vector<int>& characterIds = picks.characterIds;
+    const std::vector<int>& eventIds = picks.eventIds;
+    std::vector<int> artifacts = picks.artifactIds;
+    std::vector<int> organizations = picks.organizationIds;
+    auto belongsTo = [&](const std::string& affiliation) {
+        if (const Organization* o = organizationNamed(db, affiliation); o && !picked(organizations, o->id)) {
+            organizations.push_back(o->id);
+        }
+    };
     for (const auto& c : db.characters) {
         if (!picked(characterIds, c.id)) continue;
         Character copy = c;
@@ -450,7 +625,9 @@ SampleSet makeSampleSet(const Database& db, const std::string& title, const std:
             for (int id : stage.artifactIds) {
                 if (!picked(artifacts, id)) artifacts.push_back(id);
             }
+            belongsTo(stage.affiliation.organization);
         }
+        belongsTo(copy.affiliation.organization);
         set.characters.push_back(std::move(copy));
     }
     for (const StoryEvent* e : eventsInOrder(db)) {
@@ -474,6 +651,15 @@ SampleSet makeSampleSet(const Database& db, const std::string& title, const std:
     }
     for (const auto& a : db.artifacts) {
         if (picked(artifacts, a.id)) set.artifacts.push_back(a);
+    }
+    for (const auto& o : db.organizations) {
+        if (!picked(organizations, o.id)) continue;
+        Organization copy = o;
+        if (copy.leaderId != 0 && !picked(characterIds, copy.leaderId)) {  // left out: by name only
+            copy.leader = leaderName(o, db);
+            copy.leaderId = 0;
+        }
+        set.organizations.push_back(std::move(copy));
     }
     return set;
 }
@@ -512,6 +698,7 @@ std::vector<std::string> namesInSampleSets(const std::vector<SampleSet>& sets, c
         if (set.file.filename().string() == exceptFile) continue;
         for (const auto& c : set.characters) names.push_back(lower(c.name));
         for (const auto& a : set.artifacts) names.push_back(lower(a.name));
+        for (const auto& o : set.organizations) names.push_back(lower(o.name));
     }
     return names;
 }
@@ -532,51 +719,58 @@ std::string sampleSetFileFor(const std::vector<SampleSet>& sets, const std::stri
     return sampleSetFileName(title);
 }
 
-void defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, const std::string& fileName,
-                       std::vector<int>& characterIds, std::vector<int>& artifactIds, std::vector<int>& eventIds) {
-    characterIds.clear();
-    artifactIds.clear();
-    eventIds.clear();
+SharePicks defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, const std::string& fileName) {
+    SharePicks picks;
     const auto existing = std::find_if(sets.begin(), sets.end(),
                                        [&](const SampleSet& set) { return set.file.filename().string() == fileName; });
     if (existing != sets.end()) {
         for (const auto& c : db.characters) {
             if (std::any_of(existing->characters.begin(), existing->characters.end(),
                             [&](const Character& x) { return sameName(x.name, c.name); })) {
-                characterIds.push_back(c.id);
+                picks.characterIds.push_back(c.id);
             }
         }
         for (const auto& a : db.artifacts) {
             if (std::any_of(existing->artifacts.begin(), existing->artifacts.end(),
                             [&](const Artifact& x) { return sameName(x.name, a.name); })) {
-                artifactIds.push_back(a.id);
+                picks.artifactIds.push_back(a.id);
+            }
+        }
+        for (const auto& o : db.organizations) {
+            if (std::any_of(existing->organizations.begin(), existing->organizations.end(),
+                            [&](const Organization& x) { return sameName(x.name, o.name); })) {
+                picks.organizationIds.push_back(o.id);
             }
         }
         // Its events, and the ones written since with its characters in them, so they aren't left behind.
-        const std::vector<int> withThem = eventsWithCharacters(db, characterIds);
+        const std::vector<int> withThem = eventsWithCharacters(db, picks.characterIds);
         for (const StoryEvent* e : eventsInOrder(db)) {
             const bool inThisSet = std::any_of(existing->events.begin(), existing->events.end(), [&](const StoryEvent& x) {
                 return sameName(x.title, e->title) && sameStoryDate(x.date, e->date);
             });
             const bool newWithThem = std::find(withThem.begin(), withThem.end(), e->id) != withThem.end() &&
                                      !eventInSampleSets(sets, fileName, *e);
-            if (inThisSet || newWithThem) eventIds.push_back(e->id);
+            if (inThisSet || newWithThem) picks.eventIds.push_back(e->id);
         }
-        return;
+        return picks;
     }
     const auto taken = namesInSampleSets(sets, fileName);
     auto isTaken = [&](const std::string& name) {
         return std::any_of(taken.begin(), taken.end(), [&](const std::string& t) { return sameName(t, name); });
     };
     for (const auto& c : db.characters) {
-        if (!isTaken(c.name)) characterIds.push_back(c.id);
+        if (!isTaken(c.name)) picks.characterIds.push_back(c.id);
     }
     for (const auto& a : db.artifacts) {
-        if (!isTaken(a.name)) artifactIds.push_back(a.id);
+        if (!isTaken(a.name)) picks.artifactIds.push_back(a.id);
+    }
+    for (const auto& o : db.organizations) {
+        if (!isTaken(o.name)) picks.organizationIds.push_back(o.id);
     }
     for (const StoryEvent* e : eventsInOrder(db)) {
-        if (!eventInSampleSets(sets, fileName, *e)) eventIds.push_back(e->id);
+        if (!eventInSampleSets(sets, fileName, *e)) picks.eventIds.push_back(e->id);
     }
+    return picks;
 }
 
 void saveCustomPathway(App& app, Pathway& p, bool isNew) {

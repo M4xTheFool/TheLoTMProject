@@ -28,6 +28,7 @@ void runSefirotMenu(App& app);
 void runTimelineMenu(App& app);
 void runWebMenu(App& app);
 void runDiceMenu(App& app);
+void runOrganizationMenu(App& app);
 // The character creator's Stages step: how they were earlier in the story, each from a date on.
 void editStages(const App& app, Character& c);
 // The creator's questions about Sequence 1 (Beyonder characteristics, the Uniqueness) and Sequence 0 (the
@@ -41,10 +42,13 @@ void editAbilityList(std::vector<std::string>& abilities, const std::string& who
 // A saved character from a numbered list, or 0.
 int chooseCharacter(const App& app, const std::string& title, const std::string& zeroLabel = "Cancel");
 int choosePathway(const App& app, const std::string& title, const std::string& zeroLabel, bool allowKeep);
+// Reads a date in the story until it makes sense. Enter keeps the current one, "-" clears it (unless required).
+StoryDate readStoryDate(const std::string& prompt, const StoryDate& current, bool required = false);
 void exportCharacter(App& app, int id);
 void exportArtifact(App& app, int id);
 void exportPathway(App& app, const std::string& id);
 void exportSefirah(App& app, const std::string& id);
+void exportOrganization(App& app, int id);
 // Every story event, or one character's (characterId != 0).
 void exportTimeline(App& app, int characterId);
 void exportWeb(App& app);

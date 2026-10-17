@@ -3,6 +3,7 @@
 
 #include "app.hpp"
 #include "exporter.hpp"
+#include "organizations.hpp"
 #include "sheet.hpp"
 #include "storage.hpp"
 #include "story.hpp"
@@ -71,6 +72,14 @@ void exportSefirah(App& app, const std::string& id) {
     exportSheets(app, exportName(*s), *format, {buildSefirahSheet(*s, app.db)}, s->name);
 }
 
+void exportOrganization(App& app, int id) {
+    const Organization* o = app.db.findOrganization(id);
+    if (!o) return;
+    auto format = chooseFormat();
+    if (!format) return;
+    exportSheets(app, exportName(*o), *format, {buildOrganizationSheet(*o, app.db)}, o->name);
+}
+
 void exportTimeline(App& app, int characterId) {
     const Character* c = app.db.findCharacter(characterId);
     if (app.db.events.empty()) {
@@ -99,9 +108,9 @@ void runExportMenu(App& app) {
         ui::header("Export");
         ui::info("Files go to: " + app.storage.exportsDir().string());
         int pick = ui::choose("",
-                              {"One character", "One Sealed Artifact", "One pathway", "One Sefirah",
-                               "Everything (characters, Sealed Artifacts, your own pathways and the Sefirot "
-                               "your characters hold, in one file)",
+                              {"One character", "One organization", "One Sealed Artifact", "One pathway", "One Sefirah",
+                               "Everything (characters, organizations, Sealed Artifacts, your own pathways and the "
+                               "Sefirot your characters hold, in one file)",
                                "The timeline (story events by date)", "The relationship web (who knows whom)"},
                               "Back to the main menu");
         if (pick == 0) {
@@ -111,27 +120,37 @@ void runExportMenu(App& app) {
             int which = ui::choose("Which character?", names, "Cancel");
             if (which >= 0) exportCharacter(app, app.db.characters[which].id);
         } else if (pick == 1) {
+            if (app.db.organizations.empty()) { ui::info("No organizations yet."); continue; }
+            const std::vector<const Organization*> list = organizationsByName(app.db);
+            std::vector<std::string> names;
+            for (const Organization* o : list) names.push_back(o->name + " (" + organizationCode(o->id) + ")");
+            int which = ui::choose("Which organization?", names, "Cancel");
+            if (which >= 0) exportOrganization(app, list[static_cast<size_t>(which)]->id);
+        } else if (pick == 2) {
             if (app.db.artifacts.empty()) { ui::info("No Sealed Artifacts yet."); continue; }
             std::vector<std::string> names;
             for (const auto& a : app.db.artifacts) names.push_back(a.name + " (" + artifactCode(a.id) + ")");
             int which = ui::choose("Which Sealed Artifact?", names, "Cancel");
             if (which >= 0) exportArtifact(app, app.db.artifacts[which].id);
-        } else if (pick == 2) {
+        } else if (pick == 3) {
             int which = choosePathway(app, "Which pathway?", "Cancel", false);
             if (which >= 0) exportPathway(app, app.db.pathways[which].id);
-        } else if (pick == 3) {
+        } else if (pick == 4) {
             if (app.db.sefirot.empty()) { ui::info("No Sefirot found (sefirot.json is missing)."); continue; }
             std::vector<std::string> names;
             for (const auto& s : app.db.sefirot) names.push_back(sefirahLabel(app.db, s.id));
             int which = ui::choose("Which Sefirah?", names, "Cancel");
             if (which >= 0) exportSefirah(app, app.db.sefirot[which].id);
-        } else if (pick == 4) {
-            if (app.db.characters.empty() && app.db.artifacts.empty()) { ui::info("The catalogue is empty."); continue; }
+        } else if (pick == 5) {
+            if (app.db.characters.empty() && app.db.artifacts.empty() && app.db.organizations.empty()) {
+                ui::info("The catalogue is empty.");
+                continue;
+            }
             auto format = chooseFormat();
             if (format) exportSheets(app, catalogueExportName(), *format, catalogueSheets(app.db), "The Catalogue");
-        } else if (pick == 5) {
-            exportTimeline(app, 0);
         } else if (pick == 6) {
+            exportTimeline(app, 0);
+        } else if (pick == 7) {
             exportWeb(app);
         } else {
             return;

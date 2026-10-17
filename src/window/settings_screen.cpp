@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <type_traits>
 
+#include "organizations.hpp"
 #include "presets.hpp"
 #include "records.hpp"
 #include "storage.hpp"
@@ -17,9 +18,10 @@ namespace {
 std::string countOf(size_t n, const char* one, const char* many) { return std::to_string(n) + " " + (n == 1 ? one : many); }
 
 // "3 characters, 2 Sealed Artifacts and 4 story events", leaving out the kinds there are none of.
-std::string contents(size_t characters, size_t artifacts, size_t events) {
+std::string contents(size_t characters, size_t artifacts, size_t events, size_t organizations = 0) {
     std::vector<std::string> parts;
     if (characters > 0) parts.push_back(countOf(characters, "character", "characters"));
+    if (organizations > 0) parts.push_back(countOf(organizations, "organization", "organizations"));
     if (artifacts > 0) parts.push_back(countOf(artifacts, "Sealed Artifact", "Sealed Artifacts"));
     if (events > 0) parts.push_back(countOf(events, "story event", "story events"));
     if (parts.empty()) return "nothing";
@@ -46,7 +48,7 @@ void importAll(WindowState& w) {
         const SampleImportReport report = importAllSampleSets(w.app, sampleSets(w));
         reloadCharacterDraft(w);
         std::string text = "Added " + contents(report.addedCharacters.size(), report.addedArtifacts.size(),
-                                               report.addedEvents.size()) + ".";
+                                               report.addedEvents.size(), report.addedOrganizations.size()) + ".";
         if (!report.updated.empty()) {
             text += " Updated " + std::to_string(report.updated.size()) + " to a newer version from a sample set.";
         }
@@ -60,8 +62,8 @@ void importAll(WindowState& w) {
     }
 }
 
-// Ready-made characters, Sealed Artifacts and story events from data/samples: the Tarot Club, Adam and Amon, and any
-// set shared through GitHub. One button imports them all.
+// Ready-made characters, Sealed Artifacts, story events and organizations from data/samples: the Tarot Club, Adam and
+// Amon, and any set shared through GitHub. One button imports them all.
 void sampleSetsSection(WindowState& w) {
     ImGui::Spacing();
     if (w.showSampleSets) {
@@ -75,7 +77,7 @@ void sampleSetsSection(WindowState& w) {
         ImGui::TextDisabled("No sample sets found in %s.", w.app.storage.samplesDir().string().c_str());
         return;
     }
-    ImGui::TextWrapped("Ready-made characters, Sealed Artifacts and story events in the data/samples folder, including any "
+    ImGui::TextWrapped("Ready-made characters, Sealed Artifacts, story events and organizations in the data/samples folder, including any "
                        "shared through GitHub. Anything already saved under the same name is updated when a set "
                        "has a newer version, and left as it is when you edited it here more recently, so "
                        "importing again only brings in what is new or changed.");
@@ -89,7 +91,8 @@ void sampleSetsSection(WindowState& w) {
     for (const SampleSet& set : sets) {
         ImGui::PushID(set.file.string().c_str());
         const std::string header =
-            set.title + "  -  " + contents(set.characters.size(), set.artifacts.size(), set.events.size()) + "###set";
+            set.title + "  -  " +
+            contents(set.characters.size(), set.artifacts.size(), set.events.size(), set.organizations.size()) + "###set";
         if (ImGui::TreeNode(header.c_str())) {
             if (!set.description.empty()) ImGui::TextWrapped("%s", set.description.c_str());
             for (const Character& c : set.characters) {
@@ -98,6 +101,7 @@ void sampleSetsSection(WindowState& w) {
                                   : c.aboveSequence   ? "Above the Sequence"
                                                       : sequenceLabel(w.app.db.findPathway(c.pathwayId), c.sequence).c_str());
             }
+            for (const Organization& o : set.organizations) ImGui::BulletText("%s (organization)", o.name.c_str());
             for (const Artifact& a : set.artifacts) ImGui::BulletText("%s (Sealed Artifact)", a.name.c_str());
             for (const StoryEvent& e : set.events) {
                 ImGui::BulletText("%s (story event%s)", e.title.c_str(),
@@ -131,18 +135,19 @@ void note(const char* text) {
 const std::string& recordName(const Character& c) { return c.name; }
 const std::string& recordName(const Artifact& a) { return a.name; }
 const std::string& recordName(const StoryEvent& e) { return e.title; }
+const std::string& recordName(const Organization& o) { return o.name; }
 
-// Packs your own characters, Sealed Artifacts and story events into a file in data/samples, which
-// GitHub Desktop can then commit and share. Whoever pulls it gets them with Import all.
+// Packs your own characters, Sealed Artifacts, story events and organizations into a file in
+// data/samples, which GitHub Desktop can then commit and share. Whoever pulls it gets them with Import all.
 void shareSection(WindowState& w) {
     auto& share = w.share;
     const Database& db = w.app.db;
     ImGui::Spacing();
     heading(w, "Share your own");
-    ImGui::TextWrapped("Turn your characters, Sealed Artifacts and story events into a sample set. It is saved in "
+    ImGui::TextWrapped("Turn your characters, organizations, Sealed Artifacts and story events into a sample set. It is saved in "
                        "the data/samples folder; commit it in GitHub Desktop and push, and anyone who pulls gets "
-                       "them with Import all. Your story events are only on this computer until you share them "
-                       "here. Your own pathways and Sefirot are shared already: they are in custom_pathways.json "
+                       "them with Import all. Your story events and organizations are only on this computer until you "
+                       "share them here. Your own pathways and Sefirot are shared already: they are in custom_pathways.json "
                        "and custom_sefirot.json, which GitHub Desktop commits the same way.");
     textField("Title", share.title, "e.g. Max's characters");
     multilineField("Description (optional)", share.description, 2);
@@ -153,7 +158,7 @@ void shareSection(WindowState& w) {
     // you can save your changed versions over it; a new title ticks everything not in another set.
     if (!share.touched && share.pickedFor != fileName) {
         share.pickedFor = fileName;
-        defaultSharePicks(db, sampleSets(w), fileName, share.characterIds, share.artifactIds, share.eventIds);
+        share.picks = defaultSharePicks(db, sampleSets(w), fileName);
     }
 
     // records: the records themselves or pointers to them; about(record): the grey text after the name.
@@ -188,24 +193,30 @@ void shareSection(WindowState& w) {
         }
         ImGui::PopID();
     };
-    // Short, for three lists side by side.
+    // Short, for four lists side by side.
     auto inASet = [&](const std::string& name) { return inList(taken, name) ? ", in another set" : ""; };
     const std::vector<const StoryEvent*> events = eventsInOrder(db);
-    if (ImGui::BeginTable("pick", 3, ImGuiTableFlags_SizingStretchSame)) {
+    const std::vector<const Organization*> organizations = organizationsByName(db);
+    SharePicks& picks = share.picks;
+    if (ImGui::BeginTable("pick", 4, ImGuiTableFlags_SizingStretchSame)) {
         ImGui::TableNextColumn();
-        pickList("characters", "Characters", db.characters, share.characterIds,
+        pickList("characters", "Characters", db.characters, picks.characterIds,
                  [&](const Character& c) { return characterCode(c.id) + inASet(c.name); });
         ImGui::TableNextColumn();
-        pickList("artifacts", "Sealed Artifacts", db.artifacts, share.artifactIds,
+        pickList("organizations", "Organizations", organizations, picks.organizationIds,
+                 [&](const Organization& o) { return organizationCode(o.id) + inASet(o.name); });
+        note("The ones your ticked characters belong to go in too.");
+        ImGui::TableNextColumn();
+        pickList("artifacts", "Sealed Artifacts", db.artifacts, picks.artifactIds,
                  [&](const Artifact& a) { return artifactCode(a.id) + inASet(a.name); });
         note("The ones your ticked characters hold go in too.");
         ImGui::TableNextColumn();
-        pickList("events", "Story events", events, share.eventIds, [&](const StoryEvent& e) {
+        pickList("events", "Story events", events, picks.eventIds, [&](const StoryEvent& e) {
             return (e.date.empty() ? eventCode(e.id) : storyDateText(e.date)) +
                    (eventInSampleSets(sampleSets(w), fileName, e) ? ", in another set" : "");
         });
         if (!events.empty() && ImGui::SmallButton("Tick the ones with your ticked characters")) {
-            for (int id : eventsWithCharacters(db, share.characterIds)) toggle(share.eventIds, id, true);
+            for (int id : eventsWithCharacters(db, picks.characterIds)) toggle(picks.eventIds, id, true);
             share.touched = true;
         }
         note("Someone at an event who isn't ticked goes as a name, and links up again when they are imported "
@@ -213,11 +224,11 @@ void shareSection(WindowState& w) {
         ImGui::EndTable();
     }
 
-    const SampleSet set = makeSampleSet(db, ui::trim(share.title), ui::trim(share.description), share.characterIds,
-                                        share.artifactIds, share.eventIds);
+    const SampleSet set = makeSampleSet(db, ui::trim(share.title), ui::trim(share.description), picks);
     const bool replacing = std::filesystem::exists(w.app.storage.samplesDir() / fileName);
     const bool ready = !ui::trim(share.title).empty() &&
-                       (!set.characters.empty() || !set.artifacts.empty() || !set.events.empty());
+                       (!set.characters.empty() || !set.artifacts.empty() || !set.events.empty() ||
+                        !set.organizations.empty());
     ImGui::Spacing();
     ImGui::BeginDisabled(!ready);
     const std::string button = (replacing ? "Replace data/samples/" : "Save as data/samples/") + fileName;
@@ -227,7 +238,7 @@ void shareSection(WindowState& w) {
             w.sampleSets.reset();  // read the folder again, with the new set in it
             share.touched = false;
             share.pickedFor = fileName;
-            setStatus(w, "Saved " + contents(set.characters.size(), set.artifacts.size(), set.events.size()) +
+            setStatus(w, "Saved " + contents(set.characters.size(), set.artifacts.size(), set.events.size(), set.organizations.size()) +
                              " to data/samples/" + fileName + ". Commit it in GitHub Desktop and push to share it.");
         } catch (const StorageError& e) {
             setStatus(w, std::string("Saving failed: ") + e.what(), true);
@@ -236,9 +247,9 @@ void shareSection(WindowState& w) {
     ImGui::EndDisabled();
     ImGui::SameLine();
     if (ui::trim(share.title).empty()) ImGui::TextDisabled("Give it a title first.");
-    else if (!ready) ImGui::TextDisabled("Tick at least one character, Sealed Artifact or story event.");
+    else if (!ready) ImGui::TextDisabled("Tick at least one character, organization, Sealed Artifact or story event.");
     else if (replacing) ImGui::TextColored(palette().warning, "A sample set with this title is already there; this replaces it with the versions ticked here.");
-    else ImGui::TextDisabled("%s", contents(set.characters.size(), set.artifacts.size(), set.events.size()).c_str());
+    else ImGui::TextDisabled("%s", contents(set.characters.size(), set.artifacts.size(), set.events.size(), set.organizations.size()).c_str());
 }
 
 }  // namespace
@@ -318,7 +329,7 @@ void drawSettingsScreen(WindowState& w) {
     if (ImGui::Button("Export everything as HTML")) {
         exportAndReport(w, catalogueExportName(), ExportFormat::Html, catalogueSheets(w.app.db), "The Catalogue");
     }
-    ImGui::SetItemTooltip("Every character, Sealed Artifact and pathway of your own, in one page.");
+    ImGui::SetItemTooltip("Every character, organization, Sealed Artifact and pathway of your own, in one page.");
     ImGui::EndChild();
 
     if (changed) {

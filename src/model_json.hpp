@@ -52,6 +52,10 @@ void from_json(const nlohmann::json& j, EventPerson& person);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StoryEvent, id, title, date, kind, place, chapter, people, artifactIds,
                                                 description, notes, createdAt, updatedAt)
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Organization, id, name, alsoKnownAs, kind, status, leaderId, leader,
+                                                headquarters, founded, symbol, pathwayIds, ranks, description,
+                                                otherMembers, notes, createdAt, updatedAt)
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, hpMode, exportTheme, backupsToKeep, windowTextSize,
                                                 windowTheme, windowAnimations)
 

@@ -1,4 +1,5 @@
-// The data the program works with: pathways, Sefirot, characters, Sealed Artifacts and settings.
+// The data the program works with: pathways, Sefirot, characters, Sealed Artifacts, story events,
+// organizations and settings.
 // Every struct here is saved to and loaded from JSON (see model.cpp).
 #pragma once
 
@@ -277,6 +278,31 @@ struct StoryEvent {
     std::string updatedAt;
 };
 
+// ---------- Organizations (data/organizations.json) ----------
+
+// A group your characters belong to: the Tarot Club, the Nighthawks, a church, a family. A character's
+// affiliation stays typed text; the members of an organization are the characters whose affiliation
+// names it (its name or one it is also known as, ignoring capitals). See organizations.hpp.
+struct Organization {
+    int id = 0;
+    std::string name;
+    std::vector<std::string> alsoKnownAs;  // other names for it, which an affiliation can use too
+    std::string kind;                      // one of kOrganizationKinds in organizations.hpp, or your own word
+    std::string status;                    // Active, In hiding, Disbanded ...
+    int leaderId = 0;                      // a saved character, or 0 for someone who isn't one
+    std::string leader;                    // who leads it; for a saved character, their name when picked
+    std::string headquarters;
+    StoryDate founded;
+    std::string symbol;                    // its emblem, or how members know each other
+    std::vector<std::string> pathwayIds;   // the pathways it is known for; the first gives its colour
+    std::vector<std::string> ranks;        // highest first: "Deacon", "Captain", "Nighthawk"
+    std::string description;
+    std::vector<std::string> otherMembers;  // members who aren't saved characters, one line each
+    std::string notes;
+    std::string createdAt;
+    std::string updatedAt;
+};
+
 // ---------- Settings (data/settings.json) ----------
 
 struct Settings {
@@ -295,6 +321,7 @@ struct Database {
     std::vector<Character> characters;
     std::vector<Artifact> artifacts;
     std::vector<StoryEvent> events;
+    std::vector<Organization> organizations;
     Settings settings;
 
     const Pathway* findPathway(const std::string& id) const;
@@ -316,9 +343,12 @@ struct Database {
     const Artifact* findArtifact(int id) const;
     StoryEvent* findEvent(int id);
     const StoryEvent* findEvent(int id) const;
+    Organization* findOrganization(int id);
+    const Organization* findOrganization(int id) const;
     int nextCharacterId() const;
     int nextArtifactId() const;
     int nextEventId() const;
+    int nextOrganizationId() const;
     // A free id for a new pathway, made from its name: "Mystery Pryer" -> "mystery_pryer" (or "mystery_pryer_2").
     std::string newPathwayId(const std::string& name) const;
     // The same for a new Sefirah: "Sefirah of Masks" -> "sefirah_of_masks".
@@ -334,6 +364,7 @@ struct Database {
 std::string characterCode(int id);  // "C-001"
 std::string artifactCode(int id);   // "A-001"
 std::string eventCode(int id);      // "E-001"
+std::string organizationCode(int id);  // "O-001"
 std::string pathwayLabel(const Database& db, const std::string& pathwayId);  // "Seer (The Fool)"
 std::string sequenceLabel(const Pathway* pathway, int sequence);             // "Sequence 7: Magician"
 std::string sefirahLabel(const Database& db, const std::string& sefirahId);   // "Sefirah Castle (Lord of the Mysteries)"

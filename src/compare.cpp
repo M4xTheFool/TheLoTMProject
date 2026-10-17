@@ -5,9 +5,11 @@
 #include <climits>
 #include <cstddef>
 
+#include "organizations.hpp"
 #include "presets.hpp"
 #include "relations.hpp"
 #include "rules.hpp"
+#include "story.hpp"
 
 namespace lotm {
 
@@ -254,6 +256,128 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
     }
 
     out.between = relationshipsBetween(characters);
+    return out;
+}
+
+Comparison buildOrganizationComparison(const std::vector<const Organization*>& organizations, const Database& db) {
+    Comparison out;
+    std::vector<OrganizationStrength> strengths;
+    for (const Organization* o : organizations) {
+        out.names.push_back(o->name);
+        strengths.push_back(organizationStrength(*o, db));
+    }
+    auto each = [&](auto valueOf) {
+        std::vector<std::string> values;
+        for (size_t i = 0; i < organizations.size(); ++i) values.push_back(valueOf(*organizations[i], strengths[i]));
+        return values;
+    };
+    auto numbers = [&](auto numberOf) {
+        std::vector<int> result;
+        for (size_t i = 0; i < organizations.size(); ++i) result.push_back(numberOf(*organizations[i], strengths[i]));
+        return result;
+    };
+    using Strength = OrganizationStrength;
+
+    CompareSection overview{"Overview", {}};
+    overview.rows.push_back(textRow("Kind", each([](const Organization& o, const Strength&) { return o.kind; })));
+    overview.rows.push_back(textRow("Status", each([](const Organization& o, const Strength&) { return o.status; })));
+    overview.rows.push_back(textRow("Leader", each([&](const Organization& o, const Strength&) { return leaderName(o, db); })));
+    overview.rows.push_back(textRow("Headquarters", each([](const Organization& o, const Strength&) { return o.headquarters; })));
+    overview.rows.push_back(textRow("Founded", each([](const Organization& o, const Strength&) { return storyDateText(o.founded); })));
+    overview.rows.push_back(textRow("Pathways", each([&](const Organization& o, const Strength&) {
+        std::vector<std::string> names;
+        for (const auto& id : o.pathwayIds) {
+            const Pathway* p = db.findPathway(id);
+            names.push_back(p ? p->name : id);
+        }
+        return join(names);
+    })));
+    out.sections.push_back(overview);
+
+    CompareSection power{"Strength", {}};
+    power.rows.push_back(rankedRow(
+        "Members", each([](const Organization&, const Strength& s) {
+            std::string text = std::to_string(s.members);
+            if (s.others > 0) text += " and " + std::to_string(s.others) + " not saved";
+            return text;
+        }),
+        numbers([](const Organization&, const Strength& s) { return s.members + s.others; })));
+    power.rows.push_back(rankedRow(
+        "Strongest", each([&](const Organization&, const Strength& s) {
+            return s.strongest ? s.strongest->name + ", " + levelName(*s.strongest) : std::string();
+        }),
+        numbers([](const Organization&, const Strength& s) { return s.strongest ? powerScore(*s.strongest) : kMissing; })));
+    auto tierRow = [&](const std::string& label, std::vector<int> tiers) {
+        const bool anyone = std::any_of(strengths.begin(), strengths.end(), [&](const Strength& s) {
+            return std::any_of(tiers.begin(), tiers.end(), [&](int t) { return s.tiers[static_cast<size_t>(t)] > 0; });
+        });
+        if (!anyone) return;  // a row of noughts
+        power.rows.push_back(rankedRow(
+            label, each([&](const Organization&, const Strength& s) {
+                int n = 0;
+                for (int t : tiers) n += s.tiers[static_cast<size_t>(t)];
+                return std::to_string(n);
+            }),
+            numbers([&](const Organization&, const Strength& s) {
+                int n = 0;
+                for (int t : tiers) n += s.tiers[static_cast<size_t>(t)];
+                return n;
+            })));
+    };
+    tierRow("Great Old Ones and gods", {kAboveSequenceTier, 5});
+    tierRow("Angels (Sequence 2-1)", {4});
+    tierRow("Saints (Sequence 4-3)", {3});
+    tierRow("Beyonders (Sequence 9-5)", {2, 1});
+    power.rows.push_back(rankedRow(
+        "Most dangerous", each([](const Organization&, const Strength& s) {
+            return s.mostDangerous ? s.mostDangerous->name + " (" + s.threatLevel + ")" : std::string();
+        }),
+        numbers([](const Organization&, const Strength& s) {
+            const auto it = std::find(kThreatLevels.begin(), kThreatLevels.end(), s.threatLevel);
+            return it == kThreatLevels.end() ? kMissing : static_cast<int>(it - kThreatLevels.begin());
+        })));
+    power.rows.push_back(rankedRow(
+        "Combined threat", each([](const Organization&, const Strength& s) { return std::to_string(s.threatScore); }),
+        numbers([](const Organization&, const Strength& s) { return s.members > 0 ? s.threatScore : kMissing; })));
+    power.rows.push_back(rankedRow(
+        "Sealed Artifacts held", each([](const Organization&, const Strength& s) { return std::to_string(s.artifacts); }),
+        numbers([](const Organization&, const Strength& s) { return s.artifacts; })));
+    out.sections.push_back(power);
+    for (CompareSection& section : out.sections) {
+        section.rows.erase(std::remove_if(section.rows.begin(), section.rows.end(), saysNothing), section.rows.end());
+    }
+
+    // Who knows whom across them: each member listed with their organization, once per pair.
+    std::vector<const Character*> people;
+    std::vector<size_t> groupOf;
+    for (size_t i = 0; i < organizations.size(); ++i) {
+        for (const Member& m : membersOf(*organizations[i], db)) {
+            people.push_back(m.character);
+            groupOf.push_back(i);
+        }
+    }
+    for (size_t i = 0; i < people.size(); ++i) {
+        for (size_t j = 0; j < people.size(); ++j) {
+            if (groupOf[i] == groupOf[j]) continue;
+            const Character& from = *people[i];
+            const Character& to = *people[j];
+            for (const Relationship& r : from.relationships) {
+                if (r.characterId != to.id || r.type.empty()) continue;
+                if (j < i) {
+                    const bool saidAlready = std::any_of(to.relationships.begin(), to.relationships.end(), [&](const Relationship& back) {
+                        return back.characterId == from.id && back.type == reciprocalType(r.type);
+                    });
+                    if (saidAlready) continue;
+                }
+                const std::string fromName = from.name + " (" + organizations[groupOf[i]]->name + ")";
+                const std::string toName = to.name + " (" + organizations[groupOf[j]]->name + ")";
+                std::string line = reciprocalType(r.type) == r.type ? fromName + " and " + toName + ": " + r.type
+                                                                    : toName + " is " + fromName + "'s " + inSentence(r.type);
+                if (!r.note.empty()) line += " (" + r.note + ")";
+                out.between.push_back(line);
+            }
+        }
+    }
     return out;
 }
 

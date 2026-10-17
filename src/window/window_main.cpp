@@ -1,5 +1,5 @@
 // LoTM Creator Suite, app window version. Opens a window with tabs for characters, the relationship
-// web, the timeline, dice and checks, Sealed Artifacts, pathways, Sefirot and settings; everything is saved to the
+// web, the timeline, dice and checks, Sealed Artifacts, organizations, pathways, Sefirot and settings; everything is saved to the
 // same data folder as the console program (lotm_creator), so both can be used side by side.
 #include <algorithm>
 #include <cmath>
@@ -53,6 +53,7 @@ bool saveEverything(WindowState& w) {
     if (w.pathways.draft.dirty()) ok = savePathwayDraft(w) && ok;
     if (w.sefirot.draft.dirty()) ok = saveSefirahDraft(w) && ok;
     if (w.timeline.draft.dirty()) ok = saveEventDraft(w) && ok;
+    if (w.organizations.draft.dirty()) ok = saveOrganizationDraft(w) && ok;
     return ok;
 }
 
@@ -113,6 +114,7 @@ void drawWindow(WindowState& w) {
         return std::to_string(n) + " " + (n == 1 ? one : many);
     };
     const std::string counts = count(w.app.db.characters.size(), "character", "characters") + "  \xC2\xB7  " +
+                               count(w.app.db.organizations.size(), "organization", "organizations") + "  \xC2\xB7  " +
                                count(w.app.db.artifacts.size(), "Sealed Artifact", "Sealed Artifacts") +
                                "  \xC2\xB7  " + count(w.app.db.pathways.size(), "pathway", "pathways");
     ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(counts.c_str()).x);
@@ -131,11 +133,15 @@ void drawWindow(WindowState& w) {
                                                     {Tab::Timeline, "Timeline"},
                                                     {Tab::Dice, "Dice"},
                                                     {Tab::Artifacts, "Sealed Artifacts"},
+                                                    {Tab::Organizations, "Organizations"},
                                                     {Tab::Pathways, "Pathways"},
                                                     {Tab::Sefirot, "Sefirot"},
                                                     {Tab::Settings, "Settings"}};
+        // A screen can ask for another tab while it draws, after that tab's turn in this frame has
+        // passed: the request then waits for the next frame.
+        const std::optional<Tab> wanted = w.switchTo;
         for (const auto& [tab, name] : tabs) {
-            const ImGuiTabItemFlags flags = w.switchTo == tab ? ImGuiTabItemFlags_SetSelected : 0;
+            const ImGuiTabItemFlags flags = wanted == tab ? ImGuiTabItemFlags_SetSelected : 0;
             // Tab names in the title font, with a little more room around them.
             ImGui::PushFont(w.fonts.title, ImGui::GetStyle().FontSizeBase * 1.05f);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(ImGui::GetFontSize() * 0.8f, ImGui::GetFontSize() * 0.4f));
@@ -159,6 +165,7 @@ void drawWindow(WindowState& w) {
                 case Tab::Timeline: drawTimelineScreen(w); break;
                 case Tab::Dice: drawDiceScreen(w); break;
                 case Tab::Artifacts: drawArtifactsScreen(w); break;
+                case Tab::Organizations: drawOrganizationsScreen(w); break;
                 case Tab::Pathways: drawPathwaysScreen(w); break;
                 case Tab::Sefirot: drawSefirotScreen(w); break;
                 case Tab::Settings: drawSettingsScreen(w); break;
@@ -167,7 +174,7 @@ void drawWindow(WindowState& w) {
             ImGui::PopStyleVar();
             ImGui::EndTabItem();
         }
-        w.switchTo.reset();
+        if (w.switchTo == wanted) w.switchTo.reset();
         ImGui::EndTabBar();
     }
     ImGui::PopStyleColor(2);
