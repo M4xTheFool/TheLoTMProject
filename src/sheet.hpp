@@ -59,6 +59,7 @@ struct FigureNode {
     std::string tip;     // shown when the pointer rests on it
     std::string link;    // "#c-1" when the same export has their sheet
     bool saved = true;   // false: someone who isn't a saved character, drawn smaller and grey
+    bool dead = false;   // a saved character who is dead now, drawn grey
 };
 struct FigureEdge {
     size_t a = 0;  // indexes into the nodes
@@ -66,6 +67,7 @@ struct FigureEdge {
     std::string label;
     std::string colour;  // the kind of relationship's colour as hex
     std::string tip;
+    bool through = false;  // it comes through an organization: drawn dashed
 };
 struct WebFigure {
     float width = 860.0f;

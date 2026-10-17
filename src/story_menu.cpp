@@ -83,6 +83,8 @@ void editStage(const App& app, const Character& c, CharacterStage& stage, bool a
     takeStageLevel(stage, level);
     if (isKingOfAngels(level)) ui::info("A King of Angels then.");
     stage.stateOfMind = ui::choosePreset("State of mind then", kStatesOfMind, stage.stateOfMind);
+    stage.life = ui::choosePreset("Alive or dead then", kLifeStates, stage.life);
+    if (isDead(stage.life)) ui::info("From then on they are dead, until a later stage says otherwise. The note at the end can say how.");
     stage.affiliation.organization =
         ui::choosePreset("Organization then", organizationSuggestions(app.db), stage.affiliation.organization);
     if (!stage.affiliation.organization.empty()) {
@@ -119,7 +121,9 @@ void editStage(const App& app, const Character& c, CharacterStage& stage, bool a
 std::string personText(const App& app, const EventPerson& person) {
     const std::string name = eventPersonName(app.db, person);
     return (person.role.empty() ? name : name + " (" + person.role + ")") + (person.characterId ? "" : ", not a saved character") +
-           (person.changed ? "; after this: " + stageLevelText(person.change, app.db) : "");
+           (!person.changed                 ? ""
+            : isDead(person.change.life) ? "; dies here"
+                                         : "; after this: " + stageLevelText(person.change, app.db));
 }
 
 void addPerson(const App& app, StoryEvent& e, const std::string& typed) {
@@ -171,6 +175,7 @@ void editPeople(const App& app, StoryEvent& e) {
             options.push_back(person.changed ? "Change what changed for them here"
                                              : "Something changed for them here (they advanced, joined someone ...)");
         }
+        if (c && !(person.changed && isDead(person.change.life))) options.push_back("They die here");
         if (c && person.changed) options.push_back("Remove what changed for them");
         options.push_back("Remove them");
         const int pick = ui::choose(eventPersonName(app.db, person), options, "Back");
@@ -184,6 +189,15 @@ void editPeople(const App& app, StoryEvent& e) {
             }
             if (e.date.empty()) ui::info("Give the event a date too; without one this change isn't used.");
             editStage(app, *c, person.change, false);
+        } else if (chosen == "They die here") {
+            if (!person.changed) {
+                person.change = stageFromNow(characterAsOf(*c, e.date, app.db, e.id).character);
+                person.changed = true;
+            }
+            person.change.life = "Dead";
+            if (person.change.label.empty()) person.change.label = "Dies";
+            person.change.note = ui::readText("How they died (optional)", person.change.note);
+            if (e.date.empty()) ui::info("Give the event a date too; without one their death here isn't counted.");
         } else if (chosen.rfind("Remove what", 0) == 0) {
             person.changed = false;
             person.change = CharacterStage{};

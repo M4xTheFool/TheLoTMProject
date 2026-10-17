@@ -202,6 +202,15 @@ int stateOfMindLevel(const std::string& state) {
     return it == kStatesOfMind.end() ? -1 : static_cast<int>(it - kStatesOfMind.begin());
 }
 
+bool isDead(const std::string& life) {
+    std::string text;
+    for (unsigned char ch : life) text += static_cast<char>(std::tolower(ch));
+    const auto first = text.find_first_not_of(" \t");
+    if (first == std::string::npos) return false;
+    text = text.substr(first);
+    return text.rfind("dead", 0) == 0 || text.rfind("deceased", 0) == 0;
+}
+
 std::vector<AbilityGroup> abilityGroups(const Character& c, const Database& db) {
     std::vector<AbilityGroup> groups;
     const Pathway* pathway = db.findPathway(c.pathwayId);
@@ -432,6 +441,7 @@ std::vector<std::string> normalizeCharacter(Character& c) {
     if (!c.stats.hpIncluded) c.stats.hp = 0;
 
     // Stages, earliest first (undated ones last), each making sense on its own.
+    if (!isDead(c.life)) c.diedOn = StoryDate{};  // a date they died belongs to someone dead now
     for (CharacterStage& stage : c.stages) normalizeStage(stage);
     std::stable_sort(c.stages.begin(), c.stages.end(),
                      [](const CharacterStage& a, const CharacterStage& b) { return storyDateBefore(a.date, b.date); });

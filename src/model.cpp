@@ -313,6 +313,9 @@ std::string relationshipName(const Database& db, const Relationship& r) {
     if (const Character* other = r.characterId != 0 ? db.findCharacter(r.characterId) : nullptr) {
         return other->name + " (" + characterCode(other->id) + ")";
     }
+    if (const Organization* o = r.organizationId != 0 ? db.findOrganization(r.organizationId) : nullptr) {
+        return o->name + " (" + organizationCode(o->id) + ")";
+    }
     return r.name.empty() ? "(unknown)" : r.name;
 }
 

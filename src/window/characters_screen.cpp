@@ -1,6 +1,7 @@
 // Characters tab: the list on the left, the character being edited on the right.
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 #include "organizations.hpp"
 #include "presets.hpp"
@@ -52,9 +53,10 @@ ImVec4 threatColour(const std::string& level) {
 
 void open(WindowState& w, const Character& c, bool isNew) {
     Character copy = c;
-    // Linked relationships show the other character's current name.
+    // Linked relationships show the other character's, or the organization's, current name.
     for (auto& r : copy.relationships) {
         if (const Character* other = w.app.db.findCharacter(r.characterId)) r.name = other->name;
+        else if (const Organization* o = w.app.db.findOrganization(r.organizationId)) r.name = o->name;
     }
     // Three boxes to fill in to start with; a longer honorific name keeps all its lines.
     if (copy.honorificName.size() < 3) copy.honorificName.resize(3);
@@ -118,23 +120,26 @@ bool saveImpl(WindowState& w) {
 // ---------------------------------------------------------------- tabs
 
 // The top of the editor: a medallion with the initials in the pathway's colour, the name, and chips
-// for the power tier, a mixed or dual pathway, the Sefirah, state of mind, threat level and affiliation.
+// for the power tier, a mixed or dual pathway, the Sefirah, state of mind, a death, threat level and
+// affiliation. Someone who has died has their medallion greyed, with a mourning band.
 void header(WindowState& w, const Character& c, bool isNew, const Sheet& sheet) {
     const float font = ImGui::GetFontSize();
+    const float dead = glide(ImGui::GetID("headerDead"), deadNow(c, w.app.db) ? 1.0f : 0.0f, 5.0f);
     CardMarks marks;
     for (int s = 9; isMixedPathway(c) && s >= c.sequence; --s) marks.ring.push_back(pathwayColour(w.app.db, pathwayIdAt(c, s)));
     const ImVec2 at = ImGui::GetCursorScreenPos();
-    medallion(w, initials(c.name.empty() ? "?" : c.name), pathwayColour(w.app.db, c.pathwayId), font * 2.1f);
+    const ImVec2 centre(at.x + font * 2.1f, at.y + font * 2.1f);
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    medallion(w, initials(c.name.empty() ? "?" : c.name), mourned(pathwayColour(w.app.db, c.pathwayId), dead), font * 2.1f);
     if (marks.ring.size() > 1) {  // a mixed-pathway Beyonder: a thin ring of their pathways around it
-        ImDrawList* draw = ImGui::GetWindowDrawList();
-        const ImVec2 centre(at.x + font * 2.1f, at.y + font * 2.1f);
         const float part = 6.2831853f / static_cast<float>(marks.ring.size());
         for (size_t i = 0; i < marks.ring.size(); ++i) {
             const float start = -1.5707963f + part * static_cast<float>(i);
             draw->PathArcTo(centre, font * 2.1f + 4.0f, start + 0.04f, start + part - 0.04f, 16);
-            draw->PathStroke(ImGui::GetColorU32(marks.ring[i]), ImDrawFlags_None, 3.0f);
+            draw->PathStroke(ImGui::GetColorU32(mourned(marks.ring[i], dead)), ImDrawFlags_None, 3.0f);
         }
     }
+    mourningBand(draw, centre, font * 2.1f, dead);
     ImGui::SameLine(0.0f, font * 0.9f);
     ImGui::BeginGroup();
     ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.9f);
@@ -160,12 +165,74 @@ void header(WindowState& w, const Character& c, bool isNew, const Sheet& sheet) 
     ImGui::Spacing();
 }
 
-void identityTab(Draft<Character>& draft) {
+// Alive or dead: two steps like the state of mind's, Alive in green and Dead in grey; click one to pick it.
+// Your own words go in the box below. For someone dead by this setting, when and how they died; for
+// someone dead by a stage or a story event, where it says so.
+void lifeSection(WindowState& w, Character& c) {
+    const Database& db = w.app.db;
+    ImGui::SeparatorText("Alive or dead");
+    const Death death = deathOf(c, db);
+    const bool ownDeath = isDead(c.life);
+    Character before = c;  // without this setting: what their stages and story events say
+    before.life.clear();
+    const Death elsewhere = ownDeath ? Death{} : deathOf(before, db);
+    const int picked = death.dead ? 1 : (c.life.empty() || ui::toLower(c.life) == "alive") ? 0 : -1;
+
+    const float gap = ImGui::GetStyle().ItemInnerSpacing.x;
+    const float width = (ImGui::GetContentRegionAvail().x - gap) * 0.5f;
+    const float height = ImGui::GetFrameHeight() * 1.25f;
+    const float rounding = ImGui::GetStyle().FrameRounding;
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    for (int i = 0; i < 2; ++i) {
+        if (i > 0) ImGui::SameLine(0.0f, gap);
+        const ImVec2 at = ImGui::GetCursorScreenPos();
+        ImGui::PushID(i);
+        if (ImGui::InvisibleButton("life", ImVec2(width, height))) {
+            // Alive for someone a stage or story event has dead means they came back: it is said in so many words.
+            if (i == 0) c.life = elsewhere.dead ? "Alive" : "";
+            else c.life = "Dead";
+        }
+        const bool hovered = ImGui::IsItemHovered();
+        const float lit = glide(ImGui::GetID("lit"), picked == i ? 0.9f : hovered ? 0.25f : 0.12f, 12.0f);
+        ImGui::PopID();
+        const ImVec4 colour = i == 0 ? palette().success : deathColour();
+        const ImVec2 end(at.x + width, at.y + height);
+        draw->AddRectFilled(at, end, colourU32(colour, lit), rounding);
+        draw->AddRect(at, end, colourU32(colour, picked == i ? 1.0f : 0.5f), rounding);
+        const char* label = kLifeStates[static_cast<size_t>(i)].c_str();
+        const ImVec2 size = ImGui::CalcTextSize(label);
+        const ImU32 text = lit > 0.5f ? ImGui::GetColorU32(ImGuiCol_ChildBg) : colourU32(colour);
+        draw->AddText(ImVec2(at.x + (width - size.x) * 0.5f, at.y + (height - size.y) * 0.5f), text, label);
+    }
+    std::string own = picked < 0 ? c.life : "";
+    fieldLabel("In your own words");
+    if (ImGui::InputTextWithHint("##ownLife", "or in your own words: Revived, A wandering spirit ...", &own)) c.life = own;
+    if (ownDeath) {
+        storyDateField("Died on", c.diedOn, "when, so the Timeline shows them alive before it");
+        textField("How they died", c.lifeNote, "killed by Amon, lost at sea ...");
+    } else if (death.dead) {
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        if (death.eventId != 0) ImGui::TextWrapped("%s, as the event's People tab says.", deathText(death, db).c_str());
+        else ImGui::TextWrapped("%s, in their stage on the Stages tab.", deathText(death, db).c_str());
+        ImGui::PopStyleColor();
+        if (death.eventId != 0 && ImGui::TextLink("Open the event")) openEvent(w, death.eventId);
+    } else {
+        if (elsewhere.dead) {
+            ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+            ImGui::TextWrapped("%s, and is alive now, as this says.", deathText(elsewhere, db).c_str());
+            ImGui::PopStyleColor();
+        }
+        if (!c.life.empty()) textField("More about it", c.lifeNote, "how they came back ...");
+    }
+}
+
+void identityTab(WindowState& w, Draft<Character>& draft) {
     Character& c = draft.value;
     draft.focusNameOnce();
     textField("Name", c.name, "required");
     textField("Age", c.age);
     textField("Gender", c.gender);
+    lifeSection(w, c);
     ImGui::Spacing();
     multilineField("Short description", c.shortDescription, 3);
     multilineField("Backstory", c.backstory, 8);
@@ -784,12 +851,107 @@ void artifactsTab(WindowState& w, Character& c) {
     }
 }
 
+// One of your organizations to pick, under a search box: a dot in its colour and its member count.
+// Returns its id, or 0.
+int organizationList(const WindowState& w, std::string& search) {
+    const Database& db = w.app.db;
+    ImGui::SetNextItemWidth(ImGui::GetFontSize() * 16.0f);
+    if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+    ImGui::InputTextWithHint("##searchOrganizations", "search", &search);
+    int picked = 0;
+    for (const Organization* o : organizationsByName(db)) {
+        if (!search.empty() && ui::toLower(o->name).find(ui::toLower(search)) == std::string::npos) continue;
+        statusDot(organizationColour(db, *o));
+        const size_t members = membersOf(*o, db).size();
+        const std::string item = o->name + "  (" + std::to_string(members) + (members == 1 ? " member)" : " members)") +
+                                 "##org" + std::to_string(o->id);
+        if (ImGui::Selectable(item.c_str())) picked = o->id;
+    }
+    if (db.organizations.empty()) ImGui::TextDisabled("No organizations yet. Write one up on the Organizations tab.");
+    return picked;
+}
+
+// Relationships that reach them through an organization, either way round: theirs with a whole
+// organization (to each member), and others' with an organization they belong to. Each one can be given a
+// relationship of its own instead.
+void tiesSection(WindowState& w, Character& c) {
+    const Database& db = w.app.db;
+    const std::vector<Tie> ties = tiesThroughOrganizations(db, c);
+    if (ties.empty()) return;
+    ImGui::SeparatorText("Through organizations");
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    ImGui::TextWrapped("A relationship with a whole organization reaches each of its members. To change it for one "
+                       "of them, give the two of them a relationship of their own, which counts instead.");
+    ImGui::PopStyleColor();
+    int openId = 0;
+    std::optional<Relationship> add;
+    const Organization* group = nullptr;
+    bool groupOutgoing = false;
+    for (const Tie& tie : ties) {
+        if (tie.organization != group || tie.outgoing != groupOutgoing) {
+            group = tie.organization;
+            groupOutgoing = tie.outgoing;
+            ImGui::Spacing();
+            statusDot(organizationColour(db, *group));
+            ImGui::PushFont(w.fonts.bold, 0.0f);
+            if (tie.outgoing) ImGui::TextWrapped("Their relationship with the %s reaches its members", group->name.c_str());
+            else ImGui::TextWrapped("Through the %s, which they belong to", group->name.c_str());
+            ImGui::PopFont();
+        }
+        const std::string key = "tie" + std::to_string(tie.organization->id) + (tie.outgoing ? "o" : "i") +
+                                std::to_string(tie.other->id);
+        ImGui::PushID(key.c_str());
+        // Each one fades in the first time it is shown.
+        const float shown = glideFrom(ImGui::GetID("shown"), 0.0f, 1.0f, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * shown);
+        ImGui::Indent();
+        const bool dead = deadNow(*tie.other, db);
+        statusDot(dead ? deathColour() : pathwayColour(db, tie.other->pathwayId));
+        if (ImGui::TextLink(tie.other->name.c_str())) openId = tie.other->id;
+        if (dead) ImGui::SetItemTooltip("%s", deathText(deathOf(*tie.other, db), db).c_str());
+        ImGui::SameLine();
+        if (tie.overridden) {
+            // What counts instead: their own relationship, as this character sees them.
+            std::string own;
+            for (const Relationship& r : c.relationships) {
+                if (r.characterId == tie.other->id) own = r.type;
+            }
+            for (const Relationship& r : tie.other->relationships) {
+                if (own.empty() && r.characterId == c.id) own = reciprocalType(r.type);
+            }
+            if (ui::toLower(own) == ui::toLower(tie.type)) ImGui::TextDisabled("%s, by a relationship of their own", own.c_str());
+            else ImGui::TextDisabled("%s, by a relationship of their own, instead of %s", own.c_str(), tie.type.c_str());
+        } else {
+            ImGui::TextUnformatted(tie.type.c_str());
+            if (!tie.note.empty()) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("%s", tie.note.c_str());
+            }
+            ImGui::SameLine();
+            const std::string first = tie.other->name.substr(0, tie.other->name.find(' '));
+            if (ImGui::SmallButton(("Change for " + first).c_str())) {
+                add = Relationship{tie.other->id, tie.other->name, tie.type, "", 0};
+            }
+            ImGui::SetItemTooltip("Gives the two of them a relationship of their own, starting as %s. Change it in the "
+                                  "list above; it counts instead of the one through the %s.",
+                                  tie.type.c_str(), tie.organization->name.c_str());
+        }
+        ImGui::Unindent();
+        ImGui::PopStyleVar();
+        ImGui::PopID();
+    }
+    if (add) c.relationships.push_back(*add);
+    if (openId != 0) openCharacter(w, openId);
+}
+
 void relationshipsTab(WindowState& w, Character& c) {
+    const Database& db = w.app.db;
     affiliationFields(w, c.affiliation);
 
     ImGui::SeparatorText("Relationships");
-    ImGui::TextWrapped("Pick one of your saved characters, or type anyone's name. Saved characters are linked when "
-                       "you save, and they get the relationship back.");
+    ImGui::TextWrapped("Pick one of your saved characters or organizations, or type anyone's name. Saved characters are "
+                       "linked when you save, and they get the relationship back. A relationship with an organization "
+                       "reaches all of its members.");
     int removeIndex = -1;
     if (!c.relationships.empty() &&
         ImGui::BeginTable("relationships", 4, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg)) {
@@ -803,27 +965,52 @@ void relationshipsTab(WindowState& w, Character& c) {
             ImGui::PushID(static_cast<int>(i));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
+            // An organization, picked or named: a dot in its colour in front.
+            const Organization* organization = db.findOrganization(r.organizationId);
+            const auto matches = db.findCharactersByName(r.name, c.id);
+            const bool willLink = matches.size() == 1 && ui::toLower(matches[0]->name) == ui::toLower(r.name);
+            if (!organization && !willLink && r.characterId == 0) organization = organizationNamed(db, r.name);
+            if (organization) statusDot(organizationColour(db, *organization));
             const float pickWidth = ImGui::GetFrameHeight();
             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - pickWidth - ImGui::GetStyle().ItemInnerSpacing.x);
-            ImGui::InputTextWithHint("##name", "name", &r.name);
-            const auto matches = w.app.db.findCharactersByName(r.name, c.id);
-            const bool willLink = matches.size() == 1 && ui::toLower(matches[0]->name) == ui::toLower(r.name);
-            if (willLink) ImGui::SetItemTooltip("Linked to the saved character %s", characterCode(matches[0]->id).c_str());
+            if (ImGui::InputTextWithHint("##name", "name", &r.name) && organization && !namesOrganization(*organization, r.name)) {
+                r.organizationId = 0;  // typed someone else: linked again by name when saved
+            }
+            if (organization) {
+                const size_t members = membersOf(*organization, db).size();
+                ImGui::SetItemTooltip("The organization %s: this reaches its %zu %s", organizationCode(organization->id).c_str(),
+                                      members, members == 1 ? "member" : "members");
+            } else if (willLink) {
+                ImGui::SetItemTooltip("Linked to the saved character %s", characterCode(matches[0]->id).c_str());
+            }
             ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
             if (ImGui::BeginCombo("##pick", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft |
                                                          ImGuiComboFlags_HeightLarge)) {
-                for (const auto& other : w.app.db.characters) {
+                for (const auto& other : db.characters) {
                     if (other.id == c.id) continue;
                     const std::string item = other.name + "  (" + characterCode(other.id) + ")##" + std::to_string(other.id);
                     if (ImGui::Selectable(item.c_str(), other.id == r.characterId)) {
                         r.characterId = other.id;
+                        r.organizationId = 0;
                         r.name = other.name;
                     }
                 }
-                if (w.app.db.characters.size() <= 1) ImGui::TextDisabled("No other saved characters yet.");
+                if (db.characters.size() <= 1) ImGui::TextDisabled("No other saved characters yet.");
+                if (!db.organizations.empty()) {
+                    ImGui::SeparatorText("Organizations");
+                    for (const Organization* o : organizationsByName(db)) {
+                        statusDot(organizationColour(db, *o));
+                        const std::string item = o->name + "  (" + organizationCode(o->id) + ")##org" + std::to_string(o->id);
+                        if (ImGui::Selectable(item.c_str(), o->id == r.organizationId)) {
+                            r.characterId = 0;
+                            r.organizationId = o->id;
+                            r.name = o->name;
+                        }
+                    }
+                }
                 ImGui::EndCombo();
             }
-            ImGui::SetItemTooltip("Pick one of your saved characters");
+            ImGui::SetItemTooltip("Pick one of your saved characters or organizations");
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             if (ImGui::BeginCombo("##type", r.type.c_str(), ImGuiComboFlags_HeightLarge)) {
@@ -834,7 +1021,8 @@ void relationshipsTab(WindowState& w, Character& c) {
             }
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputTextWithHint("##note", willLink ? "linked to a saved character" : "note (optional)", &r.note);
+            ImGui::InputTextWithHint("##note", organization ? "every member" : willLink ? "linked to a saved character" : "note (optional)",
+                                     &r.note);
             ImGui::TableNextColumn();
             if (ImGui::Button("x", ImVec2(ImGui::GetFrameHeight(), 0))) removeIndex = static_cast<int>(i);
             ImGui::SetItemTooltip("Remove (also from the other character when you save)");
@@ -847,14 +1035,27 @@ void relationshipsTab(WindowState& w, Character& c) {
     if (ImGui::BeginPopup("pickCharacter")) {
         static std::string search;
         if (const int id = savedCharacterList(w, search, c.id)) {
-            if (const Character* other = w.app.db.findCharacter(id)) c.relationships.push_back({id, other->name, "Friend", ""});
+            if (const Character* other = db.findCharacter(id)) c.relationships.push_back({id, other->name, "Friend", "", 0});
             search.clear();
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("+ Add someone by name")) c.relationships.push_back({0, "", "Friend", ""});
+    if (ImGui::Button("+ Add an organization")) ImGui::OpenPopup("pickOrganization");
+    ImGui::SetItemTooltip("A relationship with the whole organization: an enemy of it is an enemy of every member.");
+    if (ImGui::BeginPopup("pickOrganization")) {
+        static std::string search;
+        if (const int id = organizationList(w, search)) {
+            if (const Organization* o = db.findOrganization(id)) c.relationships.push_back({0, o->name, "Enemy", "", id});
+            search.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("+ Add someone by name")) c.relationships.push_back({0, "", "Friend", "", 0});
+    tiesSection(w, c);
 }
 
 void dossierTab(const WindowState& w, Character& c) {
@@ -925,6 +1126,8 @@ void stageFields(WindowState& w, const Character& c, CharacterStage& stage, cons
 
     ImGui::SeparatorText("Then");
     presetField("State of mind", stage.stateOfMind, kStatesOfMind);
+    presetField("Alive or dead", stage.life, kLifeStates);
+    if (isDead(stage.life)) ImGui::SetItemTooltip("From this stage's date on they are dead, until a later stage says otherwise.");
     affiliationFields(w, stage.affiliation);
     presetField("Status", stage.status, kStatuses);
     sefirahCombo("Sefirah", db, stage.sefirahId, "None");
@@ -948,6 +1151,49 @@ void stageFields(WindowState& w, const Character& c, CharacterStage& stage, cons
 }
 
 namespace {
+
+// Their death, on the Stages tab: the same as Alive or dead on the Identity tab, with when and how; or
+// where a stage or story event says it.
+void deathBox(WindowState& w, Character& c) {
+    const Database& db = w.app.db;
+    ImGui::SeparatorText("Their death");
+    const Death death = deathOf(c, db);
+    // The box opens out a little when they die.
+    const float open = glide(ImGui::GetID("deathOpen"), death.dead ? 1.0f : 0.0f, 9.0f);
+    if (isDead(c.life)) {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * (0.35f + 0.65f * open));
+        statusDot(deathColour());
+        ImGui::TextColored(deathColour(), "%s", deathText(death, db).c_str());
+        storyDateField("Died on", c.diedOn, "when, so the Timeline shows them alive before it");
+        textField("How they died", c.lifeNote, "killed by Amon, lost at sea ...");
+        ImGui::PopStyleVar();
+        if (ImGui::SmallButton("They didn't die after all")) {
+            c.life.clear();
+            c.diedOn = StoryDate{};
+        }
+        return;
+    }
+    if (death.dead) {
+        statusDot(deathColour());
+        ImGui::TextColored(deathColour(), "%s", deathText(death, db).c_str());
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        ImGui::TextWrapped(death.eventId != 0 ? "As the event's People tab says." : "As their stage above says.");
+        ImGui::PopStyleColor();
+        if (death.eventId != 0 && ImGui::SmallButton("Open the event")) openEvent(w, death.eventId);
+        if (death.stageIndex >= 0) {
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Show the stage")) w.characters.openStage = death.stageIndex;
+        }
+        return;
+    }
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    ImGui::TextWrapped("%s. When they die, mark it here or on the Identity tab, or at a story event with + Dies here on "
+                       "its People tab.", c.life.empty() ? "Alive" : c.life.c_str());
+    ImGui::PopStyleColor();
+    if (ImGui::Button("+ They die")) c.life = "Dead";
+    ImGui::SetItemTooltip("Marks them dead now. Give the date they died, so the Timeline and their sheet as of an "
+                          "earlier date show them alive.");
+}
 
 // Stages: how they were earlier in the story, each from a date on. Everything a stage doesn't hold is
 // as they are now.
@@ -984,7 +1230,7 @@ void stagesTab(WindowState& w, Draft<Character>& draft) {
         const std::string title = (stage.date.empty() ? std::string("No date yet") : "From " + storyDateText(stage.date)) +
                                   ": " + stageLevelText(stage, db) + (stage.label.empty() ? "" : ". " + stage.label) +
                                   "###stage";
-        ImGui::PushStyleColor(ImGuiCol_Text, pathwayColour(db, stage.pathwayId));
+        ImGui::PushStyleColor(ImGuiCol_Text, isDead(stage.life) ? deathColour() : pathwayColour(db, stage.pathwayId));
         const bool open = ImGui::CollapsingHeader(title.c_str());
         ImGui::PopStyleColor();
         if (open) {
@@ -1013,6 +1259,8 @@ void stagesTab(WindowState& w, Draft<Character>& draft) {
         if (screen.sheetStage == remove) screen.sheetStage = -1;
         else if (screen.sheetStage > remove) --screen.sheetStage;
     }
+
+    deathBox(w, c);
 
     // What changed for them at story events: made and changed on the event's People tab.
     std::vector<StageRef> atEvents;
@@ -1170,6 +1418,11 @@ void drawCharactersScreen(WindowState& w) {
             marks.dot = true;
             marks.dotColour = stateOfMindColour(c.stateOfMind);
         }
+        const Death death = deathOf(c, w.app.db);
+        if (death.dead) {
+            marks.dead = true;
+            subtitle = (death.date.empty() ? std::string("Dead") : "Died " + storyDateText(death.date)) + " \xC2\xB7 " + subtitle;
+        }
         // The badge is the Sequence; Above the Sequence it is an infinity sign.
         const std::string badge =
             c.pathwayId.empty() ? "-" : c.aboveSequence ? "\xE2\x88\x9E" : std::to_string(c.sequence);
@@ -1192,6 +1445,7 @@ void drawCharactersScreen(WindowState& w) {
                                    change.atSequence, pathwayLabel(w.app.db, change.fromPathwayId).c_str());
             }
             if (!c.stateOfMind.empty()) ImGui::TextColored(stateOfMindColour(c.stateOfMind), "%s", c.stateOfMind.c_str());
+            if (death.dead) ImGui::TextColored(deathColour(), "%s", deathText(death, w.app.db).c_str());
             if (!c.shortDescription.empty()) ImGui::TextDisabled("%s", c.shortDescription.c_str());
             ImGui::EndTooltip();
         }
@@ -1285,7 +1539,7 @@ void drawCharactersScreen(WindowState& w) {
             if (!open) continue;
             ImGui::BeginChild("tab", ImVec2(0, 0), ImGuiChildFlags_None);
             switch (index) {
-                case 0: identityTab(draft); break;
+                case 0: identityTab(w, draft); break;
                 case 1: looksTab(c); break;
                 case 2: pathwayTab(w, c); break;
                 case 3: customizationTab(w, c); break;

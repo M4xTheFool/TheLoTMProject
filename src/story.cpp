@@ -309,7 +309,10 @@ std::string eventPersonName(const Database& db, const EventPerson& person) {
 std::string eventPeopleText(const Database& db, const StoryEvent& e) {
     std::vector<std::string> names;
     for (const EventPerson& p : e.people) {
-        names.push_back(eventPersonName(db, p) + (p.role.empty() ? "" : " (" + p.role + ")"));
+        std::vector<std::string> notes;
+        if (!p.role.empty()) notes.push_back(p.role);
+        if (p.characterId != 0 && p.changed && isDead(p.change.life)) notes.push_back("dies");
+        names.push_back(eventPersonName(db, p) + (notes.empty() ? "" : " (" + join(notes) + ")"));
     }
     return joinAnd(names);
 }
@@ -350,6 +353,9 @@ Character characterInStage(const Character& c, const CharacterStage& stage, cons
     putStageLevel(then, stage);
     if (stage.stateOfMind != c.stateOfMind) then.stateOfMindNote.clear();
     then.stateOfMind = stage.stateOfMind;
+    then.life = stage.life.empty() ? "Alive" : stage.life;
+    then.diedOn = isDead(stage.life) ? stage.date : StoryDate{};
+    if (stage.life != c.life || !isDead(stage.life)) then.lifeNote = isDead(stage.life) ? stage.note : "";
     then.affiliation = stage.affiliation;
     then.dossier.status = stage.status;
     then.titles = stage.titles;
@@ -374,12 +380,115 @@ Character characterInStage(const Character& c, const CharacterStage& stage, cons
     return then;
 }
 
+namespace {
+
+// A point in their story where it is known whether they are alive.
+struct LifeMark {
+    StoryDate date;
+    std::string life;  // empty = alive
+    std::string how;
+    int eventId = 0;
+    int stageIndex = -1;
+};
+
+// A word that only says they died, not how.
+bool saysOnlyDied(const std::string& text) {
+    static const char* kWords[] = {"", "dies", "died", "death", "dead", "killed", "is killed"};
+    const std::string word = lowercase(text);
+    return std::any_of(std::begin(kWords), std::end(kWords), [&](const char* w) { return word == w; });
+}
+
+// Every dated point where it is known whether they are alive, earliest first: their stages and changes at
+// story events (alive unless the stage says otherwise), their own death (dead now, with the date they
+// died), and now (from nowSince). On the same date a stage comes first, then their own death, then now.
+// skipDay: as they came to an event that day, so their own death that day hadn't happened yet.
+std::vector<LifeMark> lifeMarks(const Character& c, const Database& db, const std::vector<StageRef>& stages,
+                                const StoryDate* skipDay) {
+    std::vector<LifeMark> marks;
+    for (const StageRef& ref : stages) {
+        if (ref.stage.date.empty()) continue;
+        LifeMark mark{ref.stage.date, ref.stage.life, ref.stage.note, ref.eventId, ref.ownIndex};
+        if (mark.how.empty() && ref.ownIndex >= 0 && !saysOnlyDied(ref.stage.label)) mark.how = ref.stage.label;
+        if (const StoryEvent* e = mark.how.empty() && ref.eventId != 0 ? db.findEvent(ref.eventId) : nullptr) {
+            for (const EventPerson& p : e->people) {  // the change's own words, without the event's name
+                if (p.characterId == c.id && p.changed && !saysOnlyDied(p.change.label)) mark.how = p.change.label;
+            }
+        }
+        marks.push_back(std::move(mark));
+    }
+    if (isDead(c.life) && !c.diedOn.empty() && !(skipDay && sameStoryDate(*skipDay, c.diedOn))) {
+        marks.push_back({c.diedOn, c.life, c.lifeNote, 0, -1});
+    }
+    if (!c.nowSince.empty()) marks.push_back({c.nowSince, c.life, c.lifeNote, 0, -1});
+    std::stable_sort(marks.begin(), marks.end(),
+                     [](const LifeMark& a, const LifeMark& b) { return storyDateBefore(a.date, b.date); });
+    return marks;
+}
+
+// The death that `last` belongs to: the first of the dead marks in a row that ends at it.
+Death deathAt(const std::vector<LifeMark>& marks, size_t last) {
+    size_t first = last;
+    while (first > 0 && isDead(marks[first - 1].life)) --first;
+    const LifeMark& m = marks[first];
+    return {true, m.date, m.how, m.eventId, m.stageIndex};
+}
+
+void putDeath(Character& then, const Death& death, const std::string& life, const Database& db) {
+    then.life = isDead(life) ? life : "Dead";
+    then.diedOn = death.date;
+    then.lifeNote = death.how;
+    if (const StoryEvent* e = death.eventId != 0 ? db.findEvent(death.eventId) : nullptr) {
+        const std::string at = "at \"" + (e->title.empty() ? std::string("(untitled event)") : e->title) + "\"";
+        then.lifeNote = death.how.empty() ? at : at + ": " + death.how;
+    }
+}
+
+// Alive or dead on the date, which the stage that gives their level doesn't decide alone.
+void putLifeOn(Character& then, const Character& c, const StoryDate& date, const Database& db,
+               const std::vector<StageRef>& stages, const StoryDate* skipDay) {
+    const std::vector<LifeMark> marks = lifeMarks(c, db, stages, skipDay);
+    int at = -1;
+    for (size_t i = 0; i < marks.size(); ++i) {
+        if (!storyDateBefore(date, marks[i].date)) at = static_cast<int>(i);
+    }
+    if (at < 0 && marks.empty() && isDead(c.life)) {  // dead now, and nothing dated is known: as they are now
+        putDeath(then, {true, c.diedOn, c.lifeNote, 0, -1}, c.life, db);
+        return;
+    }
+    if (at >= 0 && isDead(marks[static_cast<size_t>(at)].life)) {
+        putDeath(then, deathAt(marks, static_cast<size_t>(at)), marks[static_cast<size_t>(at)].life, db);
+        return;
+    }
+    // Alive then: before anything known about their life, or as the latest mark says.
+    const std::string life = at >= 0 ? marks[static_cast<size_t>(at)].life : "";
+    then.life = life.empty() ? "Alive" : life;
+    then.diedOn = StoryDate{};
+    if (life != c.life || life.empty()) then.lifeNote.clear();
+}
+
+}  // namespace
+
 AsOf characterAsOf(const Character& c, const StoryDate& date, const Database& db, int skipEventId) {
     AsOf result;
     result.character = c;
-    if (date.empty()) return result;
-    if (!c.nowSince.empty() && !storyDateBefore(date, c.nowSince)) return result;
+    if (date.empty()) {
+        const Death death = deathOf(c, db);
+        if (death.dead) putDeath(result.character, death, c.life, db);
+        return result;
+    }
     const std::vector<StageRef> stages = stagesOf(c, db, skipEventId);
+    const StoryEvent* skipped = skipEventId != 0 ? db.findEvent(skipEventId) : nullptr;
+    const StoryDate* skipDay = skipped && !skipped->date.empty() ? &skipped->date : nullptr;
+    auto finish = [&]() {
+        putLifeOn(result.character, c, date, db, stages, skipDay);
+        return result;
+    };
+    if (!c.nowSince.empty() && !storyDateBefore(date, c.nowSince)) return finish();
+    // Dead now since a date: from then on they are as they were when they died, which is now.
+    if (isDead(c.life) && !c.diedOn.empty() && !storyDateBefore(date, c.diedOn) &&
+        !(skipDay && sameStoryDate(*skipDay, c.diedOn))) {
+        return finish();
+    }
     const StageRef* best = nullptr;
     const StageRef* earliest = nullptr;
     for (const StageRef& ref : stages) {  // in date order, so the last one started wins
@@ -396,16 +505,17 @@ AsOf characterAsOf(const Character& c, const StoryDate& date, const Database& db
         result.stageIndex = best->ownIndex;
         result.eventId = best->eventId;
         result.stage = best->stage;
-        return result;
+        return finish();
     }
     result.beforeKnown = !c.nowSince.empty();  // no stages, and the date is before "now" began
-    return result;
+    return finish();
 }
 
 CharacterStage stageFromNow(const Character& c) {
     CharacterStage stage;
     takeStageLevel(stage, c);
     stage.stateOfMind = c.stateOfMind;
+    stage.life = c.life;
     stage.affiliation = c.affiliation;
     stage.status = c.dossier.status;
     stage.titles = c.titles;
@@ -440,6 +550,7 @@ std::string stageSummary(const CharacterStage& stage, const Database& db) {
     std::string text = stage.date.empty() ? "No date yet: " : "From " + storyDateText(stage.date) + ": ";
     text += stageLevelText(stage, db);
     if (!stage.label.empty()) text += ". " + stage.label;
+    else if (isDead(stage.life)) text += ". Dead";
     return text;
 }
 
@@ -455,9 +566,33 @@ std::vector<StoryDate> storyDates(const Database& db) {
     for (const auto& c : db.characters) {
         for (const auto& s : c.stages) add(s.date);
         add(c.nowSince);
+        if (isDead(c.life)) add(c.diedOn);
     }
     std::sort(dates.begin(), dates.end(), storyDateBefore);
     return dates;
+}
+
+// ---------------------------------------------------------------- alive or dead
+
+Death deathOf(const Character& c, const Database& db) {
+    if (isDead(c.life)) return {true, c.diedOn, c.lifeNote, 0, -1};
+    if (!c.life.empty()) return {};  // their own words say how they are now: alive, or as written
+    // Dead when the last thing known has them dead: they died at a story event, say, and nothing came after.
+    const std::vector<LifeMark> marks = lifeMarks(c, db, stagesOf(c, db), nullptr);
+    if (marks.empty() || !isDead(marks.back().life)) return {};
+    return deathAt(marks, marks.size() - 1);
+}
+
+bool deadNow(const Character& c, const Database& db) { return deathOf(c, db).dead; }
+
+std::string deathText(const Death& death, const Database& db) {
+    if (!death.dead) return "";
+    std::string text = death.date.empty() ? "Dead" : "Died " + storyDateText(death.date);
+    if (const StoryEvent* e = death.eventId != 0 ? db.findEvent(death.eventId) : nullptr) {
+        text += " at \"" + (e->title.empty() ? std::string("(untitled event)") : e->title) + "\"";
+    }
+    if (!death.how.empty()) text += ": " + death.how;
+    return text;
 }
 
 // ---------------------------------------------------------------- sheets
@@ -511,7 +646,10 @@ Sheet buildEventSheet(const StoryEvent& e, const Database& db) {
             const AsOf then = characterAsOf(*c, e.date, db, e.id);  // as they came to it
             line += ": " + levelText(then.character, db);
             if (then.beforeKnown) line += " (before anything recorded about them)";
-            if (p.changed) {
+            if (p.changed && isDead(p.change.life)) {
+                line += ". Dies here";
+                if (!p.change.label.empty() && !saysOnlyDied(p.change.label)) line += " (" + p.change.label + ")";
+            } else if (p.changed) {
                 line += ". After this: " + levelText(characterInStage(*c, p.change, db), db);
                 if (!p.change.label.empty()) line += " (" + p.change.label + ")";
             }

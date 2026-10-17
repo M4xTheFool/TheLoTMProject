@@ -91,8 +91,28 @@ std::string levelText(const Character& c, const Database& db);
 std::string stageLevelText(const CharacterStage& stage, const Database& db);
 // "From 3 July 1357: Sequence 5 Player, Acrobat pathway. Joins the Troupe"
 std::string stageSummary(const CharacterStage& stage, const Database& db);
-// Every date where something changes: event dates and stage dates, earliest first, each once.
+// Every date where something changes: event dates, stage dates and deaths, earliest first, each once.
 std::vector<StoryDate> storyDates(const Database& db);
+
+// ---- Alive or dead
+
+// How someone died, as far as your story says. Either by their own Alive or dead setting (Identity tab),
+// with the date they died, or by their latest stage or change at a story event, when that has them dead
+// and nothing came after it. Their own words for being alive ("Revived") mean they are alive now.
+struct Death {
+    bool dead = false;
+    StoryDate date;       // when they died; empty when not known
+    std::string how;      // in your words: "killed by Amon"
+    int eventId = 0;      // they died at this story event
+    int stageIndex = -1;  // in this stage of their own
+};
+Death deathOf(const Character& c, const Database& db);
+bool deadNow(const Character& c, const Database& db);
+// "Died 3 July 1360 at "The Fall of Backlund": killed by Amon", "Dead", or empty for the living.
+std::string deathText(const Death& death, const Database& db);
+// A character as they are on a date (characterAsOf does this) is alive or dead as their stages, their own
+// death and now say: before any of those they were alive. The copy says it in its own fields: life is
+// "Alive" or as written, and diedOn and lifeNote are filled in for one who is dead then.
 
 // ---- Sheets
 

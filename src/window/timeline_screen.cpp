@@ -341,7 +341,8 @@ void castGrid(WindowState& w, const StoryDate& date) {
         const Pathway* p = db.findPathway(t.pathwayId);
         std::string line = t.pathwayId.empty() ? "Mortal" : levelName(t) + (p ? ", " + p->name : "");
         if (isKingOfAngels(t)) line += ", King of Angels";
-        const std::string key = line + "|" + t.stateOfMind + "|" + t.affiliation.organization;
+        const bool dead = isDead(t.life);
+        const std::string key = line + "|" + t.stateOfMind + "|" + t.affiliation.organization + "|" + t.life;
         auto& seen = s.castLines[c.id];
         if (!seen.empty() && seen != key) s.castChangedAt[c.id] = now;
         seen = key;
@@ -365,10 +366,14 @@ void castGrid(WindowState& w, const StoryDate& date) {
             draw->AddRectFilled(at, end, colourU32(palette().gold, 0.22f * glow), rounding);
             draw->AddRect(at, end, colourU32(palette().gold, glow), rounding, 0, 2.0f);
         }
-        const ImVec4 colour = pathwayColour(db, t.pathwayId);
+        // Dead on this date: the medallion greys, and the mourning band grows across it.
+        const float mourning = glide(ImGui::GetID(("castDead" + std::to_string(c.id)).c_str()), dead ? 1.0f : 0.0f, 5.0f);
+        const ImVec4 colour = mourned(pathwayColour(db, t.pathwayId), mourning);
         const float r = cardHeight * 0.32f;
         const std::string badge = t.pathwayId.empty() ? "-" : t.aboveSequence ? "\xE2\x88\x9E" : std::to_string(t.sequence);
-        medallionAt(w, ImVec2(at.x + font * 0.5f + r, at.y + cardHeight * 0.5f), r * (1.0f + 0.12f * glow), colour, badge);
+        const ImVec2 centre(at.x + font * 0.5f + r, at.y + cardHeight * 0.5f);
+        medallionAt(w, centre, r * (1.0f + 0.12f * glow), colour, badge);
+        mourningBand(draw, centre, r * (1.0f + 0.12f * glow), mourning);
         const float textX = at.x + font * 1.0f + r * 2.0f;
         ImGui::PushClipRect(at, ImVec2(end.x - font * 0.3f, end.y), true);
         draw->AddText(w.fonts.bold, font, ImVec2(textX, at.y + font * 0.35f), ImGui::GetColorU32(ImGuiCol_Text), c.name.c_str());
@@ -376,7 +381,11 @@ void castGrid(WindowState& w, const StoryDate& date) {
                       line.c_str());
         std::string extra = then.beforeKnown ? "Before anything recorded" : t.stateOfMind;
         if (extra.empty()) extra = t.affiliation.organization;
-        const ImVec4 extraColour = then.beforeKnown || t.stateOfMind.empty() ? palette().muted : stateOfMindColour(t.stateOfMind);
+        ImVec4 extraColour = then.beforeKnown || t.stateOfMind.empty() ? palette().muted : stateOfMindColour(t.stateOfMind);
+        if (dead) {
+            extra = t.diedOn.empty() ? "Dead" : "Died " + storyDateText(t.diedOn);
+            extraColour = deathColour();
+        }
         draw->AddText(ImGui::GetFont(), font * 0.8f, ImVec2(textX, at.y + font * 2.35f), colourU32(extraColour), extra.c_str());
         ImGui::PopClipRect();
         if (hovered) {
@@ -612,6 +621,11 @@ void peopleTab(WindowState& w, StoryEvent& e) {
         ImGui::TextColored(palette().gold, "An advancement: use + Change next to whoever advanced to give them their new "
                                            "Sequence.");
     }
+    const bool deathKind = lower(e.kind) == "death";
+    if (deathKind && std::none_of(e.people.begin(), e.people.end(), [](const EventPerson& p) { return p.changed && isDead(p.change.life); })) {
+        ImGui::TextColored(deathColour(), "A death: use + Dies here next to whoever died. From the event's date on they "
+                                          "are dead.");
+    }
     int removeIndex = -1;
     bool openChange = false;
     if (!e.people.empty() && ImGui::BeginTable("people", 5, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg)) {
@@ -671,6 +685,37 @@ void peopleTab(WindowState& w, StoryEvent& e) {
                     }
                     ImGui::SetItemTooltip("Something changed for them here: they advanced, joined an organization, "
                                           "picked up a Sealed Artifact ...");
+                    if (!isDead(then.character.life)) {
+                        ImGui::SameLine();
+                        ImGui::PushStyleColor(ImGuiCol_Text, deathColour());
+                        if (ImGui::SmallButton("+ Dies here")) {
+                            person.changed = true;
+                            person.change = stageFromNow(then.character);
+                            person.change.date = e.date;
+                            person.change.life = "Dead";
+                            person.change.label = "Dies";
+                            s.diedAt[static_cast<int>(i)] = ImGui::GetTime();
+                        }
+                        ImGui::PopStyleColor();
+                        ImGui::SetItemTooltip("They die at this event: from its date on they are dead, on their sheet, "
+                                              "the Characters tab and everywhere else.");
+                    }
+                } else if (isDead(person.change.life)) {
+                    // A death: the words fade in, and a click opens the change to say how.
+                    const auto since = s.diedAt.find(static_cast<int>(i));
+                    const float shown = since == s.diedAt.end() ? 1.0f : easeIn(since->second, 0.6f);
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(deathColour().x, deathColour().y, deathColour().z, shown));
+                    const std::string how = person.change.note.empty() ? "" : ": " + person.change.note;
+                    ImGui::TextWrapped("Dies here%s", how.c_str());
+                    ImGui::PopStyleColor();
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                        ImGui::SetTooltip("Click to say how, or to undo it with Remove this change");
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                            openChange = true;
+                            s.changingPerson = static_cast<int>(i);
+                        }
+                    }
                 } else {
                     const Character after = characterInStage(*c, person.change, db);
                     const std::string text = levelText(after, db) + (person.change.label.empty() ? "" : ". " + person.change.label);

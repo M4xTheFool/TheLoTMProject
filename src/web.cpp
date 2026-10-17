@@ -9,7 +9,9 @@
 #include <tuple>
 
 #include "pathway_colours.hpp"
+#include "relations.hpp"
 #include "rules.hpp"
+#include "story.hpp"
 
 namespace lotm {
 
@@ -163,14 +165,15 @@ Web buildWeb(const Database& db, const WebOptions& options) {
         node.badge = nameInitials(node.name);
         node.level = levelName(c);
         node.organization = c.affiliation.organization;
+        node.death = deathText(deathOf(c, db), db);
         index["c" + std::to_string(c.id)] = web.nodes.size();
         web.nodes.push_back(node);
     }
 
     // One edge per pair; each side's words for the other, and the closest bond between them.
     std::map<std::pair<size_t, size_t>, size_t> pairs;
-    auto connect = [&](size_t from, size_t to, const Relationship& r) {
-        if (from == to) return;
+    auto connect = [&](size_t from, size_t to, const Relationship& r) -> WebEdge* {
+        if (from == to) return nullptr;
         const size_t a = std::min(from, to), b = std::max(from, to);
         auto found = pairs.find({a, b});
         if (found == pairs.end()) {
@@ -187,6 +190,7 @@ Web buildWeb(const Database& db, const WebOptions& options) {
         if (!r.note.empty() && edge.note.find(r.note) == std::string::npos) {
             edge.note += (edge.note.empty() ? "" : "; ") + r.note;
         }
+        return &edge;
     };
     for (const Character& c : db.characters) {
         const auto self = index.find("c" + std::to_string(c.id));
@@ -198,6 +202,7 @@ Web buildWeb(const Database& db, const WebOptions& options) {
                 if (other != index.end()) connect(self->second, other->second, r);
                 continue;
             }
+            if (r.organizationId != 0) continue;  // reaches the members, below
             if (!options.unsavedPeople || r.name.empty()) continue;
             const std::string key = "n:" + lowercase(r.name);
             auto other = index.find(key);
@@ -209,6 +214,25 @@ Web buildWeb(const Database& db, const WebOptions& options) {
                 web.nodes.push_back(node);
             }
             connect(self->second, other->second, r);
+        }
+    }
+
+    // A relationship with a whole organization reaches each member who has none of their own with them.
+    for (const Character& c : db.characters) {
+        const auto self = index.find("c" + std::to_string(c.id));
+        if (!options.throughOrganizations || self == index.end()) continue;
+        for (const Tie& tie : tiesThroughOrganizations(db, c)) {
+            if (!tie.outgoing || tie.overridden || !shown(tie.type)) continue;
+            const auto other = index.find("c" + std::to_string(tie.other->id));
+            if (other == index.end()) continue;
+            Relationship r;
+            r.type = tie.type;
+            r.note = tie.note;
+            WebEdge* edge = connect(self->second, other->second, r);
+            const std::string name = "the " + tie.organization->name;
+            if (edge && edge->through.find(name) == std::string::npos) {
+                edge->through += (edge->through.empty() ? "" : " and ") + name;
+            }
         }
     }
 
@@ -283,6 +307,7 @@ std::string describePath(const Web& web, const std::vector<size_t>& path) {
         std::string how;
         if (edge) how = edge->a == path[i - 1] ? edge->fromA : edge->fromB;
         if (edge && how.empty()) how = edge->label();
+        if (edge && !edge->through.empty()) how += (how.empty() ? "" : ", ") + std::string("through ") + edge->through;
         text += " \xE2\x86\x92 " + web.nodes[path[i]].name + (how.empty() ? "" : " (" + how + ")");
     }
     return text;
@@ -535,6 +560,8 @@ WebFigure webFigure(const Web& web, const WebLayout& layout, const Database& db,
             const Pathway* p = db.findPathway(node.pathwayId);
             f.tip += ", " + node.level + (p ? ", " + p->name + " pathway" : "");
             if (!node.organization.empty()) f.tip += ", " + node.organization;
+            if (!node.death.empty()) f.tip += ". " + node.death;
+            f.dead = !node.death.empty();
             f.tip += ". " + std::to_string(node.connections) + (node.connections == 1 ? " connection" : " connections");
             if (links) f.link = "#c-" + std::to_string(node.characterId);
         } else {
@@ -549,7 +576,9 @@ WebFigure webFigure(const Web& web, const WebLayout& layout, const Database& db,
         f.b = e.b;
         f.label = e.label();
         f.colour = bondColour(e.bond);
-        f.tip = web.nodes[e.a].name + " and " + web.nodes[e.b].name + ": " + e.label() + (e.note.empty() ? "" : ". " + e.note);
+        f.tip = web.nodes[e.a].name + " and " + web.nodes[e.b].name + ": " + e.label() +
+                (e.through.empty() ? "" : ", through " + e.through) + (e.note.empty() ? "" : ". " + e.note);
+        f.through = !e.through.empty();
         used[static_cast<size_t>(e.bond)] = true;
         figure.edges.push_back(f);
     }
@@ -585,8 +614,9 @@ Sheet buildWebSheet(const Web& web, const WebLayout& layout, const Database& db,
     Block figure{BlockKind::Web, "", "", {}, {}, {}, {}};
     figure.web = webFigure(web, layout, db, links);
     if (!figure.web.nodes.empty()) picture.blocks.push_back(figure);
-    picture.paragraph("Each circle is a character in their pathway's colour; each line is a relationship, coloured by "
-                      "its kind. Rest the pointer on someone to see only their connections.");
+    picture.paragraph("Each circle is a character in their pathway's colour, grey for one who has died; each line is a "
+                      "relationship, coloured by its kind, and dashed when it comes through an organization. Rest the "
+                      "pointer on someone to see only their connections.");
     if (!web.nodes.empty()) sheet.sections.push_back(picture);
 
     // Who has the most.
@@ -608,6 +638,7 @@ Sheet buildWebSheet(const Web& web, const WebLayout& layout, const Database& db,
         for (const WebEdge& e : web.edges) {
             if (static_cast<int>(e.bond) != b) continue;
             std::string line = web.nodes[e.a].name + " and " + web.nodes[e.b].name + ": " + e.label();
+            if (!e.through.empty()) line += ", through " + e.through;
             if (!e.note.empty()) line += ". " + e.note;
             section.bullet(line);
         }

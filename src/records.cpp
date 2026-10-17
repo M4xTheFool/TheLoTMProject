@@ -40,10 +40,46 @@ CharacterSaveReport saveCharacter(App& app, Character& c, bool isNew) {
     CharacterSaveReport report;
     report.cleanups = normalizeCharacter(c);
     const auto backup = app.db.characters;
+    const auto organizationsBackup = app.db.organizations;
+    const auto eventsBackup = app.db.events;
     std::optional<Character> before;
     if (const Character* saved = isNew ? nullptr : app.db.findCharacter(c.id)) before = *saved;
     report.linked = syncRelationships(app.db, c, before ? &*before : nullptr);
     c.updatedAt = nowTimestamp();
+
+    // Names typed by hand elsewhere find them, unless another saved character has the same name.
+    const std::string name = trimmed(c.name);
+    const bool nameIsTheirs = !name.empty() && std::none_of(app.db.characters.begin(), app.db.characters.end(),
+                                                            [&](const Character& x) { return x.id != c.id && sameName(x.name, name); });
+    // An organization that lists them among the members who aren't saved characters ("Will Auceptin, a friend
+    // of the Fool") makes them a member, with that role as their rank, if they have no affiliation yet.
+    bool organizationsChanged = false;
+    for (Organization& o : app.db.organizations) {
+        if (!nameIsTheirs) break;
+        auto& lines = o.otherMembers;
+        for (auto it = lines.begin(); it != lines.end();) {
+            const std::string line = trimmed(*it);
+            const auto comma = line.find(',');
+            if (!sameName(trimmed(line.substr(0, comma)), name)) {
+                ++it;
+                continue;
+            }
+            const bool unaffiliated = isIndependent(c.affiliation.organization);
+            if (!unaffiliated && !belongsTo(app.db, o, c.affiliation.organization)) {
+                ++it;  // they belong somewhere else: the line stays as typed
+                continue;
+            }
+            if (unaffiliated) {
+                c.affiliation.organization = o.name;
+                c.affiliation.rank = comma == std::string::npos ? "" : trimmed(line.substr(comma + 1));
+                report.linked.push_back(o.name + " listed " + name + " among its members by name; they are now a member.");
+            }
+            it = lines.erase(it);
+            o.updatedAt = c.updatedAt;
+            organizationsChanged = true;
+        }
+    }
+
     if (isNew) {
         c.createdAt = c.updatedAt;
         app.db.characters.push_back(c);
@@ -52,20 +88,40 @@ CharacterSaveReport saveCharacter(App& app, Character& c, bool isNew) {
     }
     // An organization led by someone typed by name gets them as its leader once they are saved, and one
     // they lead follows a new name.
-    const auto organizationsBackup = app.db.organizations;
-    bool leadersChanged = false;
     for (Organization& o : app.db.organizations) {
         const int leaderId = o.leaderId;
         const std::string leader = o.leader;
         linkLeaderByName(app.db, o);
-        leadersChanged = leadersChanged || o.leaderId != leaderId || o.leader != leader;
+        organizationsChanged = organizationsChanged || o.leaderId != leaderId || o.leader != leader;
+    }
+    // People at story events typed with their name are linked to them.
+    int events = 0;
+    for (StoryEvent& e : app.db.events) {
+        if (!nameIsTheirs) break;
+        if (std::any_of(e.people.begin(), e.people.end(), [&](const EventPerson& p) { return p.characterId == c.id; })) continue;
+        bool here = false;
+        for (EventPerson& p : e.people) {
+            if (p.characterId != 0 || !sameName(trimmed(p.name), name)) continue;
+            p.characterId = c.id;
+            p.name = c.name;
+            here = true;
+        }
+        if (!here) continue;
+        e.updatedAt = c.updatedAt;
+        ++events;
+    }
+    if (events > 0) {
+        report.linked.push_back(std::to_string(events) + (events == 1 ? " story event" : " story events") + " named " +
+                                name + "; " + (events == 1 ? "it is" : "they are") + " linked to them now.");
     }
     try {
         app.storage.saveCharacters(app.db);
-        if (leadersChanged) app.storage.saveOrganizations(app.db);
+        if (organizationsChanged) app.storage.saveOrganizations(app.db);
+        if (events > 0) app.storage.saveEvents(app.db);
     } catch (const StorageError&) {
         app.db.characters = backup;
         app.db.organizations = organizationsBackup;
+        app.db.events = eventsBackup;
         throw;
     }
     return report;
@@ -301,6 +357,27 @@ int saveOrganization(App& app, Organization& o, bool isNew) {
     } else if (Organization* existing = app.db.findOrganization(o.id)) {
         *existing = o;
     }
+    // Relationships with it follow a new name, and ones that name it by hand (and no saved character) are
+    // linked to it.
+    const Organization* stored = app.db.findOrganization(o.id);
+    for (Character& c : app.db.characters) {
+        for (Relationship& r : c.relationships) {
+            if (r.organizationId == o.id) {
+                if (r.name != o.name) charactersChanged = true;
+                r.name = o.name;
+                continue;
+            }
+            if (r.characterId != 0 || r.organizationId != 0 || organizationNamed(app.db, r.name) != stored) continue;
+            const auto people = app.db.findCharactersByName(r.name, 0);
+            if (std::any_of(people.begin(), people.end(), [&](const Character* x) { return sameName(x->name, trimmed(r.name)); })) {
+                continue;
+            }
+            r.organizationId = o.id;
+            r.name = o.name;
+            c.updatedAt = now;
+            charactersChanged = true;
+        }
+    }
     try {
         app.storage.saveOrganizations(app.db);
         if (charactersChanged) app.storage.saveCharacters(app.db);
@@ -316,12 +393,26 @@ int saveOrganization(App& app, Organization& o, bool isNew) {
 
 void deleteOrganization(App& app, int id) {
     const auto backup = app.db.organizations;
+    const auto charactersBackup = app.db.characters;
+    const Organization* deleted = app.db.findOrganization(id);
+    const std::string name = deleted ? deleted->name : "";
     auto& list = app.db.organizations;
     list.erase(std::remove_if(list.begin(), list.end(), [id](const Organization& o) { return o.id == id; }), list.end());
+    bool related = false;
+    for (Character& c : app.db.characters) {
+        for (Relationship& r : c.relationships) {
+            if (r.organizationId != id) continue;
+            r.organizationId = 0;
+            if (!name.empty()) r.name = name;
+            related = true;
+        }
+    }
     try {
         app.storage.saveOrganizations(app.db);
+        if (related) app.storage.saveCharacters(app.db);
     } catch (const StorageError&) {
         app.db.organizations = backup;
+        app.db.characters = charactersBackup;
         throw;
     }
 }
@@ -428,6 +519,7 @@ SampleImportReport importParts(App& app, const SampleSet& set, bool records, boo
         for (Relationship& r : c.relationships) {
             const auto it = characterIds.find(r.characterId);
             r.characterId = it != characterIds.end() ? it->second : 0;
+            r.organizationId = 0;  // the set's numbers mean nothing here: linked again by name
         }
         linkRelationshipsByName(app.db, c);
         normalizeCharacter(c);
@@ -437,7 +529,19 @@ SampleImportReport importParts(App& app, const SampleSet& set, bool records, boo
             auto inSet = [&](int id) {
                 return std::any_of(characterIds.begin(), characterIds.end(), [&](const auto& m) { return m.second == id; });
             };
+            auto organizationInSet = [&](int id) {
+                const Organization* o = app.db.findOrganization(id);
+                return o && std::any_of(set.organizations.begin(), set.organizations.end(),
+                                        [&](const Organization& x) { return sameName(x.name, o->name); });
+            };
             for (const Relationship& r : saved->relationships) {
+                if (r.organizationId != 0 && !organizationInSet(r.organizationId)) {  // with one of your own organizations
+                    const bool has = std::any_of(c.relationships.begin(), c.relationships.end(), [&](const Relationship& x) {
+                        return x.organizationId == r.organizationId && sameName(x.type, r.type);
+                    });
+                    if (!has) c.relationships.push_back(r);
+                    continue;
+                }
                 if (r.characterId == 0 || inSet(r.characterId)) continue;
                 const bool has = std::any_of(c.relationships.begin(), c.relationships.end(), [&](const Relationship& x) {
                     return x.characterId == r.characterId && sameName(x.type, r.type);
@@ -514,6 +618,17 @@ SampleImportReport importParts(App& app, const SampleSet& set, bool records, boo
         app.db.organizations.push_back(o);
         organizationsChanged = true;
         report.addedOrganizations.push_back(o.name);
+    }
+    // Relationships with organizations: now that the set's organizations are here, by name.
+    for (const auto& [id, before] : changed) {
+        Character* stored = app.db.findCharacter(id);
+        const auto relationships = stored->relationships;
+        linkRelationshipsByName(app.db, *stored);
+        const bool linked = !std::equal(relationships.begin(), relationships.end(), stored->relationships.begin(),
+                                        stored->relationships.end(), [](const Relationship& a, const Relationship& b) {
+                                            return a.organizationId == b.organizationId && a.characterId == b.characterId;
+                                        });
+        charactersChanged = charactersChanged || linked;
     }
 
     // Story events: the same title and date is the same event. People are linked to the set's
@@ -616,6 +731,11 @@ SampleSet makeSampleSet(const Database& db, const std::string& title, const std:
             if (r.characterId != 0 && !picked(characterIds, r.characterId)) {
                 if (const Character* other = db.findCharacter(r.characterId)) r.name = other->name;
                 r.characterId = 0;
+            }
+            // An organization they have a relationship with comes along, like the one they belong to.
+            if (const Organization* o = r.organizationId != 0 ? db.findOrganization(r.organizationId) : nullptr) {
+                r.name = o->name;
+                if (!picked(organizations, o->id)) organizations.push_back(o->id);
             }
         }
         for (int id : copy.artifactIds) {

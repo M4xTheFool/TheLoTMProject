@@ -6,6 +6,7 @@
 
 #include "pathway_colours.hpp"
 #include "presets.hpp"
+#include "relations.hpp"
 #include "rules.hpp"
 #include "story.hpp"
 
@@ -222,6 +223,10 @@ OrganizationStrength organizationStrength(const Organization& o, const Database&
     int strongestScore = -1, dangerIndex = -2, dangerScore = 0;
     for (const Member& m : membersOf(o, db)) {
         const Character& c = *m.character;
+        if (deadNow(c, db)) {
+            ++s.dead;
+            continue;
+        }
         ++s.members;
         const ThreatAssessment threat = assessThreat(c);
         s.threatScore += threat.total;
@@ -371,6 +376,7 @@ Sheet buildOrganizationSheet(const Organization& o, const Database& db) {
     }
     sheet.badges.push_back({count(strength.members + strength.others, "member", "members"), "colour", "",
                             hexColour(organizationRgb(db, o))});
+    if (strength.dead > 0) sheet.badges.push_back({count(strength.dead, "member died", "members died"), "muted", "", ""});
     if (!strength.threatLevel.empty()) {
         const auto level = std::find(kThreatLevels.begin(), kThreatLevels.end(), strength.threatLevel);
         const int index = level == kThreatLevels.end() ? -1 : static_cast<int>(level - kThreatLevels.begin());
@@ -413,7 +419,11 @@ Sheet buildOrganizationSheet(const Organization& o, const Database& db) {
     for (const Member& m : members) {
         std::string line = m.character->name + " (" + characterCode(m.character->id) + ")";
         if (const std::string role = memberRole(m); !role.empty()) line += ", " + (m.leader && trimmed(m.rank).empty() ? "leader" : role);
-        people.bullet(line + ": " + levelText(*m.character, db));
+        line += ": " + levelText(*m.character, db);
+        if (const Death death = deathOf(*m.character, db); death.dead) {
+            line += ". " + (death.date.empty() ? std::string("Dead") : "Died " + storyDateText(death.date));
+        }
+        people.bullet(line);
     }
     if (!o.otherMembers.empty()) {
         if (!members.empty()) people.subheading("Not saved as characters");
@@ -435,6 +445,20 @@ Sheet buildOrganizationSheet(const Organization& o, const Database& db) {
         sheet.sections.push_back(earlier);
     }
 
+    // Relationships your characters have with the organization as a whole, as the organization sees them.
+    Section ties{"Relationships"};
+    for (const OrganizationRelationship& r : relationshipsWithOrganization(db, o.id)) {
+        std::string line = reciprocalType(r.relationship->type) + ": " + r.character->name + " (" +
+                           characterCode(r.character->id) + ")";
+        if (!r.relationship->note.empty()) line += ", " + r.relationship->note;
+        ties.bullet(line);
+    }
+    if (!ties.blocks.empty()) {
+        ties.paragraph("Each of them has this relationship with every member, unless a member has one of their own "
+                       "with them.");
+        sheet.sections.push_back(ties);
+    }
+
     if (strength.members > 0) {
         Section power{"Strength"};
         power.field("Members", tierCounts(strength));
@@ -444,6 +468,7 @@ Sheet buildOrganizationSheet(const Organization& o, const Database& db) {
         }
         power.field("Combined threat", std::to_string(strength.threatScore) + " (every member's threat score added up)");
         if (strength.artifacts > 0) power.field("Sealed Artifacts held", std::to_string(strength.artifacts));
+        if (strength.dead > 0) power.field("Not counted", count(strength.dead, "member who died", "members who died"));
         sheet.sections.push_back(power);
     }
 

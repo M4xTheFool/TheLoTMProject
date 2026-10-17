@@ -67,9 +67,10 @@ void linkLeaderByName(const Database& db, Organization& o);
 // Above the Sequence 11.
 int powerScore(const Character& c);
 
-// How strong an organization is, from its saved members.
+// How strong an organization is, from its saved members who are alive (see deadNow in story.hpp).
 struct OrganizationStrength {
-    int members = 0;  // saved characters
+    int members = 0;  // saved characters, alive
+    int dead = 0;     // saved characters who died, not counted in anything below
     int others = 0;   // members who aren't saved characters
     const Character* strongest = nullptr;      // the highest powerScore (a King of Angels or dual-pathway god first on a tie)
     const Character* mostDangerous = nullptr;  // the highest threat level, then the highest threat score

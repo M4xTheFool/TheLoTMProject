@@ -165,7 +165,10 @@ void memberDots(WindowState& w, const Organization& o, size_t column) {
                                      9.0f - std::min(6.0f, static_cast<float>(i) * 0.4f));
         if (grow < 0.05f) continue;
         if (members[i].leader) draw->AddCircle(at, r * grow + font * 0.14f, colourU32(palette().gold, grow), 0, std::max(1.2f, font * 0.08f));
-        draw->AddCircleFilled(at, r * grow, colourU32(pathwayColour(db, c.pathwayId), 0.9f * grow));
+        const bool dead = deadNow(c, db);  // greyed, with a mourning band
+        draw->AddCircleFilled(at, r * grow, colourU32(dead ? mourned(pathwayColour(db, c.pathwayId), 1.0f) : pathwayColour(db, c.pathwayId),
+                                                      0.9f * grow));
+        if (dead) mourningBand(draw, at, r * grow, 1.0f, grow);
         if (hovered) {
             const ImVec2 mouse = ImGui::GetMousePos();
             if (std::abs(mouse.x - at.x) <= step * 0.5f && std::abs(mouse.y - at.y) <= step * 0.5f) under = static_cast<int>(i);
@@ -179,6 +182,8 @@ void memberDots(WindowState& w, const Organization& o, size_t column) {
             const std::string rank = memberRole(m);
             if (!rank.empty()) ImGui::TextColored(m.leader ? palette().gold : palette().muted, "%s", rank.c_str());
             ImGui::TextDisabled("%s", levelText(*m.character, db).c_str());
+            const std::string death = deathText(deathOf(*m.character, db), db);
+            if (!death.empty()) ImGui::TextColored(deathColour(), "%s", death.c_str());
             ImGui::EndTooltip();
         }
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) openCharacter(w, m.character->id);

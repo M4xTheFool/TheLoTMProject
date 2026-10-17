@@ -87,6 +87,12 @@ inline const std::vector<std::string> kStatesOfMind = {"Sane", "Not completely s
 // 0 for Sane up to 4 for Lost control; -1 when nothing is recorded or it is in the user's own words.
 int stateOfMindLevel(const std::string& state);
 
+// Alive or dead. Anything else typed in is kept as the user's own words ("Revived", "A wandering spirit").
+inline const std::vector<std::string> kLifeStates = {"Alive", "Dead"};
+// Whether the words mean dead: "Dead" or "Deceased", in any capitals, or words starting with one of them
+// ("Dead, killed by Amon"). Empty and anything else count as alive.
+bool isDead(const std::string& life);
+
 // Every power a character has, grouped the way the sheet shows them:
 //   - their pathway, Sequence 9 down to theirs (each Sequence from the pathway it came from, for a
 //     mixed-pathway Beyonder);

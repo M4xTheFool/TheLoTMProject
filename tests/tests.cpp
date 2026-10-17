@@ -2524,6 +2524,286 @@ static void testOrganizations() {
     fs::remove_all(root);
 }
 
+// Relationships with a whole organization reach its members; deaths, from the Identity tab or a stage
+// or a story event; and names typed by hand finding the characters and organizations saved later.
+static void testTiesDeathsAndLinkedNames() {
+    const fs::path root = fs::temp_directory_path() / "lotm_tests_ties";
+    fs::remove_all(root);
+    fs::create_directories(root / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+    App app{Database{}, Storage(root / "data"), Dice{}};
+    app.storage.loadAll(app.db);
+    auto person = [&](const std::string& name, const std::string& organization, const std::string& rank) {
+        Character c;
+        c.id = app.db.nextCharacterId();
+        c.name = name;
+        c.pathwayId = "seer";
+        c.sequence = 5;
+        c.affiliation = {organization, rank};
+        saveCharacter(app, c, true);
+        return c.id;
+    };
+    const int klein = person("Klein Moretti", "Tarot Club", "The Fool");
+    const int audrey = person("Audrey Hall", "Tarot Club", "Justice");
+    const int leonard = person("Leonard Mitchell", "Nighthawks", "");
+    const int dunn = person("Dunn Smith", "Nighthawks", "Captain");
+    const int amon = person("Amon", "", "");
+    Organization club;
+    club.name = "Tarot Club";
+    saveOrganization(app, club, true);
+    Organization hawks;
+    hawks.name = "Nighthawks";
+    saveOrganization(app, hawks, true);
+
+    // Amon is an enemy of the whole Tarot Club: typed by name, linked to the organization.
+    Character amonNow = *app.db.findCharacter(amon);
+    amonNow.relationships.push_back({0, "tarot club", "Enemy", "", 0});
+    linkRelationshipsByName(app.db, amonNow);
+    CHECK(amonNow.relationships[0].organizationId == club.id && amonNow.relationships[0].name == "Tarot Club");
+    CHECK(amonNow.relationships[0].characterId == 0);
+    saveCharacter(app, amonNow, false);
+    CHECK(relationshipName(app.db, app.db.findCharacter(amon)->relationships[0]) == "Tarot Club (O-001)");
+    CHECK(app.db.findCharacter(klein)->relationships.empty());  // nothing is written on the members
+
+    // It reaches each member: Amon sees them as enemies, and they see him.
+    std::vector<Tie> ties = tiesThroughOrganizations(app.db, *app.db.findCharacter(amon));
+    CHECK(ties.size() == 2 && ties[0].outgoing && ties[0].other->id == audrey && ties[1].other->id == klein);
+    CHECK(ties[0].type == "Enemy" && ties[0].organization->id == club.id && !ties[0].overridden);
+    ties = tiesThroughOrganizations(app.db, *app.db.findCharacter(klein));
+    CHECK(ties.size() == 1 && !ties[0].outgoing && ties[0].other->id == amon && ties[0].type == "Enemy");
+
+    // Klein's own relationship with Amon counts instead of the one through the club.
+    Character kleinNow = *app.db.findCharacter(klein);
+    kleinNow.relationships.push_back({amon, "Amon", "Rival", "", 0});
+    saveCharacter(app, kleinNow, false);
+    ties = tiesThroughOrganizations(app.db, *app.db.findCharacter(klein));
+    CHECK(ties.size() == 1 && ties[0].overridden);
+    CHECK(tiesBetween(app.db, *app.db.findCharacter(amon), *app.db.findCharacter(klein)).empty());
+    const auto between = tiesBetween(app.db, *app.db.findCharacter(amon), *app.db.findCharacter(audrey));
+    CHECK(between.size() == 1 && between[0].first == "Enemy" && between[0].second == "Tarot Club");
+
+    // Dunn calls the club his mentor: to each member, he is a student.
+    Character dunnNow = *app.db.findCharacter(dunn);
+    dunnNow.relationships.push_back({0, "", "Mentor", "", club.id});
+    saveCharacter(app, dunnNow, false);
+    ties = tiesThroughOrganizations(app.db, *app.db.findCharacter(audrey));
+    CHECK(ties.size() == 2 && ties[0].other->id == amon && ties[1].other->id == dunn && ties[1].type == "Student");
+
+    // On the sheets.
+    std::string text = renderText(buildCharacterSheet(*app.db.findCharacter(audrey), app.db));
+    CHECK(text.find("Enemy: Amon (C-005), through the Tarot Club") != std::string::npos);
+    CHECK(text.find("Student: Dunn Smith (C-004), through the Tarot Club") != std::string::npos);
+    text = renderText(buildCharacterSheet(*app.db.findCharacter(amon), app.db));
+    CHECK(text.find("Enemy: Tarot Club (O-001), the whole organization") != std::string::npos);
+    CHECK(text.find("through the Tarot Club") == std::string::npos);
+    text = renderText(buildOrganizationSheet(*app.db.findOrganization(club.id), app.db));
+    CHECK(text.find("Enemy: Amon (C-005)") != std::string::npos && text.find("Student: Dunn Smith (C-004)") != std::string::npos);
+
+    // The web draws it as a line to each member, unless asked not to; Klein and Amon have their own.
+    Web web = buildWeb(app.db);
+    const WebEdge* edge = edgeBetween(web, static_cast<size_t>(web.nodeOf(amon)), static_cast<size_t>(web.nodeOf(audrey)));
+    CHECK(edge && edge->through == "the Tarot Club" && edge->label() == "Enemy");
+    edge = edgeBetween(web, static_cast<size_t>(web.nodeOf(amon)), static_cast<size_t>(web.nodeOf(klein)));
+    CHECK(edge && edge->through.empty() && edge->label() == "Rival");
+    WebOptions own;
+    own.throughOrganizations = false;
+    own.unsavedPeople = true;
+    web = buildWeb(app.db, own);
+    CHECK(!edgeBetween(web, static_cast<size_t>(web.nodeOf(amon)), static_cast<size_t>(web.nodeOf(audrey))));
+    CHECK(std::none_of(web.nodes.begin(), web.nodes.end(), [](const WebNode& n) { return n.name == "Tarot Club"; }));
+    // Compare says it too.
+    const Comparison compared = buildComparison({app.db.findCharacter(amon), app.db.findCharacter(audrey)}, app.db);
+    CHECK(std::find(compared.between.begin(), compared.between.end(), "Amon and Audrey Hall: Enemy, through the Tarot Club") !=
+          compared.between.end());
+    const Comparison clubs = buildOrganizationComparison({app.db.findOrganization(club.id), app.db.findOrganization(hawks.id)}, app.db);
+    CHECK(std::find(clubs.between.begin(), clubs.between.end(), "The Tarot Club is Dunn Smith (Nighthawks)'s mentor") !=
+          clubs.between.end());
+
+    // Renamed, the relationship follows; a relationship typed before an organization exists links once it does.
+    Organization renamed = *app.db.findOrganization(club.id);
+    renamed.name = "The Tarot Club";
+    saveOrganization(app, renamed, false);
+    CHECK(app.db.findCharacter(amon)->relationships[0].name == "The Tarot Club");
+    Character leonardNow = *app.db.findCharacter(leonard);
+    leonardNow.relationships.push_back({0, "Aurora Order", "Enemy", "", 0});
+    leonardNow.relationships.push_back({0, "Amon's Avatar", "Enemy", "", 0});
+    saveCharacter(app, leonardNow, false);
+    Organization aurora;
+    aurora.name = "Aurora Order";
+    saveOrganization(app, aurora, true);
+    CHECK(app.db.findCharacter(leonard)->relationships[0].organizationId == aurora.id);
+    CHECK(app.db.findCharacter(leonard)->relationships[1].organizationId == 0);
+    // Deleting it keeps the name.
+    deleteOrganization(app, aurora.id);
+    CHECK(app.db.findCharacter(leonard)->relationships[0].organizationId == 0);
+    CHECK(app.db.findCharacter(leonard)->relationships[0].name == "Aurora Order");
+
+    // Sharing Amon takes the club along, and the friend's copy of him links to it by name.
+    const SampleSet set = makeSampleSet(app.db, "Amon", "", {{amon}, {}, {}, {}});
+    CHECK(set.organizations.size() == 1 && set.organizations[0].name == "The Tarot Club");
+    const fs::path friendRoot = root / "friend";
+    fs::create_directories(friendRoot / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", friendRoot / "data" / "pathways.json");
+    App friendApp{Database{}, Storage(friendRoot / "data"), Dice{}};
+    friendApp.storage.loadAll(friendApp.db);
+    Organization friendsOwn;  // the friend has an organization of their own first, so the numbers differ
+    friendsOwn.name = "Rose School of Thought";
+    saveOrganization(friendApp, friendsOwn, true);
+    importSampleSet(friendApp, set);
+    const Character* friendsAmon = friendApp.db.characters.empty() ? nullptr : &friendApp.db.characters[0];
+    const Organization* friendsClub = organizationNamed(friendApp.db, "The Tarot Club");
+    CHECK(friendsAmon && friendsClub && friendsClub->id != club.id);
+    CHECK(friendsAmon && friendsAmon->relationships.size() == 2 && friendsAmon->relationships[0].name == "The Tarot Club");
+    CHECK(friendsAmon && friendsClub && friendsAmon->relationships[0].organizationId == friendsClub->id);
+    CHECK(friendsAmon && friendsAmon->relationships[1].name == "Klein Moretti" && friendsAmon->relationships[1].characterId == 0);
+    // A newer version of him keeps the relationship the friend gave him with an organization of their own.
+    if (friendsAmon) {
+        Character changed = *friendsAmon;
+        changed.relationships.push_back({0, "Rose School of Thought", "Ally", "", friendsOwn.id});
+        saveCharacter(friendApp, changed, false);
+        SampleSet newer = set;
+        newer.characters[0].updatedAt = "2999-01-01 00:00:00";
+        newer.characters[0].notes = "changed";
+        importSampleSet(friendApp, newer);
+        const Character& after = friendApp.db.characters[0];
+        CHECK(after.notes == "changed");
+        CHECK(std::any_of(after.relationships.begin(), after.relationships.end(),
+                          [&](const Relationship& r) { return r.organizationId == friendsOwn.id; }));
+        CHECK(std::count_if(after.relationships.begin(), after.relationships.end(),
+                            [&](const Relationship& r) { return r.organizationId == friendsClub->id; }) == 1);
+    }
+
+    // ---- Alive or dead
+    // Dunn is dead, by his own setting, since 1349: before that he was alive.
+    dunnNow = *app.db.findCharacter(dunn);
+    dunnNow.life = "Dead";
+    dunnNow.diedOn = date("1349");
+    dunnNow.lifeNote = "killed by Megose";
+    saveCharacter(app, dunnNow, false);
+    Death death = deathOf(*app.db.findCharacter(dunn), app.db);
+    CHECK(death.dead && sameStoryDate(death.date, date("1349")) && deathText(death, app.db) == "Died 1349: killed by Megose");
+    CHECK(isDead("dead") && isDead(" Deceased") && isDead("Dead, at sea") && !isDead("Undead?") && !isDead("Revived") && !isDead(""));
+    CHECK(characterAsOf(*app.db.findCharacter(dunn), date("1348"), app.db).character.life == "Alive");
+    CHECK(characterAsOf(*app.db.findCharacter(dunn), date("1348"), app.db).character.diedOn.empty());
+    CHECK(characterAsOf(*app.db.findCharacter(dunn), date("1350"), app.db).character.life == "Dead");
+    // The dead don't count in an organization's strength.
+    const OrganizationStrength strength = organizationStrength(*app.db.findOrganization(hawks.id), app.db);
+    CHECK(strength.members == 1 && strength.dead == 1);
+    text = renderText(buildCharacterSheet(*app.db.findCharacter(dunn), app.db));
+    CHECK(text.find("Alive or dead: Died 1349: killed by Megose") != std::string::npos);
+    const Sheet dunnSheet = buildCharacterSheet(*app.db.findCharacter(dunn), app.db);
+    CHECK(std::any_of(dunnSheet.badges.begin(), dunnSheet.badges.end(), [](const Badge& b) { return b.text == "Died 1349"; }));
+    text = renderText(buildCharacterSheetAsOf(*app.db.findCharacter(dunn), date("1348"), app.db));
+    CHECK(text.find("Alive or dead") == std::string::npos);
+    // Back to life: the date they died goes, the words stay as written.
+    dunnNow.life = "Revived";
+    saveCharacter(app, dunnNow, false);
+    CHECK(app.db.findCharacter(dunn)->diedOn.empty() && !deadNow(*app.db.findCharacter(dunn), app.db));
+    {
+        Database reloaded;
+        app.storage.loadAll(reloaded);
+        CHECK(reloaded.findCharacter(dunn)->life == "Revived" && reloaded.findCharacter(dunn)->lifeNote == "killed by Megose");
+    }
+
+    // Klein dies at a story event. Nothing else says otherwise, so he is dead now.
+    StoryEvent battle;
+    battle.id = app.db.nextEventId();
+    battle.title = "The Battle";
+    battle.date = date("3 July 1360");
+    battle.kind = "Death";
+    EventPerson dies = who(klein, "Klein Moretti", "");
+    dies.changed = true;
+    dies.change = stageFromNow(*app.db.findCharacter(klein));
+    dies.change.life = "Dead";
+    dies.change.label = "Dies";
+    battle.people = {dies, who(audrey, "Audrey Hall", "witness")};
+    saveEvent(app, battle, true);
+    death = deathOf(*app.db.findCharacter(klein), app.db);
+    CHECK(death.dead && death.eventId == battle.id && death.how.empty());
+    CHECK(deathText(death, app.db) == "Died 3 July 1360 at \"The Battle\"");
+    CHECK(characterAsOf(*app.db.findCharacter(klein), date("1359"), app.db).character.life == "Alive");
+    CHECK(characterAsOf(*app.db.findCharacter(klein), date("1361"), app.db).character.life == "Dead");
+    CHECK(characterAsOf(*app.db.findCharacter(klein), battle.date, app.db, battle.id).character.life == "Alive");  // coming to it
+    CHECK(characterAsOf(*app.db.findCharacter(klein), StoryDate{}, app.db).character.life == "Dead");
+    CHECK(eventPeopleText(app.db, *app.db.findEvent(battle.id)) == "Klein Moretti (dies) and Audrey Hall (witness)");
+    text = renderText(buildEventSheet(*app.db.findEvent(battle.id), app.db));
+    CHECK(text.find("Dies here") != std::string::npos);
+    // Back since 1362: from then on alive again.
+    kleinNow = *app.db.findCharacter(klein);
+    kleinNow.life = "Revived";
+    kleinNow.nowSince = date("1362");
+    saveCharacter(app, kleinNow, false);
+    CHECK(!deadNow(*app.db.findCharacter(klein), app.db));
+    CHECK(characterAsOf(*app.db.findCharacter(klein), date("1361"), app.db).character.life == "Dead");
+    CHECK(characterAsOf(*app.db.findCharacter(klein), date("1363"), app.db).character.life == "Revived");
+
+    // A death as one of their own stages: before it, as before anything known, she was alive.
+    Character audreyNow = *app.db.findCharacter(audrey);
+    CharacterStage end = stageFromNow(audreyNow);
+    end.date = date("1365");
+    end.label = "Dies";
+    end.life = "Dead";
+    audreyNow.stages = {end};
+    saveCharacter(app, audreyNow, false);
+    death = deathOf(*app.db.findCharacter(audrey), app.db);
+    CHECK(death.dead && death.stageIndex == 0 && sameStoryDate(death.date, date("1365")) && death.how.empty());
+    CHECK(characterAsOf(*app.db.findCharacter(audrey), date("1360"), app.db).character.life == "Alive");
+    CHECK(stageSummary(app.db.findCharacter(audrey)->stages[0], app.db).find("Dies") != std::string::npos);
+
+    // ---- Names typed by hand find the characters saved later
+    StoryEvent meeting;
+    meeting.id = app.db.nextEventId();
+    meeting.title = "The first gathering";
+    meeting.people = {who(0, "derrick berg", ""), who(audrey, "Audrey Hall", "")};
+    saveEvent(app, meeting, true);
+    CHECK(app.db.findEvent(meeting.id)->people[0].characterId == 0);
+    Organization* clubNow = app.db.findOrganization(club.id);
+    clubNow->otherMembers = {"Will Auceptin, a friend of the Fool", "Derrick Berg"};
+    Character derrick;
+    derrick.id = app.db.nextCharacterId();
+    derrick.name = "Derrick Berg";
+    derrick.affiliation = {"Silver City", ""};  // belongs somewhere else: the club's line stays
+    const CharacterSaveReport saved = saveCharacter(app, derrick, true);
+    CHECK(app.db.findEvent(meeting.id)->people[0].characterId == derrick.id);
+    CHECK(app.db.findEvent(meeting.id)->people[0].name == "Derrick Berg");
+    CHECK(std::any_of(saved.linked.begin(), saved.linked.end(), [](const std::string& line) {
+        return line.find("1 story event named Derrick Berg") != std::string::npos;
+    }));
+    CHECK(app.db.findOrganization(club.id)->otherMembers.size() == 2);
+    Character will;
+    will.id = app.db.nextCharacterId();
+    will.name = "Will Auceptin";
+    const CharacterSaveReport joined = saveCharacter(app, will, true);
+    CHECK(will.affiliation.organization == "The Tarot Club" && will.affiliation.rank == "a friend of the Fool");
+    CHECK(app.db.findCharacter(will.id)->affiliation.organization == "The Tarot Club");
+    CHECK(app.db.findOrganization(club.id)->otherMembers == std::vector<std::string>{"Derrick Berg"});
+    CHECK(joined.linked.size() == 1 && joined.linked[0].find("now a member") != std::string::npos);
+    {
+        Database reloaded;
+        app.storage.loadAll(reloaded);
+        CHECK(reloaded.findOrganization(club.id)->otherMembers.size() == 1);
+        CHECK(reloaded.findEvent(meeting.id)->people[0].characterId == derrick.id);
+    }
+    // Two characters with the same name: neither is guessed.
+    StoryEvent twins;
+    twins.id = app.db.nextEventId();
+    twins.title = "Twins";
+    twins.people = {who(0, "Twin", "")};
+    saveEvent(app, twins, true);
+    Character one;
+    one.id = app.db.nextCharacterId();
+    one.name = "Twin";
+    saveCharacter(app, one, true);
+    CHECK(app.db.findEvent(twins.id)->people[0].characterId == one.id);
+    app.db.findEvent(twins.id)->people[0].characterId = 0;
+    Character two;
+    two.id = app.db.nextCharacterId();
+    two.name = "Twin";
+    saveCharacter(app, two, true);
+    CHECK(app.db.findEvent(twins.id)->people[0].characterId == 0);
+    fs::remove_all(root);
+}
+
 int main() {
     testModifiers();
     testTiers();
@@ -2560,6 +2840,7 @@ int main() {
     testSampleSetEvents();
     testEventChanges();
     testOrganizations();
+    testTiesDeathsAndLinkedNames();
     if (failures == 0) {
         std::cout << "All checks passed.\n";
         return 0;

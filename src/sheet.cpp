@@ -4,6 +4,7 @@
 #include <cctype>
 
 #include "pathway_colours.hpp"
+#include "relations.hpp"
 #include "rules.hpp"
 #include "story.hpp"
 
@@ -26,6 +27,11 @@ void Section::quote(const std::string& text) {
 }
 
 namespace {
+
+std::string lowercase(std::string text) {
+    for (char& ch : text) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+    return text;
+}
 
 std::string join(const std::vector<std::string>& items, const std::string& separator = ", ") {
     std::string out;
@@ -202,6 +208,13 @@ Sheet buildCharacterSheet(const Character& c, const Database& db, const StoryDat
                                 toneForLevel(stateOfMindLevel(c.stateOfMind)),
                                 "", ""});
     }
+    // Alive or dead: a sheet as of a date has it in the character's own fields (see characterAsOf).
+    const Death death = until ? Death{isDead(c.life), c.diedOn, c.lifeNote, 0, -1} : deathOf(c, db);
+    if (death.dead) {
+        const std::string text = death.date.empty() ? "Dead" : "Died " + storyDateText(death.date);
+        sheet.badges.push_back({text, "colour", "", eventKindColour("Death")});
+    }
+    else if (!c.life.empty() && lowercase(c.life) != "alive") sheet.badges.push_back({c.life, "muted", "", ""});
     {
         const std::string threat = threatLevelOf(c);
         const auto level = std::find(kThreatLevels.begin(), kThreatLevels.end(), threat);
@@ -218,6 +231,13 @@ Sheet buildCharacterSheet(const Character& c, const Database& db, const StoryDat
         std::string mind = c.stateOfMind.empty() ? c.stateOfMindNote : c.stateOfMind;
         if (!c.stateOfMind.empty() && !c.stateOfMindNote.empty()) mind += ": " + c.stateOfMindNote;
         identity.field("State of mind", mind);
+    }
+    if (death.dead) {
+        std::string life = until ? (c.diedOn.empty() ? std::string("Dead") : "Died " + storyDateText(c.diedOn)) : deathText(death, db);
+        if (until && !c.lifeNote.empty()) life += (c.lifeNote.rfind("at \"", 0) == 0 ? " " : ": ") + c.lifeNote;
+        identity.field("Alive or dead", life);
+    } else if (!c.life.empty() && lowercase(c.life) != "alive") {
+        identity.field("Alive or dead", c.lifeNote.empty() ? c.life : c.life + ": " + c.lifeNote);
     }
     identity.field("Age", c.age);
     identity.field("Gender", c.gender);
@@ -357,7 +377,16 @@ Sheet buildCharacterSheet(const Character& c, const Database& db, const StoryDat
     Section relations{"Relationships"};
     for (const auto& r : c.relationships) {
         std::string line = r.type + ": " + relationshipName(db, r);
+        if (r.organizationId != 0 && db.findOrganization(r.organizationId)) line += ", the whole organization";
         if (!r.note.empty()) line += ", " + r.note;
+        relations.bullet(line);
+    }
+    // Relationships others have with an organization they belong to reach them too.
+    for (const Tie& tie : tiesThroughOrganizations(db, c)) {
+        if (tie.outgoing || tie.overridden) continue;
+        std::string line = tie.type + ": " + tie.other->name + " (" + characterCode(tie.other->id) + "), through the " +
+                           tie.organization->name;
+        if (!tie.note.empty()) line += ", " + tie.note;
         relations.bullet(line);
     }
     addSection(sheet, relations);

@@ -539,6 +539,33 @@ void statusDot(const ImVec4& colour) {
     ImGui::SameLine();
 }
 
+ImVec4 deathColour() { return colourFromHex(eventKindColour("Death")); }
+
+ImVec4 mourned(const ImVec4& colour, float amount) {
+    const float grey = colour.x * 0.3f + colour.y * 0.45f + colour.z * 0.25f;
+    const ImVec4 to(grey * 0.85f + 0.08f, grey * 0.85f + 0.08f, grey * 0.85f + 0.1f, colour.w);
+    const float t = std::clamp(amount, 0.0f, 1.0f);
+    return ImVec4(colour.x + (to.x - colour.x) * t, colour.y + (to.y - colour.y) * t, colour.z + (to.z - colour.z) * t,
+                  colour.w);
+}
+
+void mourningBand(ImDrawList* draw, ImVec2 centre, float radius, float amount, float alpha) {
+    if (amount <= 0.01f || radius < 2.0f) return;
+    // A chord across the top right of the circle, and the same chord a little further in.
+    const float a1 = -1.5707963f + 0.35f, a2 = -0.35f;
+    const ImVec2 p1(centre.x + std::cos(a1) * radius, centre.y + std::sin(a1) * radius);
+    const ImVec2 p2(centre.x + std::cos(a2) * radius, centre.y + std::sin(a2) * radius);
+    const ImVec2 mid((p1.x + p2.x) * 0.5f, (p1.y + p2.y) * 0.5f);
+    const float t = std::clamp(amount, 0.0f, 1.0f);
+    const ImVec2 q1(mid.x + (p1.x - mid.x) * t, mid.y + (p1.y - mid.y) * t);
+    const ImVec2 q2(mid.x + (p2.x - mid.x) * t, mid.y + (p2.y - mid.y) * t);
+    const float width = std::max(2.0f, radius * 0.26f);
+    const ImVec2 in(-0.7071068f * width, 0.7071068f * width);  // towards the middle of the circle
+    const ImVec4 band(0.06f, 0.05f, 0.07f, 0.88f);
+    draw->AddQuadFilled(q1, q2, ImVec2(q2.x + in.x, q2.y + in.y), ImVec2(q1.x + in.x, q1.y + in.y), colourU32(band, alpha));
+    draw->AddLine(q1, q2, colourU32(deathColour(), 0.55f * alpha), 1.0f);
+}
+
 bool listCard(const WindowState& w, const std::string& id, bool selected, const ImVec4& colour,
               const std::string& badge, const std::string& title, const std::string& subtitle,
               const CardMarks& marks) {
@@ -566,7 +593,11 @@ bool listCard(const WindowState& w, const std::string& id, bool selected, const 
     const float nudge = font * 0.22f * hover;
     const float radius = height * 0.34f * (1.0f + 0.06f * hover);
     const ImVec2 centre(at.x + pad + height * 0.34f + font * 0.2f + nudge, at.y + height * 0.5f);
-    drawMedallion(w, centre, radius, colour, badge, marks.ring);
+    const float dead = glide(ImGui::GetID(("dead " + id).c_str()), marks.dead ? 1.0f : 0.0f, 6.0f);
+    std::vector<ImVec4> ring = marks.ring;
+    for (ImVec4& part : ring) part = mourned(part, dead);
+    drawMedallion(w, centre, radius, mourned(colour, dead), badge, ring);
+    mourningBand(draw, centre, radius, dead);
     if (marks.dot) {
         const ImVec2 dot(centre.x + radius * 0.74f, centre.y - radius * 0.74f);
         draw->AddCircleFilled(dot, radius * 0.3f, ImGui::GetColorU32(ImGuiCol_ChildBg));
@@ -575,7 +606,10 @@ bool listCard(const WindowState& w, const std::string& id, bool selected, const 
     const float textX = at.x + pad * 2.0f + height * 0.68f + font * 0.3f + nudge;
     const float room = at.x + width - textX - pad;
     ImFont* titleFont = selected ? w.fonts.bold : ImGui::GetFont();
-    draw->AddText(titleFont, font, ImVec2(textX, at.y + pad), ImGui::GetColorU32(ImGuiCol_Text),
+    const ImVec4 text = ImGui::GetStyleColorVec4(ImGuiCol_Text), faded = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+    const ImVec4 titleColour(text.x + (faded.x - text.x) * dead * 0.6f, text.y + (faded.y - text.y) * dead * 0.6f,
+                             text.z + (faded.z - text.z) * dead * 0.6f, text.w);
+    draw->AddText(titleFont, font, ImVec2(textX, at.y + pad), colourU32(titleColour),
                   fitText(title, titleFont, font, room).c_str());
     draw->AddText(ImGui::GetFont(), font * 0.9f, ImVec2(textX, at.y + pad + ImGui::GetTextLineHeight()),
                   ImGui::GetColorU32(ImGuiCol_TextDisabled), fitText(subtitle, ImGui::GetFont(), font * 0.9f, room).c_str());
