@@ -516,9 +516,11 @@ void canvas(WindowState& w, const std::vector<size_t>& path) {
         } else {
             dashedCircle(draw, p, r, colourU32(colour), 1.6f);
             const float textSize = r * 0.8f;
-            const ImVec2 t = w.fonts.bold->CalcTextSizeA(textSize, FLT_MAX, 0.0f, node.badge.c_str());
-            draw->AddText(w.fonts.bold, textSize, ImVec2(p.x - t.x * 0.5f, p.y - t.y * 0.5f), colourU32(colour),
-                          node.badge.c_str());
+            if (textSize >= 1.0f) {  // not while it is still too small for ImGui to draw text (see drawMedallion)
+                const ImVec2 t = w.fonts.bold->CalcTextSizeA(textSize, FLT_MAX, 0.0f, node.badge.c_str());
+                draw->AddText(w.fonts.bold, textSize, ImVec2(p.x - t.x * 0.5f, p.y - t.y * 0.5f), colourU32(colour),
+                              node.badge.c_str());
+            }
         }
         if (static_cast<int>(i) == picked) {  // a slow gold pulse around the one picked
             const float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(now) * 3.0f);
