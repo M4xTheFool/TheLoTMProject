@@ -77,6 +77,9 @@ struct WebLayout {
     std::vector<float> y;
     std::vector<bool> pinned;  // held in place (dragged by hand)
     float temperature = 0.0f;  // how far a node may move in one step; 0 when settled
+    // While someone is dragged (their node), until it settles: only the people linked to them move,
+    // and anyone they would overlap, so the rest of the web stays where it was. -1 for everyone.
+    int around = -1;
 
     // Starts everyone on a circle, grouped by pathway, the same way every time.
     void start(const Web& web, const Database& db);

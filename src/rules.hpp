@@ -48,6 +48,8 @@ bool aboveTheSequence(const Character& c);    // a Great Old One, with a pathway
 // A Sequence 0 god (not Above the Sequence) can take a second pathway and become a dual-pathway god.
 bool dualPathwayEligible(const Character& c);
 bool isDualPathwayGod(const Character& c);
+// A Sequence 1 angel holding two Beyonder characteristics or the Uniqueness.
+bool isKingOfAngels(const Character& c);
 // "Sequence 7", "Sequence 0" or "Above the Sequence"; "Mortal" without a pathway.
 std::string levelName(const Character& c);
 
@@ -139,5 +141,15 @@ int pointBuyCost(int score);  // -1 when the score is outside 8-15
 // longer hold ...), and puts their stages in date order.
 // Returns notes describing anything that was removed.
 std::vector<std::string> normalizeCharacter(Character& c);
+
+// ---- Stages (see story.hpp)
+
+// A stage's pathway, Sequence and what goes with them (Beyonder characteristics, the Uniqueness, a
+// second pathway and the Sefirah), put on a character, or taken from one into a stage.
+void putStageLevel(Character& c, const CharacterStage& stage);
+void takeStageLevel(CharacterStage& stage, const Character& c);
+// A stage made to make sense the way normalizeCharacter does it for a character: a Sequence that
+// exists, a Uniqueness only at Sequence 1, a second pathway only at Sequence 0 ...
+void normalizeStage(CharacterStage& stage);
 
 }  // namespace lotm

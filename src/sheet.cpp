@@ -191,6 +191,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db, const StoryDat
         if (riskySwitch(c, db)) sheet.badges.push_back({"Mixed pathways, risky switch", "danger", "", ""});
         else sheet.badges.push_back({"Mixed pathways", "pathway", earlier.front(), pathwayColourHex(db, earlier.front())});
     }
+    if (isKingOfAngels(c)) sheet.badges.push_back({"King of Angels", "gold", "", ""});
     if (isDualPathwayGod(c)) {
         sheet.badges.push_back({"Dual-pathway god", "pathway", c.secondPathway.pathwayId,
                                 pathwayColourHex(db, c.secondPathway.pathwayId)});
@@ -366,11 +367,11 @@ Sheet buildCharacterSheet(const Character& c, const Database& db, const StoryDat
     Section story{"In the Story"};
     if (!until) story.field("As they are now since", storyDateText(c.nowSince));
     bool anyStage = false;
-    for (const CharacterStage& stage : c.stages) {
-        if (!upTo(stage.date)) continue;
+    for (const StageRef& ref : stagesOf(c, db)) {  // their own, and the changes at story events
+        if (!upTo(ref.stage.date)) continue;
         if (!anyStage) story.subheading("Stages");
         anyStage = true;
-        story.bullet(stageSummary(stage, db));
+        story.bullet(stageSummary(ref.stage, db));
     }
     Block events{BlockKind::Timeline, "", "", {}, {}, {}, {}};
     for (const StoryEvent* e : eventsOf(db, c.id)) {

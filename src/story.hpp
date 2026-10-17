@@ -43,6 +43,8 @@ std::string eventKindColour(const std::string& kind);
 std::vector<const StoryEvent*> eventsInOrder(const Database& db);
 // The events a character takes part in, earliest first.
 std::vector<const StoryEvent*> eventsOf(const Database& db, int characterId);
+// A saved character as someone in an event.
+EventPerson eventPerson(const Character& c);
 // The name to show for someone in an event: a saved character's current name, or the name typed.
 std::string eventPersonName(const Database& db, const EventPerson& person);
 // "Klein Moretti (attacker), Audrey Hall and Fors Wall"
@@ -52,21 +54,40 @@ std::string eventSummary(const StoryEvent& e);
 
 // ---- A character as of a date
 
+// One of a character's stages: one of their own (on their Stages tab), or what changed for them at a
+// story event (on the event's People tab).
+struct StageRef {
+    CharacterStage stage;  // a copy; an event's change has the event's date, and its label names the event
+    int ownIndex = -1;     // one of their own: its index in the character's stages
+    int eventId = 0;       // a change at a story event: the event
+};
+// Every stage of a character, their own and the changes at story events, earliest first (undated
+// ones last). On the same date an event's change comes after their own stage, so it counts. The change
+// at skipEventId is left out, to show someone as they were just before that event.
+std::vector<StageRef> stagesOf(const Character& c, const Database& db, int skipEventId = 0);
+
 struct AsOf {
     Character character;   // how they were then
-    int stageIndex = -1;   // the stage (index into the character's stages) used; -1: as they are now
+    int stageIndex = -1;   // one of their own stages was used: its index in the character's stages
+    int eventId = 0;       // the change at a story event was used: the event
+    CharacterStage stage;  // the stage used, when one was (dated, as stagesOf gives it)
     // The date is before anything known about them: the earliest stage is shown (or now, without stages).
     bool beforeKnown = false;
+
+    bool inStage() const { return stageIndex >= 0 || eventId != 0; }
 };
-// The character as they were on a date: their latest stage on or before it, applied to how they are
-// now. On or after nowSince (when it's given), or with no date, they are as they are now. Before their
-// first stage the first stage is used and beforeKnown is set.
-AsOf characterAsOf(const Character& c, const StoryDate& date, const Database& db);
+// The character as they were on a date: their latest stage on or before it (see stagesOf), applied to
+// how they are now. On or after nowSince (when it's given), or with no date, they are as they are now.
+// Before their first stage the first stage is used and beforeKnown is set.
+AsOf characterAsOf(const Character& c, const StoryDate& date, const Database& db, int skipEventId = 0);
 // The character as they were in one of their stages.
 Character characterInStage(const Character& c, const CharacterStage& stage, const Database& db);
 // A new stage holding what they are like now, to save before moving them on.
 CharacterStage stageFromNow(const Character& c);
-// "Sequence 7 Magician, Seer pathway", "Above the Sequence, Seer pathway", "Mortal"
+// "Sequence 7 Magician, Seer pathway", "Sequence 1 Storyweaver, King of Angels, Acrobat pathway",
+// "Sequence 0 Error, Error pathway and the Door pathway", "Above the Sequence, Seer pathway", "Mortal"
+std::string levelText(const Character& c, const Database& db);
+// levelText for what a stage holds.
 std::string stageLevelText(const CharacterStage& stage, const Database& db);
 // "From 3 July 1357: Sequence 5 Player, Acrobat pathway. Joins the Troupe"
 std::string stageSummary(const CharacterStage& stage, const Database& db);

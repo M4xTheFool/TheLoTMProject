@@ -82,7 +82,8 @@ struct Draft {
 
 struct CharacterScreen {
     Draft<Character> draft;
-    int sheetStage = -1;         // the Sheet tab shows them as of this stage; -1: as they are now
+    int sheetStage = -1;         // the Sheet tab shows them as of this stage of theirs ...
+    int sheetEvent = 0;          // ... or of their change at this story event; neither: as they are now
     int openStage = -1;          // the stage to unfold on the Stages tab next frame
     bool selectSheet = false;    // switch to the Sheet tab next frame
     bool editLadder = false;     // the Pathway tab shows a pathway box for every Sequence
@@ -131,6 +132,7 @@ struct WebScreen {
     float shownScale = 0.0f;
     bool follow = true;           // keep the whole web in view while it settles, until moved by hand
     int dragging = -1;            // the node being dragged
+    ImVec2 grabOffset{0.0f, 0.0f};  // from the pointer to the dragged node's centre, in layout units
     std::string selected;         // Web::key of the person picked
     std::string hovered;          // ... and of the one under the pointer, kept while the highlight fades
     float focus = 0.0f;           // 0..1, how far the others have faded while someone is hovered
@@ -152,6 +154,7 @@ struct TimelineScreen {
     bool playing = false;  // stepping through the dates by itself
     double playedAt = 0.0;
     int viewingCharacter = 0;  // a cast card opened as a sheet, as of the marker's date
+    int changingPerson = -1;   // the event's person whose change is open (an index into its people)
     // What each character's card said last frame, and when it changed, so a change lights up.
     std::map<int, std::string> castLines;
     std::map<int, double> castChangedAt;
@@ -218,6 +221,9 @@ bool saveEventDraft(WindowState& w);
 
 // Opens a saved character on the Characters tab (asking first about unsaved changes there).
 void openCharacter(WindowState& w, int id);
+// A stage's fields (all but its date), for the Stages tab and an event's People tab. `key` tells
+// stages apart (each list's half-typed entry is kept by it).
+void stageFields(WindowState& w, const Character& c, CharacterStage& stage, const std::string& key);
 // Opens a story event on the Timeline tab, or a new one with these people in it.
 void openEvent(WindowState& w, int id);
 void openNewEvent(WindowState& w, const std::vector<int>& characterIds = {});

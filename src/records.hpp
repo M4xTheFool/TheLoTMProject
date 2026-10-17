@@ -33,6 +33,9 @@ void saveEvent(App& app, StoryEvent& e, bool isNew);
 void deleteEvent(App& app, int id);
 // Links people in an event to saved characters by name, and unlinks ones whose character is gone.
 void linkEventPeopleByName(const Database& db, StoryEvent& e);
+// Drops what changed for people who aren't saved characters, and makes each change make sense (see
+// normalizeStage), dated on the event.
+void tidyEventChanges(StoryEvent& e);
 
 struct SampleImportReport {
     std::vector<std::string> addedCharacters;

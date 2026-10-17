@@ -169,6 +169,13 @@ struct CharacterStage {
     std::string pathwayId;
     int sequence = 9;
     bool aboveSequence = false;
+    // At Sequence 1: one or two Beyonder characteristics and the Uniqueness (a King of Angels has two
+    // or the Uniqueness). At Sequence 0: a second pathway (a dual-pathway god). As on the character.
+    int beyonderCharacteristics = 1;
+    bool hasUniqueness = false;
+    std::string uniquenessForm;
+    std::vector<std::string> uniquenessAbilities;
+    SecondPathway secondPathway;
     std::string sefirahId;
     std::string stateOfMind;
     Affiliation affiliation;
@@ -247,6 +254,11 @@ struct EventPerson {
     int characterId = 0;  // 0 = someone who isn't a saved character
     std::string name;     // for a saved character, their name when they were added
     std::string role;     // optional: "attacker", "witness", "host" ...
+    // What changed for a saved character here (an advancement, joining an organization ...): from the
+    // event's date on they are as this stage says, until their next stage. Its date is the event's.
+    // See stagesOf in story.hpp.
+    bool changed = false;
+    CharacterStage change;
 };
 
 // Something that happens in your story, on the timeline.

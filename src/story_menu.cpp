@@ -21,14 +21,6 @@ bool isNumber(const std::string& text) {
            std::all_of(text.begin(), text.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)); });
 }
 
-// "Sequence 7 Magician, Seer pathway", or "mortal".
-std::string levelText(const App& app, const Character& c) {
-    if (c.pathwayId.empty()) return "mortal";
-    const Pathway* p = app.db.findPathway(c.pathwayId);
-    return (c.aboveSequence ? std::string("Above the Sequence") : sequenceLabel(p, c.sequence)) +
-           (p ? ", " + p->name + " pathway" : "");
-}
-
 // A saved character from a numbered list, or 0.
 int chooseCharacter(const App& app, const std::string& title, const std::string& zeroLabel = "Cancel") {
     if (app.db.characters.empty()) {
@@ -36,7 +28,7 @@ int chooseCharacter(const App& app, const std::string& title, const std::string&
         return 0;
     }
     std::vector<std::string> names;
-    for (const Character& c : app.db.characters) names.push_back(c.name + " (" + characterCode(c.id) + ", " + levelText(app, c) + ")");
+    for (const Character& c : app.db.characters) names.push_back(c.name + " (" + characterCode(c.id) + ", " + levelText(c, app.db) + ")");
     const int pick = ui::choose(title, names, zeroLabel);
     return pick >= 0 ? app.db.characters[static_cast<size_t>(pick)].id : 0;
 }
@@ -61,9 +53,14 @@ StoryDate readStoryDate(const std::string& prompt, const StoryDate& current, boo
 
 // ---------------------------------------------------------------- stages
 
-void editStage(const App& app, Character& c, CharacterStage& stage) {
-    ui::info("What they were like from a date on. Enter keeps each value.");
-    stage.date = readStoryDate("From which date? (e.g. 3 July 1360, or just 1360)", stage.date, true);
+// A stage of theirs (askDate), or what changed for them at an event (dated on the event).
+void editStage(const App& app, const Character& c, CharacterStage& stage, bool askDate = true) {
+    if (askDate) {
+        ui::info("What they were like from a date on. Enter keeps each value.");
+        stage.date = readStoryDate("From which date? (e.g. 3 July 1360, or just 1360)", stage.date, true);
+    } else {
+        ui::info("What they are like from this event on, until their next stage. Enter keeps each value.");
+    }
     stage.label = ui::readText("What changed, in a few words (optional)", stage.label);
     const int pathway = choosePathway(app, "Their pathway then", "No pathway (an ordinary mortal)", true);
     if (pathway == ui::Choice::kZero) stage.pathwayId.clear();
@@ -75,6 +72,13 @@ void editStage(const App& app, Character& c, CharacterStage& stage) {
         stage.sequence = ui::readInt("Their Sequence then", 0, 9, stage.sequence);
         stage.aboveSequence = stage.sequence == 0 && ui::yesNo("Above the Sequence?", stage.aboveSequence);
     }
+    // Sequence 1: Beyonder characteristics and the Uniqueness (a King of Angels); Sequence 0: a second pathway.
+    Character level = c;
+    putStageLevel(level, stage);
+    if (sequenceOneChoices(level) || absorbedUniqueness(level)) editSequenceOne(app, level);
+    if (dualPathwayEligible(level)) editSecondPathway(app, level);
+    takeStageLevel(stage, level);
+    if (isKingOfAngels(level)) ui::info("A King of Angels then.");
     stage.stateOfMind = ui::choosePreset("State of mind then", kStatesOfMind, stage.stateOfMind);
     stage.affiliation.organization = ui::choosePreset("Organization then", kOrganizations, stage.affiliation.organization);
     if (!stage.affiliation.organization.empty()) stage.affiliation.rank = ui::readText("Rank or role", stage.affiliation.rank);
@@ -100,14 +104,14 @@ void editStage(const App& app, Character& c, CharacterStage& stage) {
         }
     }
     stage.note = ui::readText("Anything else about this time (optional)", stage.note);
-    (void)c;
 }
 
 // ---------------------------------------------------------------- events
 
 std::string personText(const App& app, const EventPerson& person) {
     const std::string name = eventPersonName(app.db, person);
-    return (person.role.empty() ? name : name + " (" + person.role + ")") + (person.characterId ? "" : ", not a saved character");
+    return (person.role.empty() ? name : name + " (" + person.role + ")") + (person.characterId ? "" : ", not a saved character") +
+           (person.changed ? "; after this: " + stageLevelText(person.change, app.db) : "");
 }
 
 void addPerson(const App& app, StoryEvent& e, const std::string& typed) {
@@ -137,7 +141,7 @@ void editPeople(const App& app, StoryEvent& e) {
         if (value.empty()) return;
         if (value == "p" || value == "P") {
             if (const int id = chooseCharacter(app, "Who?")) {
-                EventPerson person{id, app.db.findCharacter(id)->name, ""};
+                EventPerson person = eventPerson(*app.db.findCharacter(id));
                 person.role = ui::readText("Their part in it (optional)", "");
                 e.people.push_back(person);
             }
@@ -153,9 +157,31 @@ void editPeople(const App& app, StoryEvent& e) {
             continue;
         }
         EventPerson& person = e.people[index - 1];
-        const int pick = ui::choose(eventPersonName(app.db, person), {"Change their part in it", "Remove them"}, "Back");
-        if (pick == 0) person.role = ui::readText("Their part in it", person.role);
-        if (pick == 1) e.people.erase(e.people.begin() + static_cast<std::ptrdiff_t>(index - 1));
+        const Character* c = app.db.findCharacter(person.characterId);
+        std::vector<std::string> options = {"Change their part in it"};
+        if (c) {
+            options.push_back(person.changed ? "Change what changed for them here"
+                                             : "Something changed for them here (they advanced, joined someone ...)");
+        }
+        if (c && person.changed) options.push_back("Remove what changed for them");
+        options.push_back("Remove them");
+        const int pick = ui::choose(eventPersonName(app.db, person), options, "Back");
+        const std::string chosen = pick >= 0 ? options[static_cast<size_t>(pick)] : "";
+        if (chosen.rfind("Change their", 0) == 0) {
+            person.role = ui::readText("Their part in it", person.role);
+        } else if (chosen.rfind("Something", 0) == 0 || chosen.rfind("Change what", 0) == 0) {
+            if (!person.changed) {  // starting from how they came to it
+                person.change = stageFromNow(characterAsOf(*c, e.date, app.db, e.id).character);
+                person.changed = true;
+            }
+            if (e.date.empty()) ui::info("Give the event a date too; without one this change isn't used.");
+            editStage(app, *c, person.change, false);
+        } else if (chosen.rfind("Remove what", 0) == 0) {
+            person.changed = false;
+            person.change = CharacterStage{};
+        } else if (chosen == "Remove them") {
+            e.people.erase(e.people.begin() + static_cast<std::ptrdiff_t>(index - 1));
+        }
     }
 }
 
@@ -247,10 +273,10 @@ void everyoneAsOf(const App& app) {
     ui::header("Everyone as of " + storyDateText(date));
     for (const Character& c : app.db.characters) {
         const AsOf then = characterAsOf(c, date, app.db);
-        std::string line = c.name + ": " + levelText(app, then.character);
+        std::string line = c.name + ": " + levelText(then.character, app.db);
         if (!then.character.affiliation.organization.empty()) line += ", " + then.character.affiliation.organization;
         if (then.beforeKnown) line += " (before anything recorded about them)";
-        else if (then.stageIndex < 0 && !c.stages.empty()) line += " (as they are now)";
+        else if (!then.inStage() && !stagesOf(c, app.db).empty()) line += " (as they are now)";
         ui::info(line);
     }
     const auto events = eventsInOrder(app.db);
@@ -353,6 +379,15 @@ void editStages(const App& app, Character& c) {
             options.push_back("Change a stage");
             options.push_back("Remove a stage");
         }
+        std::vector<StageRef> atEvents;
+        for (StageRef& ref : stagesOf(c, app.db)) {
+            if (ref.eventId != 0) atEvents.push_back(std::move(ref));
+        }
+        if (!atEvents.empty()) {
+            ui::blank();
+            ui::info("Changes at story events (change these in the event, in the Timeline menu):");
+            for (const StageRef& ref : atEvents) ui::info("  " + stageSummary(ref.stage, app.db));
+        }
         options.push_back("Set the date they became as they are now");
         const int pick = ui::choose("", options, "Done");
         const std::string chosen = pick >= 0 ? options[static_cast<size_t>(pick)] : "";
@@ -380,7 +415,7 @@ void runTimelineMenu(App& app) {
     while (true) {
         ui::header("Timeline");
         size_t stages = 0;
-        for (const Character& c : app.db.characters) stages += c.stages.size();
+        for (const Character& c : app.db.characters) stages += stagesOf(c, app.db).size();
         ui::info(std::to_string(app.db.events.size()) + (app.db.events.size() == 1 ? " story event, " : " story events, ") +
                  std::to_string(stages) + (stages == 1 ? " character stage." : " character stages."));
         const int pick = ui::choose("", {"See the whole timeline", "One character's story", "Add a story event",
@@ -395,9 +430,9 @@ void runTimelineMenu(App& app) {
             if (!id) continue;
             const Character* c = app.db.findCharacter(id);
             std::cout << renderText(buildTimelineSheet(app.db, id));
-            if (!c->stages.empty()) {
+            if (const auto stages = stagesOf(*c, app.db); !stages.empty()) {
                 ui::info("Their stages:");
-                for (const auto& stage : c->stages) ui::info("  " + stageSummary(stage, app.db));
+                for (const StageRef& ref : stages) ui::info("  " + stageSummary(ref.stage, app.db));
             }
             ui::pause();
         } else if (pick == 2) {
