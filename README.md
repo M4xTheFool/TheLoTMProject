@@ -36,6 +36,10 @@ It comes as two programs that share the same saves:
   the shortest chain of people between any two of them.
 - **Timeline:** story events (what happened, when, where and who was there) in date order, and a marker
   you drag along it to see every character as they were on that date.
+- **Dice and checks:** a character's check (a d20 plus a stat's modifier and their tier) against a
+  difficulty, two characters against each other, or any dice written like `2d6+3`, with advantage and
+  disadvantage and the chance of success. In the window the dice tumble onto a tray; a natural 20 bursts
+  gold and a natural 1 shakes red.
 - **Sample sets:** the members of the Tarot Club, the brothers Adam and Amon, and a few canon Sealed
   Artifacts, added to your saves with one **Import all** button in Settings. Share your own characters the
   same way: Settings turns them, your Sealed Artifacts and your story events into a sample set that you
@@ -127,7 +131,7 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 
 ## Using the app window
 
-- The tabs at the top are **Characters**, **Compare**, **Web**, **Timeline**, **Sealed Artifacts**,
+- The tabs at the top are **Characters**, **Compare**, **Web**, **Timeline**, **Dice**, **Sealed Artifacts**,
   **Pathways**, **Sefirot** and **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
   the right. Drag the list's right edge to make it wider.
 - **Filters:** the search box over the Characters and Sealed Artifacts lists finds names, aliases and IDs
@@ -137,7 +141,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Artifacts,
   Relationships, Stages, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
 - The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
-  **Roll** rolls 4d6 and drops the lowest die; hover over the slider to see the last roll.
+  **Roll** rolls 4d6 and drops the lowest die; hover over the slider to see the last roll. **Check** rolls
+  a check with that stat on the Dice tab, with the character as they are on screen (unsaved changes too).
 - Boxes with an arrow on the right take anything you type, or pick a suggestion from the arrow.
 - **Above the Sequence:** in a character's Pathway tab, drag the Sequence slider all the way to the right,
   one step past Sequence 0. The character becomes a Great Old One: the tab offers to give them their
@@ -208,10 +213,26 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   Spirituality, abilities, Sealed Artifacts and how they're related to each other. The highest value in
   each row is in bold, in that character's colour. Rows none of them has filled in are left out.
   **Open** jumps to that character's editor.
+- **Dice** has three kinds of roll, picked at the top left:
+  - **Check:** pick who (or nobody in particular), the stat or Speed, and the difficulty (5 Very easy up
+    to 30 Nearly impossible, or any number). They roll a d20 and add the stat's modifier, their tier
+    (+1 at Sequence 9-8 up to +6 Above the Sequence; untick it to leave it out) and any extra (+2 for a
+    good plan, -5 in the dark). **Advantage** rolls two d20s and keeps the higher, **Disadvantage** the
+    lower. A natural 20 always succeeds and a natural 1 always fails. The chance of success is shown
+    before you roll.
+  - **Contest:** two people, each with their own stat and bonuses; the higher total wins, and the same
+    total is a tie. The chances of each are shown before you roll.
+  - **Any dice:** type them the way tabletop games write them (`d20`, `2d6+3`, `1d8 + 1d4 - 1`, `d%` for
+    a d100), or press one of the buttons. Up to 100 dice of 2 to 1000 sides.
+  The dice are thrown onto the tray and tumble until they land; click the tray to roll the same again.
+  Every roll goes in the list below it until the window is closed, and **Copy** puts the last one on the
+  clipboard to paste into a chat.
 - **Export...** saves the open sheet as HTML, Markdown or plain text in the `exports` folder; HTML opens in
   your browser. Settings has a button that exports everything at once.
 - In Settings, **Text size** makes everything in the window bigger or smaller, and the window comes in
   two themes: **Night** (dark ink with gold) and **Parchment** (light paper with brown ink).
+  **Animations** turns the movement off (the dice, screens fading in, numbers counting up, the grey fog
+  drifting behind the title) for a window that changes at once.
 - Every pathway group has its own colour. A character's medallion in the list shows their Sequence in
   that colour; the top of the editor shows their initials, tier, threat level and affiliation.
 - **Import all** under Sample sets in Settings adds every ready-made character and Sealed Artifact to your
@@ -245,6 +266,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   event's **Who was there**, a saved character's number gives **Something changed for them here**.
 - **Relationship web** lists who one character knows, finds how two characters are connected through
   others, and lists who has the most connections. Its export draws the web as a picture in the HTML file.
+- **Dice and checks** makes a check for a saved character (or nobody in particular) against a difficulty,
+  a contest between two characters, or rolls any dice you type, like `2d6+3`. After a roll, `y` rolls the
+  same again.
 
 ### Where things are saved
 
@@ -352,6 +376,11 @@ program picks up changes the next time it starts.
 - **Speed tiers:** 0 Mortal, 1 Awakened (Seq 9-8), 2 Extraordinary (7-5), 3 Saint (4-3), 4 Angel (2-1),
   5 Divine (0), 6 Above the Sequence. A higher tier always wins; inside a tier the Speed score decides. The pathway's speed grade
   adjusts the score: Slow -2, Average 0, Fast +2, Very fast +4.
+- **Checks:** a d20, plus the stat's modifier (Speed uses its score with the speed grade), plus the tier
+  number (Awakened +1 up to Above the Sequence +6) unless left out, plus anything extra. It succeeds when
+  the total reaches the difficulty: 5 Very easy, 10 Easy, 15 Medium, 20 Hard, 25 Very hard, 30 Nearly
+  impossible. A natural 20 always succeeds and a natural 1 always fails. Advantage keeps the higher of
+  two d20s, disadvantage the lower. In a contest the higher total wins; the same total is a tie.
 - **HP and Spirituality:** the program suggests a value from the tier and Constitution (HP) or Wisdom
   (Spirituality); you can always type your own. HP can be asked per character, always on, or always off
   in Settings.
@@ -398,6 +427,8 @@ src/compare.*         comparing characters side by side, shared by both programs
 src/story.*           story dates, events, the timeline, and characters as of a date
 src/web.*             the relationship web: who knows whom, and where everyone sits in the picture
 src/story_menu.cpp    the console's Timeline and Relationship web menus
+src/checks.*          dice written like 2d6+3, checks, contests and their chances, shared by both programs
+src/dice_menu.cpp     the console's Dice and checks menu
 src/list_filter.*     searching, filtering and sorting the lists, shared by both programs
 src/sefirot_menu.cpp  the console's Sefirot menu
 src/export_menu.cpp   exports

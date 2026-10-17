@@ -1,5 +1,6 @@
 // Characters tab: the list on the left, the character being edited on the right.
 #include <algorithm>
+#include <cmath>
 
 #include "presets.hpp"
 #include "records.hpp"
@@ -617,13 +618,29 @@ void statsTab(WindowState& w, Character& c) {
     const auto totals = statTotals(c, p);
 
     ImGui::TextDisabled("Drag a slider, or Roll for 4d6 with the lowest die dropped. Roll again as often as you like.");
-    if (ImGui::BeginTable("stats", 6, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg)) {
+    // Check rolls a d20 check with the stat on the Dice tab, as they are here (unsaved changes too).
+    const bool canCheck = !w.characters.draft.isNew;
+    auto checkButton = [&](int kind, const char* id) {
+        ImGui::BeginDisabled(!canCheck);
+        if (ImGui::Button(id)) openCheck(w, c.id, kind);
+        ImGui::EndDisabled();
+        if (!canCheck) {
+            ImGui::SetItemTooltip("Save them first, then roll checks for them on the Dice tab.");
+        } else {
+            CheckSetup setup;
+            setup.kind = kind;
+            ImGui::SetItemTooltip("Roll a %s check on the Dice tab: d20 %s", checkName(kind).c_str(),
+                                  signedNumber(checkBonus(c, w.app.db, setup)).c_str());
+        }
+    };
+    if (ImGui::BeginTable("stats", 7, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg)) {
         ImGui::TableSetupColumn("Stat");
         ImGui::TableSetupColumn("Base", ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableSetupColumn("");
         ImGui::TableSetupColumn("Bonus");
         ImGui::TableSetupColumn("Total");
         ImGui::TableSetupColumn("Mod");
+        ImGui::TableSetupColumn("");
         ImGui::TableHeadersRow();
         for (int i = 0; i < kStatCount; ++i) {
             ImGui::PushID(i);
@@ -644,9 +661,12 @@ void statsTab(WindowState& w, Character& c) {
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(bonus[i] == 0 ? "-" : signedNumber(bonus[i]).c_str());
             ImGui::TableNextColumn();
-            ImGui::Text("%d", totals[i]);
+            // The total counts its way to a new roll instead of jumping.
+            ImGui::Text("%d", static_cast<int>(std::lround(glide(ImGui::GetID("total"), static_cast<float>(totals[i]), 9.0f))));
             ImGui::TableNextColumn();
             ImGui::TextColored(palette().gold, "%s", signedNumber(abilityModifier(totals[i])).c_str());
+            ImGui::TableNextColumn();
+            checkButton(i, "Check");
             ImGui::PopID();
         }
         ImGui::EndTable();
@@ -676,7 +696,8 @@ void statsTab(WindowState& w, Character& c) {
 
     ImGui::SeparatorText("Speed");
     ImGui::TextDisabled("The Sequence sets the tier; this score ranks them inside it.");
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("Roll").x * 2.5f);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("Roll Check").x -
+                            ImGui::GetStyle().FramePadding.x * 4.0f - ImGui::GetStyle().ItemSpacing.x * 2.0f);
     ImGui::SliderInt("##speed", &c.stats.speedBase, 1, 30, "Speed %d");
     ImGui::SameLine();
     if (ImGui::Button("Roll##speed")) {
@@ -685,6 +706,8 @@ void statsTab(WindowState& w, Character& c) {
         s.lastSpeedRoll = roll.describe();
     }
     if (!s.lastSpeedRoll.empty()) ImGui::SetItemTooltip("Last roll: %s", s.lastSpeedRoll.c_str());
+    ImGui::SameLine();
+    checkButton(kSpeedCheck, "Check##speed");
     const SpeedTier tier = speedTierOf(c);
     ImGui::TextWrapped("Tier %d %s, score %d. %s", tier.tier, tier.name.c_str(), effectiveSpeed(c, p),
                        tier.description.c_str());

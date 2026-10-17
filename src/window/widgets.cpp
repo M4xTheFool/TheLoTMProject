@@ -33,7 +33,6 @@ ImVec4 orange() {
     return ImVec4(a.x + (b.x - a.x) * 0.45f, a.y + (b.y - a.y) * 0.45f, a.z + (b.z - a.z) * 0.45f, 1.0f);
 }
 
-ImU32 colourU32(const ImVec4& c, float alpha = 1.0f) { return ImGui::GetColorU32(ImVec4(c.x, c.y, c.z, c.w * alpha)); }
 
 // Cuts text to fit a width, ending it with "..." when something had to go.
 std::string fitText(const std::string& text, ImFont* font, float size, float width) {
@@ -87,6 +86,7 @@ std::string escapePercent(const std::string& text) {
 }  // namespace
 
 void setStatus(WindowState& w, const std::string& text, bool error) {
+    if (text != w.status || error != w.statusIsError) w.statusAt = ImGui::GetTime();
     w.status = text;
     w.statusIsError = error;
 }
@@ -462,8 +462,13 @@ void heading(const WindowState& w, const std::string& text) {
         const ImU32 gold = colourU32(palette().gold, 0.85f);
         draw->AddQuadFilled(ImVec2(start, y), ImVec2(start + d, y - d), ImVec2(start + d * 2.0f, y), ImVec2(start + d, y + d),
                             gold);
-        draw->AddRectFilledMultiColor(ImVec2(start + d * 2.6f, y - 0.5f), ImVec2(right, y + 0.5f), gold,
-                                      colourU32(palette().gold, 0.0f), colourU32(palette().gold, 0.0f), gold);
+        // Each time the screen is shown the rule runs out to the right.
+        const float ruleStart = start + d * 2.6f;
+        const float ruleEnd = ruleStart + (right - ruleStart) * easeIn(w.tabShownAt + 0.05, 0.7f);
+        if (ruleEnd > ruleStart + 1.0f) {
+            draw->AddRectFilledMultiColor(ImVec2(ruleStart, y - 0.5f), ImVec2(ruleEnd, y + 0.5f), gold,
+                                          colourU32(palette().gold, 0.0f), colourU32(palette().gold, 0.0f), gold);
+        }
     }
     ImGui::Spacing();
 }
@@ -474,16 +479,33 @@ void medallionAt(const WindowState& w, ImVec2 centre, float radius, const ImVec4
     drawMedallion(w, centre, radius, colour, text);
 }
 
+namespace {
+bool animationsOn = true;
+}  // namespace
+
+void setAnimations(bool on) { animationsOn = on; }
+bool animations() { return animationsOn; }
+
 float frameSeconds() { return std::min(ImGui::GetIO().DeltaTime, 0.1f); }
 
-float glide(ImGuiID id, float target, float speed) {
-    float* value = ImGui::GetStateStorage()->GetFloatRef(id, target);
+float glideFrom(ImGuiID id, float start, float target, float speed) {
+    float* value = ImGui::GetStateStorage()->GetFloatRef(id, animationsOn ? start : target);
+    if (!animationsOn) return *value = target;
     *value += (target - *value) * (1.0f - std::exp(-speed * frameSeconds()));
     if (std::fabs(target - *value) < 1e-3f * std::max(1.0f, std::fabs(target))) *value = target;
     return *value;
 }
 
+float glide(ImGuiID id, float target, float speed) { return glideFrom(id, target, target, speed); }
+
+float easeIn(double since, float seconds) {
+    if (!animationsOn) return 1.0f;
+    const float t = std::clamp(static_cast<float>((ImGui::GetTime() - since) / seconds), 0.0f, 1.0f);
+    return 1.0f - (1.0f - t) * (1.0f - t) * (1.0f - t);
+}
+
 float popIn(double since, float seconds) {
+    if (!animationsOn) return 1.0f;
     const float t = std::clamp(static_cast<float>((ImGui::GetTime() - since) / seconds), 0.0f, 1.0f);
     const float back = 1.70158f, u = t - 1.0f;  // ease out, overshooting a little before settling
     return 1.0f + (back + 1.0f) * u * u * u + back * u * u;
@@ -529,19 +551,28 @@ bool listCard(const WindowState& w, const std::string& id, bool selected, const 
     const bool clicked = ImGui::Selectable(("##" + id).c_str(), selected, ImGuiSelectableFlags_None, ImVec2(width, height));
     ImGui::PopStyleVar();
 
+    // Hovering nudges the card to the right; the gold bar of the one picked grows from its middle.
+    const float hover = glide(ImGui::GetID(("hover " + id).c_str()), ImGui::IsItemHovered() ? 1.0f : 0.0f, 14.0f);
+    const float picked = glide(ImGui::GetID(("picked " + id).c_str()), selected ? 1.0f : 0.0f, 12.0f);
     ImDrawList* draw = ImGui::GetWindowDrawList();
-    if (selected) {
-        draw->AddRectFilled(at, ImVec2(at.x + font * 0.18f, at.y + height), colourU32(palette().gold), font * 0.1f);
+    if (picked > 0.01f) {
+        const float half = height * 0.5f * picked;
+        draw->AddRectFilled(ImVec2(at.x, at.y + height * 0.5f - half), ImVec2(at.x + font * 0.18f, at.y + height * 0.5f + half),
+                            colourU32(palette().gold, std::min(1.0f, picked * 1.5f)), font * 0.1f);
+    } else if (hover > 0.01f) {
+        draw->AddRectFilled(ImVec2(at.x, at.y + height * 0.25f), ImVec2(at.x + font * 0.12f, at.y + height * 0.75f),
+                            colourU32(palette().gold, 0.4f * hover), font * 0.06f);
     }
-    const float radius = height * 0.34f;
-    const ImVec2 centre(at.x + pad + radius + font * 0.2f, at.y + height * 0.5f);
+    const float nudge = font * 0.22f * hover;
+    const float radius = height * 0.34f * (1.0f + 0.06f * hover);
+    const ImVec2 centre(at.x + pad + height * 0.34f + font * 0.2f + nudge, at.y + height * 0.5f);
     drawMedallion(w, centre, radius, colour, badge, marks.ring);
     if (marks.dot) {
         const ImVec2 dot(centre.x + radius * 0.74f, centre.y - radius * 0.74f);
         draw->AddCircleFilled(dot, radius * 0.3f, ImGui::GetColorU32(ImGuiCol_ChildBg));
         draw->AddCircleFilled(dot, radius * 0.22f, colourU32(marks.dotColour));
     }
-    const float textX = at.x + pad * 2.0f + radius * 2.0f + font * 0.3f;
+    const float textX = at.x + pad * 2.0f + height * 0.68f + font * 0.3f + nudge;
     const float room = at.x + width - textX - pad;
     ImFont* titleFont = selected ? w.fonts.bold : ImGui::GetFont();
     draw->AddText(titleFont, font, ImVec2(textX, at.y + pad), ImGui::GetColorU32(ImGuiCol_Text),
@@ -606,14 +637,23 @@ void sequenceLadder(const WindowState& w, const std::vector<LadderRung>& rungs) 
     ImDrawList* draw = ImGui::GetWindowDrawList();
     const ImVec2 origin = ImGui::GetCursorScreenPos();
     const LadderRung* hovered = nullptr;
+    // When the ladder changes (another character, a new Sequence) its rungs climb in one after another.
+    static std::map<ImGuiID, std::pair<std::string, double>> shownSince;
+    std::string signature;
+    for (const LadderRung& rung : rungs) signature += rung.pathwayId + ":" + std::to_string(rung.sequence) + (rung.current ? "*" : "") + ";";
+    auto& since = shownSince[ImGui::GetID("ladder")];
+    if (since.first != signature) since = {signature, ImGui::GetTime()};
     for (int i = 0; i < count; ++i) {
         const LadderRung& rung = rungs[static_cast<size_t>(i)];
         const int row = i / perRow, column = i % perRow;
         const ImVec2 centre(origin.x + step * (static_cast<float>(column) + 0.5f),
                             origin.y + radius + font * 0.3f + rowHeight * static_cast<float>(row));
         const ImVec4 colour = pathwayColour(w.app.db, rung.pathwayId);
-        if (column > 0) {  // the line from the Sequence before
-            const ImVec2 from(centre.x - step + radius + 3.0f, centre.y), to(centre.x - radius - 3.0f, centre.y);
+        const double appearsAt = since.second + 0.05 * static_cast<double>(i);
+        const float grown = std::max(0.0f, popIn(appearsAt, 0.4f));
+        if (column > 0) {  // the line from the Sequence before, drawn out as this one appears
+            const ImVec2 from(centre.x - step + radius + 3.0f, centre.y);
+            const ImVec2 to(from.x + (centre.x - radius - 3.0f - from.x) * easeIn(appearsAt - 0.05, 0.25f), centre.y);
             if (!rung.switched) {
                 draw->AddLine(from, to, colourU32(colour, 0.7f), 2.5f);
             } else {
@@ -627,8 +667,8 @@ void sequenceLadder(const WindowState& w, const std::vector<LadderRung>& rungs) 
                                     ImVec2(mid.x - d, mid.y), colourU32(rung.risky ? palette().danger : palette().gold));
             }
         }
-        if (rung.current) draw->AddCircle(centre, radius + 4.0f, colourU32(palette().gold), 0, 2.0f);
-        drawMedallion(w, centre, radius, colour, rung.above ? "\xE2\x88\x9E" : std::to_string(rung.sequence));
+        if (rung.current) draw->AddCircle(centre, (radius + 4.0f) * grown, colourU32(palette().gold), 0, 2.0f);
+        drawMedallion(w, centre, radius * grown, colour, rung.above ? "\xE2\x88\x9E" : std::to_string(rung.sequence));
         if (rung.risky) {  // a red "!" on a switch to a pathway that isn't a neighbour
             const ImVec2 mark(centre.x + radius * 0.78f, centre.y - radius * 0.78f);
             draw->AddCircleFilled(mark, font * 0.36f, colourU32(palette().danger));
@@ -695,8 +735,9 @@ void statBoxes(const WindowState& w, const std::vector<StatRow>& stats) {
         const bool nameFits =
             w.fonts.title->CalcTextSizeA(font * 0.85f, FLT_MAX, 0.0f, row.name.c_str()).x < boxWidth - font * 0.6f;
         centred(w.fonts.title, font * 0.85f, at.y + font * 0.35f, colourU32(palette().muted), nameFits ? row.name : row.code);
+        const float shown = glide(ImGui::GetID(("stat box " + row.code).c_str()), static_cast<float>(row.total), 9.0f);
         centred(w.fonts.title, font * 1.75f, at.y + font * 1.3f, ImGui::GetColorU32(ImGuiCol_Text),
-                std::to_string(row.total));
+                std::to_string(static_cast<int>(std::lround(shown))));
         centred(w.fonts.bold, font, at.y + font * 3.35f, colourU32(palette().gold), signedNumber(row.modifier));
         const std::string detail = row.bonus == 0 ? "base " + std::to_string(row.base)
                                                   : std::to_string(row.base) + " + " + std::to_string(row.bonus) + " pathway";
@@ -738,17 +779,21 @@ void statChart(const std::vector<std::array<int, kStatCount>>& totals, float siz
         const ImVec2 at = point(axis, 1.0f + labelRoom * 0.55f / radius);
         draw->AddText(ImVec2(at.x - textSize.x * 0.5f, at.y - textSize.y * 0.5f), colourU32(palette().muted), code);
     }
+    ImGui::PushID("stat chart");
     for (size_t i = 0; i < totals.size() && i < palette().series.size(); ++i) {
         const ImVec4& tint = palette().series[i];
         ImVec2 corners[kStatCount];
         for (int axis = 0; axis < kStatCount; ++axis) {
             const float fraction = static_cast<float>(totals[i][static_cast<size_t>(axis)]) / static_cast<float>(scale);
-            corners[axis] = point(axis, std::clamp(fraction, 0.0f, 1.0f));
+            // Each outline grows out of the middle, and glides when the totals or the scale change.
+            const ImGuiID id = ImGui::GetID(static_cast<int>(i) * kStatCount + axis);
+            corners[axis] = point(axis, glideFrom(id, 0.0f, std::clamp(fraction, 0.0f, 1.0f), 7.0f));
         }
         draw->AddConcavePolyFilled(corners, kStatCount, colourU32(tint, 0.14f));
         draw->AddPolyline(corners, kStatCount, colourU32(tint), ImDrawFlags_Closed, 2.0f);
         for (const ImVec2& corner : corners) draw->AddCircleFilled(corner, 3.0f, colourU32(tint));
     }
+    ImGui::PopID();
     ImGui::Dummy(ImVec2(size, size));
     ImGui::TextDisabled("Totals with pathway bonuses. A ring every %d points, up to %d.", step, scale);
 }

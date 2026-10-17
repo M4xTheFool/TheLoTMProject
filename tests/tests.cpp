@@ -9,6 +9,7 @@
 #include <string>
 
 #include "app.hpp"
+#include "checks.hpp"
 #include "compare.hpp"
 #include "dice.hpp"
 #include "exporter.hpp"
@@ -826,6 +827,160 @@ static void testDice() {
         }
         CHECK(r.dice[r.droppedIndex] == lowest);
         CHECK(r.total == sum - lowest);
+    }
+}
+
+static void testDiceFormulas() {
+    std::string problem;
+    auto f = parseDiceFormula("2d6+3", &problem);
+    CHECK(f && f->groups.size() == 1 && f->groups[0].count == 2 && f->groups[0].sides == 6 && f->modifier == 3);
+    CHECK(f && f->text() == "2d6 + 3");
+    f = parseDiceFormula(" D20 ");
+    CHECK(f && f->groups.size() == 1 && f->groups[0].count == 1 && f->groups[0].sides == 20 && f->text() == "d20");
+    f = parseDiceFormula("1d6 + 1d4 - 2");
+    CHECK(f && f->groups.size() == 2 && f->modifier == -2 && f->text() == "d6 + d4 - 2");
+    f = parseDiceFormula("d%");
+    CHECK(f && f->groups[0].sides == 100);
+    CHECK(!parseDiceFormula("", &problem) && !problem.empty());
+    CHECK(!parseDiceFormula("2d", &problem));
+    CHECK(!parseDiceFormula("d1", &problem));
+    CHECK(!parseDiceFormula("101d6", &problem));
+    CHECK(!parseDiceFormula("60d6+60d6", &problem));  // 120 dice in all
+    CHECK(!parseDiceFormula("3", &problem));         // no dice
+    CHECK(!parseDiceFormula("-d6", &problem));
+    CHECK(!parseDiceFormula("2x6", &problem));
+    CHECK(parseDiceFormula("2d6 + 3", &problem) && problem.empty());
+
+    Dice dice(99);
+    const DiceFormula formula = *parseDiceFormula("3d6+2");
+    for (int i = 0; i < 300; ++i) {
+        const DiceRoll roll = rollDice(dice, formula);
+        CHECK(roll.dice.size() == 3);
+        int sum = 2;
+        for (const DieRoll& d : roll.dice) {
+            CHECK(d.sides == 6 && d.value >= 1 && d.value <= 6);
+            sum += d.value;
+        }
+        CHECK(roll.total == sum);
+    }
+    DiceRoll shown;
+    shown.formula = formula;
+    shown.dice = {{6, 4}, {6, 6}, {6, 1}};
+    shown.total = 13;
+    CHECK(shown.describe() == "3d6 + 2: 4 + 6 + 1 + 2 = 13");
+    shown.formula = *parseDiceFormula("d20");
+    shown.dice = {{20, 17}};
+    shown.total = 17;
+    CHECK(shown.describe() == "d20: 17");
+}
+
+static void testChecks() {
+    Database db;
+    db.pathways.push_back(warrior());
+    Character c;
+    c.name = "Fors Wall";
+    c.pathwayId = "warrior";
+    c.sequence = 4;  // a Saint: tier 3, STR +3, CON +1
+    c.stats.base[0] = 14;
+    c.stats.base[1] = 12;
+    c.stats.speedBase = 12;
+
+    CHECK(checkName(1) == "Dexterity" && checkCode(1) == "DEX");
+    CHECK(checkName(kSpeedCheck) == "Speed" && checkCode(kSpeedCheck) == "SPD");
+    CHECK(difficultyName(15) == "Medium" && difficultyName(17) == "Medium" && difficultyName(3) == "Very easy");
+    CHECK(difficultyName(30) == "Nearly impossible");
+
+    CheckSetup setup;
+    setup.kind = 0;  // Strength: 14 + 3 = 17, modifier +3
+    CheckRoll roll = checkWithDice(&c, db, setup, {12});
+    CHECK(roll.who == "Fors Wall" && roll.score == 17 && roll.modifier == 3 && roll.tier == 3 && roll.tierName == "Saint");
+    CHECK(roll.total == 18 && roll.natural() == 12 && roll.bonus() == 6);
+    CHECK(roll.working() == "12 + 3 Strength + 3 Saint = 18");
+    CHECK(checkBonus(c, db, setup) == 6);
+
+    setup.addTier = false;
+    setup.extra = -2;
+    roll = checkWithDice(&c, db, setup, {12});
+    CHECK(roll.tier == 0 && roll.total == 13 && roll.working() == "12 + 3 Strength - 2 = 13");
+
+    setup = {};
+    setup.kind = kSpeedCheck;  // 12 + 2 (Fast) = 14, +2
+    roll = checkWithDice(&c, db, setup, {5});
+    CHECK(roll.score == 14 && roll.modifier == 2 && roll.total == 10);
+
+    // Advantage keeps the higher die, disadvantage the lower.
+    setup = {};
+    setup.kind = 1;  // Dexterity 12: +1
+    setup.mode = RollMode::Advantage;
+    roll = checkWithDice(&c, db, setup, {4, 15});
+    CHECK(roll.kept == 1 && roll.natural() == 15 && roll.total == 19);
+    CHECK(roll.working() == "rolled 4 and 15 with advantage, kept 15: 15 + 1 Dexterity + 3 Saint = 19");
+    setup.mode = RollMode::Disadvantage;
+    roll = checkWithDice(&c, db, setup, {4, 15});
+    CHECK(roll.kept == 0 && roll.natural() == 4 && roll.total == 8);
+
+    // Against a difficulty: a natural 20 always succeeds, a natural 1 always fails.
+    setup = {};
+    CheckOutcome outcome = checkAgainst(checkWithDice(&c, db, setup, {10}), 15);  // 10 + 3 + 3 = 16
+    CHECK(outcome.success && outcome.margin == 1 && outcome.headline() == "Success by 1");
+    CHECK(outcome.describe() == "Fors Wall, a Strength check against 15 (Medium): 10 + 3 Strength + 3 Saint = 16. Success by 1.");
+    outcome = checkAgainst(checkWithDice(&c, db, setup, {9}), 15);
+    CHECK(outcome.success && outcome.margin == 0 && outcome.headline() == "Success, just");
+    outcome = checkAgainst(checkWithDice(&c, db, setup, {20}), 30);
+    CHECK(outcome.success && outcome.headline() == "Natural 20: success");
+    outcome = checkAgainst(checkWithDice(&c, db, setup, {1}), 5);
+    CHECK(!outcome.success && outcome.headline() == "Natural 1: failure");
+    outcome = checkAgainst(checkWithDice(&c, db, setup, {2}), 15);
+    CHECK(!outcome.success && outcome.margin == -7 && outcome.headline() == "Failure by 7");
+
+    // Nobody in particular: only the extra counts.
+    setup = {};
+    setup.extra = 2;
+    roll = checkWithDice(nullptr, db, setup, {11});
+    CHECK(roll.who.empty() && roll.total == 13 && roll.working() == "11 + 2 = 13");
+    CHECK(checkAgainst(roll, 10).describe() == "A roll against 10 (Easy): 11 + 2 = 13. Success by 3.");
+
+    // A mortal has no tier to add.
+    Character mortal;
+    mortal.name = "Old Neil";
+    setup = {};
+    setup.kind = 4;
+    roll = checkWithDice(&mortal, db, setup, {7});
+    CHECK(roll.tier == 0 && roll.tierName.empty() && roll.total == 7 && roll.working() == "7 + 0 Wisdom = 7");
+
+    // Contests: the higher total wins.
+    setup = {};
+    const CheckRoll fors = checkWithDice(&c, db, setup, {10});        // 16
+    const CheckRoll neil = checkWithDice(&mortal, db, setup, {14});   // 14
+    ContestOutcome result = contest(fors, neil);
+    CHECK(result.winner == 0 && result.headline() == "Fors Wall wins by 2");
+    result = contest(neil, fors);
+    CHECK(result.winner == 1);
+    result = contest(fors, checkWithDice(&mortal, db, setup, {16}));
+    CHECK(result.winner == -1 && result.headline() == "A tie");
+
+    // Chances: +5 against 15 needs 10 or more, 11 faces of 20; a natural 20 and a natural 1 always count.
+    auto near = [](double a, double b) { return std::abs(a - b) < 1e-9; };
+    CHECK(near(checkChance(5, 15), 0.55));
+    CHECK(near(checkChance(5, 15, RollMode::Advantage), 1.0 - 0.45 * 0.45));
+    CHECK(near(checkChance(5, 15, RollMode::Disadvantage), 0.55 * 0.55));
+    CHECK(near(checkChance(0, 40), 0.05));   // only a natural 20
+    CHECK(near(checkChance(50, 5), 0.95));   // all but a natural 1
+    ContestChances chances = contestChances(0, RollMode::Normal, 0, RollMode::Normal);
+    CHECK(near(chances.tie, 0.05) && near(chances.first, chances.second) && near(chances.first + chances.tie + chances.second, 1.0));
+    chances = contestChances(3, RollMode::Advantage, 0, RollMode::Disadvantage);
+    CHECK(chances.first > 0.8 && near(chances.first + chances.tie + chances.second, 1.0));
+    chances = contestChances(0, RollMode::Normal, 20, RollMode::Normal);
+    CHECK(near(chances.second, 1.0));
+
+    // Rolled for real: always within reach, two dice with advantage.
+    Dice dice(7);
+    setup = {};
+    setup.mode = RollMode::Advantage;
+    for (int i = 0; i < 200; ++i) {
+        roll = rollCheck(dice, &c, db, setup);
+        CHECK(roll.d20s.size() == 2 && roll.natural() == std::max(roll.d20s[0], roll.d20s[1]));
+        CHECK(roll.total >= 1 + 6 && roll.total <= 20 + 6);
     }
 }
 
@@ -2171,6 +2326,8 @@ int main() {
     testLongHonorificName();
     testPointBuy();
     testDice();
+    testDiceFormulas();
+    testChecks();
     testThreatLevel();
     testTwoWayRelationships();
     testJsonRoundTrip();

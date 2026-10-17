@@ -19,6 +19,8 @@ add_library(lotm_core STATIC
     src/rules.cpp
     src/relations.cpp
     src/dice.cpp
+    src/dice_menu.cpp
+    src/checks.cpp
     src/storage.cpp
     src/ui.cpp
     src/sheet.cpp
@@ -103,6 +105,7 @@ if(LOTM_BUILD_WINDOW)
         src/window/compare_screen.cpp
         src/window/web_screen.cpp
         src/window/timeline_screen.cpp
+        src/window/dice_screen.cpp
         src/window/sefirot_screen.cpp
         src/window/theme.cpp)
     target_link_libraries(lotm_window PRIVATE lotm_core imgui)
