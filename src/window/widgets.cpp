@@ -6,6 +6,8 @@
 
 #include "rules.hpp"
 #include "storage.hpp"
+#include "story.hpp"
+#include "ui.hpp"
 #include "window.hpp"
 
 namespace lotm::window {
@@ -103,6 +105,40 @@ void helpMarker(const char* text) {
 bool textField(const char* text, std::string& value, const char* hint) {
     label(text);
     return ImGui::InputTextWithHint(hidden(text).c_str(), hint ? hint : "", &value);
+}
+
+bool storyDateField(const char* text, StoryDate& date, const char* hint) {
+    // What is typed in each date box, kept between frames: half-typed text doesn't read as a date yet.
+    struct Typed {
+        std::string text;
+        bool active = false;
+    };
+    static std::map<ImGuiID, Typed> boxes;
+    label(text);
+    Typed& box = boxes[ImGui::GetID(text)];
+    if (!box.active) {  // not being typed in: show the date as it is (another record may be open now)
+        const auto reads = parseStoryDate(box.text);
+        if (!reads || !sameStoryDate(*reads, date)) box.text = storyDateText(date);
+    }
+    bool changed = false;
+    if (ImGui::InputTextWithHint(hidden(text).c_str(), hint, &box.text)) {
+        const auto reads = parseStoryDate(box.text);
+        if (reads && !sameStoryDate(*reads, date)) {
+            date = *reads;
+            changed = true;
+        }
+    }
+    box.active = ImGui::IsItemActive();
+    std::string problem;
+    const auto reads = parseStoryDate(box.text, &problem);
+    if (!reads) {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + labelWidth());
+        ImGui::TextColored(palette().danger, "%s", problem.c_str());
+    } else if (box.active && !reads->empty() && ui::trim(box.text) != storyDateText(*reads)) {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + labelWidth());
+        ImGui::TextDisabled("Reads as %s", storyDateText(*reads).c_str());
+    }
+    return changed;
 }
 
 bool multilineField(const char* text, std::string& value, float lines) {
@@ -430,29 +466,25 @@ void heading(const WindowState& w, const std::string& text) {
     ImGui::Spacing();
 }
 
-std::string initials(const std::string& name) {
-    // The first letter of each word (stopping at a bracket), then the first and last of those.
-    std::vector<std::string> letters;
-    bool wordStart = true;
-    for (size_t i = 0; i < name.size();) {
-        size_t end = i + 1;
-        while (end < name.size() && (static_cast<unsigned char>(name[end]) & 0xC0) == 0x80) ++end;  // one UTF-8 letter
-        const unsigned char ch = static_cast<unsigned char>(name[i]);
-        if (ch == '(') break;
-        if (ch == ' ' || ch == '-') {
-            wordStart = true;
-        } else {
-            if (wordStart && (std::isalpha(ch) || ch >= 0x80)) {
-                std::string letter = name.substr(i, end - i);
-                if (letter.size() == 1) letter[0] = static_cast<char>(std::toupper(ch));
-                letters.push_back(letter);
-            }
-            wordStart = false;
-        }
-        i = end;
-    }
-    if (letters.empty()) return "?";
-    return letters.size() == 1 ? letters[0] : letters.front() + letters.back();
+std::string initials(const std::string& name) { return nameInitials(name); }
+
+void medallionAt(const WindowState& w, ImVec2 centre, float radius, const ImVec4& colour, const std::string& text) {
+    drawMedallion(w, centre, radius, colour, text);
+}
+
+float frameSeconds() { return std::min(ImGui::GetIO().DeltaTime, 0.1f); }
+
+float glide(ImGuiID id, float target, float speed) {
+    float* value = ImGui::GetStateStorage()->GetFloatRef(id, target);
+    *value += (target - *value) * (1.0f - std::exp(-speed * frameSeconds()));
+    if (std::fabs(target - *value) < 1e-3f * std::max(1.0f, std::fabs(target))) *value = target;
+    return *value;
+}
+
+float popIn(double since, float seconds) {
+    const float t = std::clamp(static_cast<float>((ImGui::GetTime() - since) / seconds), 0.0f, 1.0f);
+    const float back = 1.70158f, u = t - 1.0f;  // ease out, overshooting a little before settling
+    return 1.0f + (back + 1.0f) * u * u * u + back * u * u;
 }
 
 void medallion(const WindowState& w, const std::string& text, const ImVec4& colour, float radius) {
@@ -532,6 +564,7 @@ void chipRow(const std::vector<std::pair<std::string, ImVec4>>& chips) {
 
 ImVec4 badgeColour(const WindowState& w, const Badge& badge) {
     if (badge.tone == "pathway") return pathwayColour(w.app.db, badge.pathwayId);
+    if (badge.tone == "colour") return colourFromHex(badge.colour);
     if (badge.tone == "gold") return palette().gold;
     if (badge.tone == "good") return palette().success;
     if (badge.tone == "orange") return orange();
@@ -718,6 +751,78 @@ void statChart(const std::vector<std::array<int, kStatCount>>& totals, float siz
     ImGui::TextDisabled("Totals with pathway bonuses. A ring every %d points, up to %d.", step, scale);
 }
 
+// Story events down a line, each with a dot in its kind's colour: the date, the title, where and who.
+void timelineList(const WindowState& w, const std::vector<TimelineEntry>& entries) {
+    const float font = ImGui::GetFontSize();
+    const float dateWidth = font * 7.5f;
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    for (size_t i = 0; i < entries.size(); ++i) {
+        const TimelineEntry& e = entries[i];
+        ImGui::PushID(static_cast<int>(i));
+        const ImVec2 top = ImGui::GetCursorScreenPos();
+        const float x = ImGui::GetCursorPosX();
+        const ImVec4 colour = colourFromHex(e.colour);
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        ImGui::PushTextWrapPos(x + dateWidth - font * 0.6f);
+        ImGui::TextWrapped("%s", e.date.empty() ? "No date" : e.date.c_str());
+        ImGui::PopTextWrapPos();
+        ImGui::PopStyleColor();
+        ImGui::SetCursorScreenPos(ImVec2(top.x + dateWidth + font * 1.2f, top.y));
+        ImGui::BeginGroup();
+        ImGui::PushFont(w.fonts.bold, 0.0f);
+        ImGui::TextWrapped("%s", e.title.c_str());
+        ImGui::PopFont();
+        if (!e.kind.empty()) {
+            ImGui::SameLine();
+            chip(e.kind, colour);
+        }
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        std::string where = e.place;
+        if (!e.chapter.empty()) where += (where.empty() ? "" : ", ") + e.chapter;
+        if (!where.empty()) ImGui::TextWrapped("%s", where.c_str());
+        if (!e.people.empty()) ImGui::TextWrapped("With %s", e.people.c_str());
+        if (!e.artifacts.empty()) ImGui::TextWrapped("Sealed Artifacts: %s", e.artifacts.c_str());
+        ImGui::PopStyleColor();
+        if (!e.description.empty()) ImGui::TextWrapped("%s", e.description.c_str());
+        ImGui::EndGroup();
+        const float bottom = ImGui::GetItemRectMax().y;
+        // The line down the side, and the event's dot on it.
+        const float railX = top.x + dateWidth + font * 0.45f;
+        if (i + 1 < entries.size()) {
+            draw->AddLine(ImVec2(railX, top.y + font * 0.6f), ImVec2(railX, bottom + font * 1.0f),
+                          ImGui::GetColorU32(ImGuiCol_Border), 2.0f);
+        }
+        draw->AddCircleFilled(ImVec2(railX, top.y + font * 0.6f), font * 0.32f, ImGui::GetColorU32(ImGuiCol_ChildBg));
+        draw->AddCircleFilled(ImVec2(railX, top.y + font * 0.6f), font * 0.24f, colourU32(colour));
+        ImGui::Dummy(ImVec2(0.0f, font * 0.4f));
+        ImGui::PopID();
+    }
+}
+
+// The relationship web as a still picture, scaled to the width there is.
+void webPicture(const WindowState& w, const WebFigure& web) {
+    if (web.nodes.empty()) return;
+    const float avail = ImGui::GetContentRegionAvail().x;
+    const float scale = std::min(1.0f, avail / web.width);
+    const ImVec2 at = ImGui::GetCursorScreenPos();
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    const ImVec2 end(at.x + web.width * scale, at.y + web.height * scale);
+    draw->AddRectFilled(at, end, ImGui::GetColorU32(ImGuiCol_FrameBg), ImGui::GetStyle().ChildRounding);
+    auto point = [&](const FigureNode& n) { return ImVec2(at.x + n.x * scale, at.y + n.y * scale); };
+    for (const FigureEdge& e : web.edges) {
+        if (e.a >= web.nodes.size() || e.b >= web.nodes.size()) continue;
+        draw->AddLine(point(web.nodes[e.a]), point(web.nodes[e.b]), colourU32(colourFromHex(e.colour), 0.6f), 1.5f);
+    }
+    for (const FigureNode& n : web.nodes) {
+        const ImVec4 colour = n.saved ? colourFromHex(n.colour) : palette().muted;
+        drawMedallion(w, point(n), n.radius * scale * 0.9f, colour, n.badge);
+    }
+    ImGui::Dummy(ImVec2(end.x - at.x, end.y - at.y));
+    std::vector<std::pair<std::string, ImVec4>> keys;
+    for (const auto& [name, colour] : web.legend) keys.push_back({name, colourFromHex(colour)});
+    chipRow(keys);
+}
+
 // A sheet drawn with the window's own controls: the same content as the exports.
 void drawSheet(const WindowState& w, const Sheet& sheet) {
     ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.7f);
@@ -783,6 +888,12 @@ void drawSheet(const WindowState& w, const Sheet& sheet) {
                     break;
                 case BlockKind::Ladder:
                     sequenceLadder(w, block.rungs);
+                    break;
+                case BlockKind::Timeline:
+                    timelineList(w, block.entries);
+                    break;
+                case BlockKind::Web:
+                    webPicture(w, block.web);
                     break;
             }
         }
@@ -923,7 +1034,7 @@ void drawUnsavedQuestion(WindowState& w) {
 
 bool hasUnsavedChanges(const WindowState& w) {
     return w.characters.draft.dirty() || w.artifacts.draft.dirty() || w.pathways.draft.dirty() ||
-           w.sefirot.draft.dirty();
+           w.sefirot.draft.dirty() || w.timeline.draft.dirty();
 }
 
 }  // namespace lotm::window

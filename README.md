@@ -18,7 +18,8 @@ It comes as two programs that share the same saves:
   Uniqueness with its look and the Sequence 0 powers it grants (Sequence 1), a second pathway for a
   dual-pathway god, the Sefirah they hold, affiliation, two-way relationships (pick one of your saved
   characters or type any name), a D&D-style stat block (roll, re-roll, type or point-buy), Speed, optional
-  HP, Spirituality, the Sealed Artifacts the character holds, and a dossier with an automatic threat level.
+  HP, Spirituality, the Sealed Artifacts the character holds, a dossier with an automatic threat level,
+  and stages: how they were earlier in your story, from a date on.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
 - **Pathways:** read any pathway Sequence by Sequence, create and edit your own inside the program, start
   one from a copy of a built-in pathway, and export a pathway as a sheet. The Acrobat pathway from the
@@ -30,9 +31,15 @@ It comes as two programs that share the same saves:
   edit, duplicate, delete.
 - **Compare:** two to four characters side by side, with their stats on one chart and the highest value
   in each row marked.
+- **Relationship web:** everyone you've saved as a picture, with a coloured line for each relationship
+  (love, family, friends, allies, teaching, conflict), so you can see who knows whom at a glance, and
+  the shortest chain of people between any two of them.
+- **Timeline:** story events (what happened, when, where and who was there) in date order, and a marker
+  you drag along it to see every character as they were on that date.
 - **Sample sets:** the members of the Tarot Club, the brothers Adam and Amon, and a few canon Sealed
   Artifacts, added to your saves with one **Import all** button in Settings. Share your own characters the
-  same way: Settings turns them into a sample set that you commit to GitHub.
+  same way: Settings turns them into a sample set that you commit to GitHub. Story events go along with
+  the characters in them.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
   Markdown, or plain text.
 
@@ -120,15 +127,15 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 
 ## Using the app window
 
-- The tabs at the top are **Characters**, **Compare**, **Sealed Artifacts**, **Pathways**, **Sefirot**
-  and **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
+- The tabs at the top are **Characters**, **Compare**, **Web**, **Timeline**, **Sealed Artifacts**,
+  **Pathways**, **Sefirot** and **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
   the right. Drag the list's right edge to make it wider.
 - **Filters:** the search box over the Characters and Sealed Artifacts lists finds names, aliases and IDs
   (`C-012`, `c12` or just `12`). **Filter and sort** under it narrows the list by power (Mortal,
   Sequence 9-8 up to Above the Sequence; "Level unknown" for artifacts), first letter and pathway, and
   sorts by name, ID, power or pathway. **Clear** takes the filters off and the list says how many it shows.
-- A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Sealed Artifacts,
-  Relationships, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
+- A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Artifacts,
+  Relationships, Stages, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
 - The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
   **Roll** rolls 4d6 and drops the lowest die; hover over the slider to see the last roll.
 - Boxes with an arrow on the right take anything you type, or pick a suggestion from the arrow.
@@ -161,6 +168,33 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - Nothing is saved until you click **Save** (or press **Ctrl+S**, **Cmd+S** on a Mac). The Save button
   turns gold when there are changes. If you open something else first, the window asks whether to save
   them, throw them away, or keep editing. Closing the window asks the same.
+- **Web** draws everyone you've saved, with a line for each relationship in the colour of its kind:
+  pink for love, orange for family, green for friends, blue for allies and work, purple for teaching,
+  red for conflict. People who know each other drift together while it settles. Hover over someone to
+  light up their lines and read what they are to each other; click them to list their connections on the
+  left; double-click to open their sheet. Drag someone to move them (they stay where you put them until
+  **Let them move again**), scroll to zoom and drag the background to look around. On the left you can
+  hide kinds of relationship, show only one organization, add people who are only named in a
+  relationship, and pick two people under **How Are They Connected?** to find the shortest chain between
+  them ("Audrey Hall is Friend of Klein Moretti, who is Enemy of Amon"). **Export...** saves the web as a
+  page with the picture and every connection written out.
+- **Timeline** lists your story events, earliest first. **+ New event** asks what happened, when, what
+  kind of event it was (a battle, a meeting, an advancement ... or your own word), where, the chapter of
+  your book, who was there and in what part, the Sealed Artifacts involved, and notes. The strip at the
+  top has a dot for every date. Click a date, drag the slider, or press **Play** to step through the
+  story: the cards below show every character as they were then, and light up when someone changes.
+  **Export the timeline...** saves it as a sheet.
+- **Dates** are written the way the books write them: `3 July 1360`, `July 1360` or just `1360`. The
+  month and day are optional. Everything is in the Fifth Epoch unless you name another (`1200, Fourth
+  Epoch`). `July 3, 1360`, `3rd July 1360` and `Jul 1360` work too; under the box it says how it reads
+  the date, or what's wrong with it.
+- **Stages** (a character's Stages tab) say how a character was earlier in the story. **+ Add a stage
+  from how they are now** copies their pathway, Sequence, state of mind, organization, status, titles,
+  aliases and Sealed Artifacts into a stage; give it the date it began and change what was different
+  then. A stage lasts until their next one, and after the last one they are as the other tabs describe
+  them (**Now since** can give that a date too). Everything else, like their name, looks and stats, is the
+  same in every stage. **See their sheet as of then** shows the sheet for that time, and the Timeline uses
+  the stages to show everyone on any date.
 - **Compare** puts two to four characters side by side: tick them in the list. It shows their pathway,
   Sequence, tier and threat level, every stat with a bar (and the six stats on one chart), Speed, HP,
   Spirituality, abilities, Sealed Artifacts and how they're related to each other. The highest value in
@@ -197,6 +231,11 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   and `C` to clear it all.
 - **Open the Catalogue**, then **Compare characters side by side**, picks two to four characters and
   prints them as a table, with the highest value in each row marked `*`.
+- **Timeline** in the main menu shows every story event, or one character's, adds, changes and deletes
+  events, and prints everyone as they were on a date you type (`3 July 1360`, `July 1360`, `1360`).
+  The character creator has a **Stages** step for how a character was earlier in the story.
+- **Relationship web** lists who one character knows, finds how two characters are connected through
+  others, and lists who has the most connections. Its export draws the web as a picture in the HTML file.
 
 ### Where things are saved
 
@@ -208,14 +247,15 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 | Your own Sefirot | `data/custom_sefirot.json` |
 | Your characters | `data/characters.json` |
 | Your Sealed Artifacts | `data/artifacts.json` |
+| Your story events | `data/events.json` |
 | Settings (HP mode, export theme, backups, window text size and theme) | `data/settings.json` |
 | Backups (last 5 of each file) | `data/backups/` |
 | Exports | `exports/` |
 
-Your own characters, artifacts and exports are **not** uploaded to GitHub (see `.gitignore`); they stay on
-your computer. Copy the `data` folder to back them up or move them to another PC. Your own pathways are
-different: GitHub Desktop shows `custom_pathways.json` as changed after you edit a pathway, and committing
-it shares your pathways with anyone else who uses the repository. Your own Sefirot work the same way, in
+Your own characters, artifacts, story events and exports are **not** uploaded to GitHub (see
+`.gitignore`); they stay on your computer. Copy the `data` folder to back them up or move them to another
+PC. Your own pathways are different: GitHub Desktop shows `custom_pathways.json` as changed after you edit
+a pathway, and committing it shares your pathways with anyone else who uses the repository. Your own Sefirot work the same way, in
 `custom_sefirot.json`.
 
 ### Sample sets: the Tarot Club, Adam and Amon
@@ -251,7 +291,8 @@ Your characters and Sealed Artifacts stay on your computer until you share them 
 1. In the app window, open **Settings** and scroll to **Share your own** (in the console: **Settings**, then
    **Share your own characters and Sealed Artifacts as a sample set**).
 2. Give the set a title, like *Max's characters*, and tick who goes in. Everything that isn't already in
-   another sample set starts ticked; the Sealed Artifacts your characters hold go in by themselves.
+   another sample set starts ticked; the Sealed Artifacts your characters hold go in by themselves, and
+   so do the story events they take part in (and events that name none of your saved characters).
 3. Click **Save as data/samples/...**. Saving again with the same title replaces the file, so you can
    update it whenever your characters change. This works for the sets that came with the program too:
    type *The Tarot Club* or *Adam and Amon* as the title, and the ones already in it start ticked, so
@@ -263,8 +304,9 @@ Anyone who then pulls (**Fetch origin**, then **Pull origin** in GitHub Desktop)
 and gets everything with **Import all**. Your own pathways and Sefirot need no extra step: they are in
 `custom_pathways.json` and `custom_sefirot.json`, which GitHub Desktop commits the same way.
 
-A sample set is a JSON file with a `title`, a `description`, and `characters` and `artifacts` lists in the
-same layout as `characters.json` and `artifacts.json`. The ids inside it only need to match each other.
+A sample set is a JSON file with a `title`, a `description`, and `characters`, `artifacts` and `events`
+lists in the same layout as `characters.json`, `artifacts.json` and `events.json`. The ids inside it only
+need to match each other. An event counts as one you already have when it has the same title and date.
 
 ### Adding your own pathways
 
@@ -339,6 +381,9 @@ src/*_creator.cpp     the two creators
 src/pathway_menu.cpp  the Pathways menu (your own pathways)
 src/catalogue.cpp     the catalogue
 src/compare.*         comparing characters side by side, shared by both programs
+src/story.*           story dates, events, the timeline, and characters as of a date
+src/web.*             the relationship web: who knows whom, and where everyone sits in the picture
+src/story_menu.cpp    the console's Timeline and Relationship web menus
 src/list_filter.*     searching, filtering and sorting the lists, shared by both programs
 src/sefirot_menu.cpp  the console's Sefirot menu
 src/export_menu.cpp   exports

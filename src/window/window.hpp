@@ -6,6 +6,7 @@
 #include <array>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -19,6 +20,7 @@
 #include "list_filter.hpp"
 #include "model_json.hpp"
 #include "sheet.hpp"
+#include "web.hpp"
 
 namespace lotm::window {
 
@@ -80,6 +82,9 @@ struct Draft {
 
 struct CharacterScreen {
     Draft<Character> draft;
+    int sheetStage = -1;         // the Sheet tab shows them as of this stage; -1: as they are now
+    int openStage = -1;          // the stage to unfold on the Stages tab next frame
+    bool selectSheet = false;    // switch to the Sheet tab next frame
     bool editLadder = false;     // the Pathway tab shows a pathway box for every Sequence
     std::string switchTo;        // the pathway picked in "Switch to another pathway"
     RecordFilter filter = RecordFilter::inIdOrder();  // the order they were made in until sorted
@@ -108,7 +113,51 @@ struct CompareScreen {
     std::string search;
 };
 
-enum class Tab { Characters, Compare, Artifacts, Pathways, Sefirot, Settings };
+// The Web tab: everyone as a circle, every relationship a line, settling into place as you watch.
+struct WebScreen {
+    WebOptions options;
+    bool labels = true;           // relationship words on the lines (when zoomed in far enough)
+    Web web;
+    WebLayout layout;
+    std::string builtFrom = "\x01";  // what the web was built from; when it changes the web is built again
+    std::array<int, kBondCount> bondCounts{};  // lines of each kind, shown or not
+    std::vector<std::string> organizations;    // to pick from, in the order first met
+    std::map<std::string, double> bornAt;  // when each person first appeared, for growing in
+    // The view: the point of the web in the middle of the canvas, and pixels per unit of the layout.
+    // `shown` glides towards `target`.
+    ImVec2 targetCentre{0.0f, 0.0f};
+    float targetScale = 0.0f;  // 0: not placed yet
+    ImVec2 shownCentre{0.0f, 0.0f};
+    float shownScale = 0.0f;
+    bool follow = true;           // keep the whole web in view while it settles, until moved by hand
+    int dragging = -1;            // the node being dragged
+    std::string selected;         // Web::key of the person picked
+    std::string hovered;          // ... and of the one under the pointer, kept while the highlight fades
+    float focus = 0.0f;           // 0..1, how far the others have faded while someone is hovered
+    int pathFrom = 0;             // "How are they connected?": two saved characters
+    int pathTo = 0;
+};
+
+// The Timeline tab: story events by date, and the cast as they were on any date.
+struct TimelineScreen {
+    Draft<StoryEvent> draft;
+    bool selectEditor = false;  // show the event being edited on the next frame
+    std::string search;
+    int characterId = 0;   // only the events with this character
+    std::string kind;      // only events of this kind
+    // The story strip's "as of" marker: an index into storyDates(), or -1 for now. It glides to its place.
+    int asOf = -1;
+    float shownAsOf = -1.0f;
+    double asOfChangedAt = -10.0;
+    bool playing = false;  // stepping through the dates by itself
+    double playedAt = 0.0;
+    int viewingCharacter = 0;  // a cast card opened as a sheet, as of the marker's date
+    // What each character's card said last frame, and when it changed, so a change lights up.
+    std::map<int, std::string> castLines;
+    std::map<int, double> castChangedAt;
+};
+
+enum class Tab { Characters, Compare, Web, Timeline, Artifacts, Pathways, Sefirot, Settings };
 
 struct WindowState {
     App app{Database{}, Storage{std::filesystem::path()}, Dice{}};  // loaded once the window is open
@@ -118,6 +167,8 @@ struct WindowState {
     std::optional<Tab> switchTo;  // set to change tabs from code
     CharacterScreen characters;
     CompareScreen compare;
+    WebScreen web;
+    TimelineScreen timeline;
     ArtifactScreen artifacts;
     PathwayScreen pathways;
     SefirotScreen sefirot;
@@ -151,6 +202,8 @@ struct WindowState {
 
 void drawCharactersScreen(WindowState& w);
 void drawCompareScreen(WindowState& w);
+void drawWebScreen(WindowState& w);
+void drawTimelineScreen(WindowState& w);
 void drawArtifactsScreen(WindowState& w);
 void drawPathwaysScreen(WindowState& w);
 void drawSefirotScreen(WindowState& w);
@@ -161,9 +214,13 @@ bool saveCharacterDraft(WindowState& w);
 bool saveArtifactDraft(WindowState& w);
 bool savePathwayDraft(WindowState& w);
 bool saveSefirahDraft(WindowState& w);
+bool saveEventDraft(WindowState& w);
 
 // Opens a saved character on the Characters tab (asking first about unsaved changes there).
 void openCharacter(WindowState& w, int id);
+// Opens a story event on the Timeline tab, or a new one with these people in it.
+void openEvent(WindowState& w, int id);
+void openNewEvent(WindowState& w, const std::vector<int>& characterIds = {});
 // Shows a Sefirah on the Sefirot tab, in the editor when it is one of your own.
 void openSefirah(WindowState& w, const std::string& id);
 // Starts a new Sefirah of your own on the Sefirot tab, gathering this pathway.
@@ -197,6 +254,9 @@ bool listEditor(const char* id, std::vector<std::string>& items, const char* add
 // and "+ Add an ability". Stored as "Name: what it does". Returns true when the list changed.
 bool abilityListEditor(std::vector<std::string>& abilities);
 bool pathwayCombo(const char* label, const Database& db, std::string& pathwayId, const char* noneLabel);
+// A date in the story, typed as text ("3 July 1360"). Says below how it reads, or what is wrong with it;
+// the date only changes while the text reads as one.
+bool storyDateField(const char* label, StoryDate& date, const char* hint = "e.g. 3 July 1360, or just 1360");
 // A slider from Sequence 9 (left) to Sequence 0 (right), labelled with the Sequence's name. Given
 // `above`, it has one more step past Sequence 0: Above the Sequence.
 bool sequenceSlider(const char* id, const Pathway* pathway, int& sequence, bool* above = nullptr);
@@ -220,6 +280,21 @@ void drawSheet(const WindowState& w, const Sheet& sheet);
 
 // "Klein Moretti" -> "KM"
 std::string initials(const std::string& name);
+// A colour written as hex ("#d4577b"), darkened on the parchment theme so it reads.
+ImVec4 colourFromHex(const std::string& hex);
+// A medallion drawn at a point (initials, a Sequence number), for screens that place their own.
+// colour.w fades the whole thing.
+void medallionAt(const WindowState& w, ImVec2 centre, float radius, const ImVec4& colour, const std::string& text);
+
+// ---- movement (widgets.cpp)
+
+// A number that glides towards `target` instead of jumping, remembered under `id` between frames.
+// `speed`: about how many times a second it closes the gap.
+float glide(ImGuiID id, float target, float speed = 10.0f);
+// From 0 to 1 over `seconds` after `since` (ImGui::GetTime()), easing out with a small overshoot.
+float popIn(double since, float seconds = 0.45f);
+// Seconds since the last frame, never more than a tenth of a second (after a pause, nothing jumps).
+float frameSeconds();
 // A round badge with a coloured ring and a short text inside (initials, a Sequence number).
 void medallion(const WindowState& w, const std::string& text, const ImVec4& colour, float radius);
 // A small rounded label in a colour. Call ImGui::SameLine() between chips.

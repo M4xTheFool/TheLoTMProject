@@ -4,6 +4,8 @@
 #include <cctype>
 #include <cmath>
 
+#include "story.hpp"
+
 namespace lotm {
 
 int abilityModifier(int score) {
@@ -424,6 +426,18 @@ std::vector<std::string> normalizeCharacter(Character& c) {
     }
 
     if (!c.stats.hpIncluded) c.stats.hp = 0;
+
+    // Stages, earliest first (undated ones last), each with a Sequence that exists.
+    for (CharacterStage& stage : c.stages) {
+        if (stage.pathwayId.empty()) {
+            stage.sequence = 9;
+            stage.aboveSequence = false;
+        }
+        if (stage.aboveSequence) stage.sequence = 0;
+        stage.sequence = std::clamp(stage.sequence, 0, 9);
+    }
+    std::stable_sort(c.stages.begin(), c.stages.end(),
+                     [](const CharacterStage& a, const CharacterStage& b) { return storyDateBefore(a.date, b.date); });
     return notes;
 }
 

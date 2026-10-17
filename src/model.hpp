@@ -148,6 +148,37 @@ struct SequenceStep {
     std::string pathwayId;
 };
 
+// A date in the story's world, written the way the books write them: "3 July 1360". The month and day
+// are optional ("July 1360", "1360"). Dates are in the Fifth Epoch, the one the books are set in,
+// unless another epoch is named ("1200, Fourth Epoch"). See story.hpp for reading and writing them.
+struct StoryDate {
+    int epoch = 5;
+    int year = 0;   // 0 = no date
+    int month = 0;  // 1-12, 0 = not known
+    int day = 0;    // 1-31, 0 = not known
+
+    bool empty() const { return year == 0; }
+};
+
+// A character earlier in your story: what they were like from a date on, until their next stage. The
+// character's own fields are how they are now; a stage only holds what tends to change as a story goes
+// on, and everything else (name, looks, stats ...) comes from now. See characterAsOf in story.hpp.
+struct CharacterStage {
+    StoryDate date;
+    std::string label;  // what changed then, "Becomes the Magician"
+    std::string pathwayId;
+    int sequence = 9;
+    bool aboveSequence = false;
+    std::string sefirahId;
+    std::string stateOfMind;
+    Affiliation affiliation;
+    std::string status;  // as in the dossier: Active, Missing, Deceased ...
+    std::vector<std::string> titles;
+    std::vector<std::string> aliases;
+    std::vector<int> artifactIds;  // the Sealed Artifacts they held then
+    std::string note;
+};
+
 struct Character {
     int id = 0;
     std::string name;
@@ -184,6 +215,10 @@ struct Character {
     std::vector<Relationship> relationships;
     Dossier dossier;
     std::string notes;
+    // The character earlier in your story, oldest first. What they are now starts on nowSince, when
+    // it's given; otherwise "now" is the end of the story.
+    std::vector<CharacterStage> stages;
+    StoryDate nowSince;
     std::string createdAt;
     std::string updatedAt;
 };
@@ -205,6 +240,31 @@ struct Artifact {
     std::string updatedAt;
 };
 
+// ---------- Story events (data/events.json) ----------
+
+// Someone who takes part in an event: one of your saved characters, or anyone by name.
+struct EventPerson {
+    int characterId = 0;  // 0 = someone who isn't a saved character
+    std::string name;     // for a saved character, their name when they were added
+    std::string role;     // optional: "attacker", "witness", "host" ...
+};
+
+// Something that happens in your story, on the timeline.
+struct StoryEvent {
+    int id = 0;
+    std::string title;
+    StoryDate date;
+    std::string kind;     // one of kEventKinds in story.hpp, or your own word
+    std::string place;
+    std::string chapter;  // where it is in your book: "Chapter 12", "Book 2, chapter 3"
+    std::vector<EventPerson> people;
+    std::vector<int> artifactIds;
+    std::string description;
+    std::string notes;
+    std::string createdAt;
+    std::string updatedAt;
+};
+
 // ---------- Settings (data/settings.json) ----------
 
 struct Settings {
@@ -221,6 +281,7 @@ struct Database {
     std::vector<Sefirah> sefirot;
     std::vector<Character> characters;
     std::vector<Artifact> artifacts;
+    std::vector<StoryEvent> events;
     Settings settings;
 
     const Pathway* findPathway(const std::string& id) const;
@@ -240,8 +301,11 @@ struct Database {
     std::vector<const Character*> findCharactersByName(const std::string& text, int excludeId) const;
     Artifact* findArtifact(int id);
     const Artifact* findArtifact(int id) const;
+    StoryEvent* findEvent(int id);
+    const StoryEvent* findEvent(int id) const;
     int nextCharacterId() const;
     int nextArtifactId() const;
+    int nextEventId() const;
     // A free id for a new pathway, made from its name: "Mystery Pryer" -> "mystery_pryer" (or "mystery_pryer_2").
     std::string newPathwayId(const std::string& name) const;
     // The same for a new Sefirah: "Sefirah of Masks" -> "sefirah_of_masks".
@@ -256,10 +320,13 @@ struct Database {
 // Display helpers shared by every screen and export.
 std::string characterCode(int id);  // "C-001"
 std::string artifactCode(int id);   // "A-001"
+std::string eventCode(int id);      // "E-001"
 std::string pathwayLabel(const Database& db, const std::string& pathwayId);  // "Seer (The Fool)"
 std::string sequenceLabel(const Pathway* pathway, int sequence);             // "Sequence 7: Magician"
 std::string sefirahLabel(const Database& db, const std::string& sefirahId);   // "Sefirah Castle (Lord of the Mysteries)"
 std::string relationshipName(const Database& db, const Relationship& r);     // "Fors Wall (C-002)" or "Fors Wall"
+// "Klein Moretti" -> "KM": the first letter of the first and last word, stopping at a bracket.
+std::string nameInitials(const std::string& name);
 
 // Abilities are stored as "Name: what it does". splitAbility gives {"Name", "what it does"}; only a
 // short name before the first ": " counts, so text without one comes back whole as the description.

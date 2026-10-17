@@ -8,6 +8,11 @@
 
 namespace lotm {
 
+// Story dates are saved as text, "3 July 1360", so the files stay easy to read and to edit by hand
+// (see story.cpp). Text that isn't a date stops the file from loading, with the reason.
+void to_json(nlohmann::json& j, const StoryDate& date);
+void from_json(const nlohmann::json& j, StoryDate& date);
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SequenceInfo, sequence, name, abilities)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MovementUnlock, sequence, mode)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Pathway, id, name, god, group, primaryStat, secondaryStat,
@@ -26,16 +31,23 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StatBlock, base, speedBase, hpIn
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SecondPathway, pathwayId, beyonderCharacteristics, hasUniqueness,
                                                 uniquenessForm, uniquenessAbilities)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SequenceStep, sequence, pathwayId)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(CharacterStage, date, label, pathwayId, sequence, aboveSequence,
+                                                sefirahId, stateOfMind, affiliation, status, titles, aliases,
+                                                artifactIds, note)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, appearance, age, gender, shortDescription,
                                                 backstory, pathwayId, sequence, mixedSequences, stateOfMind,
                                                 stateOfMindNote, alignment, titles, aliases,
                                                 honorificName, beyonderCharacteristics, hasUniqueness, uniquenessForm,
                                                 uniquenessAbilities, aboveSequence, secondPathway, sefirahId, stats,
-                                                artifactIds, affiliation, relationships, dossier, notes, createdAt,
-                                                updatedAt)
+                                                artifactIds, affiliation, relationships, dossier, notes, stages,
+                                                nowSince, createdAt, updatedAt)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Artifact, id, name, visualDescription, pathwayId, sequenceLevel,
                                                 ability, drawback, notes, createdAt, updatedAt)
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(EventPerson, characterId, name, role)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StoryEvent, id, title, date, kind, place, chapter, people, artifactIds,
+                                                description, notes, createdAt, updatedAt)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, hpMode, exportTheme, backupsToKeep, windowTextSize,
                                                 windowTheme)

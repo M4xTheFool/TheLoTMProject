@@ -131,6 +131,20 @@ const Artifact* Database::findArtifact(int id) const {
     return nullptr;
 }
 
+StoryEvent* Database::findEvent(int id) {
+    for (auto& e : events) {
+        if (e.id == id) return &e;
+    }
+    return nullptr;
+}
+
+const StoryEvent* Database::findEvent(int id) const {
+    for (const auto& e : events) {
+        if (e.id == id) return &e;
+    }
+    return nullptr;
+}
+
 int Database::nextCharacterId() const {
     int highest = 0;
     for (const auto& c : characters) highest = std::max(highest, c.id);
@@ -140,6 +154,12 @@ int Database::nextCharacterId() const {
 int Database::nextArtifactId() const {
     int highest = 0;
     for (const auto& a : artifacts) highest = std::max(highest, a.id);
+    return highest + 1;
+}
+
+int Database::nextEventId() const {
+    int highest = 0;
+    for (const auto& e : events) highest = std::max(highest, e.id);
     return highest + 1;
 }
 
@@ -201,6 +221,7 @@ static std::string code(char prefix, int id) {
 
 std::string characterCode(int id) { return code('C', id); }
 std::string artifactCode(int id) { return code('A', id); }
+std::string eventCode(int id) { return code('E', id); }
 
 std::string pathwayLabel(const Database& db, const std::string& pathwayId) {
     if (pathwayId.empty()) return "None";
@@ -240,6 +261,31 @@ std::string joinAbility(const std::string& name, const std::string& description)
     if (name.empty()) return description;
     if (description.empty()) return name;
     return name + ": " + description;
+}
+
+std::string nameInitials(const std::string& name) {
+    // The first letter of each word (stopping at a bracket), then the first and last of those.
+    std::vector<std::string> letters;
+    bool wordStart = true;
+    for (size_t i = 0; i < name.size();) {
+        size_t end = i + 1;
+        while (end < name.size() && (static_cast<unsigned char>(name[end]) & 0xC0) == 0x80) ++end;  // one UTF-8 letter
+        const unsigned char ch = static_cast<unsigned char>(name[i]);
+        if (ch == '(') break;
+        if (ch == ' ' || ch == '-') {
+            wordStart = true;
+        } else {
+            if (wordStart && (std::isalpha(ch) || ch >= 0x80)) {
+                std::string letter = name.substr(i, end - i);
+                if (letter.size() == 1) letter[0] = static_cast<char>(std::toupper(ch));
+                letters.push_back(letter);
+            }
+            wordStart = false;
+        }
+        i = end;
+    }
+    if (letters.empty()) return "?";
+    return letters.size() == 1 ? letters[0] : letters.front() + letters.back();
 }
 
 std::string relationshipName(const Database& db, const Relationship& r) {

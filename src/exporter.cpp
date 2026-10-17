@@ -6,6 +6,8 @@
 
 #include "render.hpp"
 #include "storage.hpp"
+#include "story.hpp"
+#include "web.hpp"
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -60,6 +62,11 @@ std::string catalogueExportName() { return "catalogue-" + compactTimestamp(); }
 
 std::vector<Sheet> catalogueSheets(const Database& db) {
     std::vector<Sheet> sheets;
+    // First who knows whom and what happened when, each linking to the sheets below.
+    bool related = false;
+    for (const auto& c : db.characters) related = related || !c.relationships.empty();
+    if (related) sheets.push_back(buildWebSheet(db, true));
+    if (!db.events.empty()) sheets.push_back(buildTimelineSheet(db));
     for (const auto& c : db.characters) sheets.push_back(buildCharacterSheet(c, db));
     for (const auto& a : db.artifacts) sheets.push_back(buildArtifactSheet(a, db));
     for (const auto& p : db.pathways) {

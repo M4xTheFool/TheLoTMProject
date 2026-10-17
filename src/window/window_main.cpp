@@ -1,5 +1,5 @@
-// LoTM Creator Suite, app window version. Opens a window with tabs for characters,
-// Sealed Artifacts, pathways, Sefirot and settings; everything is saved to the same data folder
+// LoTM Creator Suite, app window version. Opens a window with tabs for characters, the relationship
+// web, the timeline, Sealed Artifacts, pathways, Sefirot and settings; everything is saved to the same data folder
 // as the console program (lotm_creator), so both can be used side by side.
 #include <algorithm>
 #include <cstdio>
@@ -48,6 +48,7 @@ bool saveEverything(WindowState& w) {
     if (w.artifacts.draft.dirty()) ok = saveArtifactDraft(w) && ok;
     if (w.pathways.draft.dirty()) ok = savePathwayDraft(w) && ok;
     if (w.sefirot.draft.dirty()) ok = saveSefirahDraft(w) && ok;
+    if (w.timeline.draft.dirty()) ok = saveEventDraft(w) && ok;
     return ok;
 }
 
@@ -77,6 +78,8 @@ void drawWindow(WindowState& w) {
     if (ImGui::BeginTabBar("screens")) {
         const std::pair<Tab, const char*> tabs[] = {{Tab::Characters, "Characters"},
                                                     {Tab::Compare, "Compare"},
+                                                    {Tab::Web, "Web"},
+                                                    {Tab::Timeline, "Timeline"},
                                                     {Tab::Artifacts, "Sealed Artifacts"},
                                                     {Tab::Pathways, "Pathways"},
                                                     {Tab::Sefirot, "Sefirot"},
@@ -95,6 +98,8 @@ void drawWindow(WindowState& w) {
             switch (tab) {
                 case Tab::Characters: drawCharactersScreen(w); break;
                 case Tab::Compare: drawCompareScreen(w); break;
+                case Tab::Web: drawWebScreen(w); break;
+                case Tab::Timeline: drawTimelineScreen(w); break;
                 case Tab::Artifacts: drawArtifactsScreen(w); break;
                 case Tab::Pathways: drawPathwaysScreen(w); break;
                 case Tab::Sefirot: drawSefirotScreen(w); break;
