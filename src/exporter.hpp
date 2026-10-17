@@ -23,8 +23,9 @@ std::string exportName(const Pathway& p);
 std::string exportName(const Sefirah& s);
 std::string catalogueExportName();
 
-// Every character, every Sealed Artifact, your own pathways and the Sefirot your characters hold,
-// for exporting everything at once.
+// The relationship web and the timeline (when there is something on them), then every character,
+// every Sealed Artifact, your own pathways and the Sefirot your characters hold, for exporting
+// everything at once.
 std::vector<Sheet> catalogueSheets(const Database& db);
 
 // Writes the sheets to <exports folder>/<baseName>.html/.md/.txt and returns the file's full path.

@@ -6,6 +6,7 @@
 #include "relations.hpp"
 #include "rules.hpp"
 #include "storage.hpp"
+#include "story.hpp"
 #include "ui.hpp"
 #include "window.hpp"
 
@@ -38,6 +39,8 @@ void open(WindowState& w, const Character& c, bool isNew) {
     w.characters.switchTo.clear();
     w.characters.lastRolls = {};
     w.characters.lastSpeedRoll.clear();
+    w.characters.sheetStage = -1;
+    w.characters.openStage = -1;
 }
 
 void openNew(WindowState& w) {
@@ -64,8 +67,15 @@ bool saveImpl(WindowState& w) {
     rels.erase(std::remove_if(rels.begin(), rels.end(), [](const Relationship& r) { return ui::trim(r.name).empty(); }),
                rels.end());
     linkRelationshipsByName(w.app.db, c);
-    auto& held = c.artifactIds;  // a Sealed Artifact may have been deleted meanwhile
-    held.erase(std::remove_if(held.begin(), held.end(), [&](int id) { return !w.app.db.findArtifact(id); }), held.end());
+    auto gone = [&](int id) { return !w.app.db.findArtifact(id); };  // a Sealed Artifact may have been deleted meanwhile
+    auto& held = c.artifactIds;
+    held.erase(std::remove_if(held.begin(), held.end(), gone), held.end());
+    for (CharacterStage& stage : c.stages) {
+        removeEmpty(stage.titles);
+        removeEmpty(stage.aliases);
+        stage.label = ui::trim(stage.label);
+        stage.artifactIds.erase(std::remove_if(stage.artifactIds.begin(), stage.artifactIds.end(), gone), stage.artifactIds.end());
+    }
     try {
         const CharacterSaveReport report = saveCharacter(w.app, c, draft.isNew);
         std::string text = "Saved " + c.name + " as " + characterCode(c.id) + ".";
@@ -850,6 +860,148 @@ void dossierTab(Character& c) {
     multilineField("Remarks", d.remarks, 4);
 }
 
+// Stages: how they were earlier in the story, each from a date on. Everything a stage doesn't hold is
+// as they are now.
+void stagesTab(WindowState& w, Draft<Character>& draft) {
+    auto& screen = w.characters;
+    const Database& db = w.app.db;
+    Character& c = draft.value;
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    ImGui::TextWrapped("A stage is how they were earlier in your story, from a date on: their pathway and Sequence, "
+                       "state of mind, organization, status, titles, aliases and Sealed Artifacts. Everything else is "
+                       "as they are now. The Timeline tab and their sheet use stages to show them as they were on any "
+                       "date.");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+    storyDateField("Now since", c.nowSince, "optional: the date they became as the other tabs describe them");
+    ImGui::SetItemTooltip("From this date on, they are as the other tabs describe them. Leave it empty when now is "
+                          "simply the end of your story.");
+    ImGui::Spacing();
+    if (ImGui::Button("+ Add a stage from how they are now")) {
+        c.stages.push_back(stageFromNow(c));
+        screen.openStage = static_cast<int>(c.stages.size()) - 1;
+    }
+    ImGui::SetItemTooltip("Copies their Sequence, organization and the rest. Then give it the date it began and change "
+                          "what was different back then.");
+
+    int remove = -1;
+    for (size_t i = 0; i < c.stages.size(); ++i) {
+        CharacterStage& stage = c.stages[i];
+        ImGui::PushID(static_cast<int>(i));
+        if (screen.openStage == static_cast<int>(i)) {
+            ImGui::SetNextItemOpen(true);
+            screen.openStage = -1;
+        }
+        const std::string title = (stage.date.empty() ? std::string("No date yet") : "From " + storyDateText(stage.date)) +
+                                  ": " + stageLevelText(stage, db) + (stage.label.empty() ? "" : ". " + stage.label) +
+                                  "###stage";
+        ImGui::PushStyleColor(ImGuiCol_Text, pathwayColour(db, stage.pathwayId));
+        const bool open = ImGui::CollapsingHeader(title.c_str());
+        ImGui::PopStyleColor();
+        if (open) {
+            ImGui::Indent();
+            storyDateField("From", stage.date);
+            if (stage.date.empty()) {
+                ImGui::TextColored(palette().warning, "Give the stage the date it began; without one it isn't used.");
+            }
+            textField("What changed", stage.label, "joins the Tarot Club, advances to Sequence 7 ...");
+            pathwayCombo("Pathway", db, stage.pathwayId, "No pathway (ordinary mortal)");
+            if (const Pathway* p = db.findPathway(stage.pathwayId)) {
+                ImGui::TextUnformatted("Sequence");
+                sequenceSlider("##stageSequence", p, stage.sequence, &stage.aboveSequence);
+            }
+            presetField("State of mind", stage.stateOfMind, kStatesOfMind);
+            presetField("Organization", stage.affiliation.organization, kOrganizations);
+            if (!stage.affiliation.organization.empty()) textField("Rank or role", stage.affiliation.rank);
+            presetField("Status", stage.status, kStatuses);
+            sefirahCombo("Sefirah", db, stage.sefirahId, "None");
+            ImGui::SeparatorText("Titles then");
+            listEditor(("stageTitles" + std::to_string(i)).c_str(), stage.titles, "add a title");
+            ImGui::SeparatorText("Aliases then");
+            listEditor(("stageAliases" + std::to_string(i)).c_str(), stage.aliases, "add an alias");
+            if (!db.artifacts.empty()) {
+                ImGui::SeparatorText("Sealed Artifacts held then");
+                for (const auto& a : db.artifacts) {
+                    bool held = std::find(stage.artifactIds.begin(), stage.artifactIds.end(), a.id) != stage.artifactIds.end();
+                    if (ImGui::Checkbox((a.name + "##stageArtifact" + std::to_string(a.id)).c_str(), &held)) {
+                        auto& ids = stage.artifactIds;
+                        if (held) ids.push_back(a.id);
+                        else ids.erase(std::remove(ids.begin(), ids.end(), a.id), ids.end());
+                    }
+                }
+            }
+            ImGui::Spacing();
+            textField("Note", stage.note, "anything else about this time");
+            if (ImGui::Button("See their sheet as of then")) {
+                screen.sheetStage = static_cast<int>(i);
+                screen.selectSheet = true;
+            }
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, palette().danger);
+            if (ImGui::Button("Remove this stage")) remove = static_cast<int>(i);
+            ImGui::PopStyleColor();
+            ImGui::Unindent();
+            ImGui::Spacing();
+        }
+        ImGui::PopID();
+    }
+    if (remove >= 0) {
+        c.stages.erase(c.stages.begin() + remove);
+        if (screen.sheetStage == remove) screen.sheetStage = -1;
+        else if (screen.sheetStage > remove) --screen.sheetStage;
+    }
+
+    ImGui::SeparatorText("Their story events");
+    if (draft.isNew) {
+        ImGui::TextDisabled("Save them first; then they can be added to story events on the Timeline tab.");
+        return;
+    }
+    const auto events = eventsOf(db, c.id);
+    if (events.empty()) ImGui::TextDisabled("None yet.");
+    for (const StoryEvent* e : events) {
+        ImGui::PushID(e->id);
+        statusDot(colourFromHex(eventKindColour(e->kind)));
+        if (ImGui::TextLink(e->title.c_str())) openEvent(w, e->id);
+        const std::string summary = eventSummary(*e);
+        if (!summary.empty()) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("%s", summary.c_str());
+        }
+        ImGui::PopID();
+    }
+    if (ImGui::Button("+ New story event with them")) openNewEvent(w, {c.id});
+}
+
+// The sheet, as they are now or as they were in one of their stages.
+void sheetTab(WindowState& w, const Character& c, const Sheet& now) {
+    auto& screen = w.characters;
+    const Database& db = w.app.db;
+    if (screen.sheetStage >= static_cast<int>(c.stages.size())) screen.sheetStage = -1;
+    if (!c.stages.empty()) {
+        fieldLabel("Show them");
+        const std::string preview = screen.sheetStage < 0 ? std::string("As they are now")
+                                                          : stageSummary(c.stages[static_cast<size_t>(screen.sheetStage)], db);
+        if (ImGui::BeginCombo("##sheetStage", preview.c_str())) {
+            if (ImGui::Selectable("As they are now", screen.sheetStage < 0)) screen.sheetStage = -1;
+            for (size_t i = 0; i < c.stages.size(); ++i) {
+                const std::string label = stageSummary(c.stages[i], db) + "##" + std::to_string(i);
+                if (ImGui::Selectable(label.c_str(), screen.sheetStage == static_cast<int>(i))) {
+                    screen.sheetStage = static_cast<int>(i);
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::Spacing();
+    }
+    if (screen.sheetStage < 0) {
+        drawSheet(w, now);
+        return;
+    }
+    const CharacterStage& stage = c.stages[static_cast<size_t>(screen.sheetStage)];
+    drawSheet(w, stage.date.empty() ? buildCharacterSheet(characterInStage(c, stage, db), db)
+                                    : buildCharacterSheetAsOf(c, stage.date, db));
+}
+
 }  // namespace
 
 bool saveCharacterDraft(WindowState& w) { return saveImpl(w); }
@@ -1007,13 +1159,27 @@ void drawCharactersScreen(WindowState& w) {
     }
 
     ImGui::Spacing();
-    if (ImGui::BeginTabBar("characterTabs")) {
+    // Eleven tabs: a little less room around each name, so they fit without being cut short. The tab
+    // bar is laid out in BeginTabBar and EndTabBar as well as in each tab, so all of them get it.
+    const ImVec2 tabPadding(ImGui::GetFontSize() * 0.32f, ImGui::GetStyle().FramePadding.y);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, tabPadding);
+    const bool tabBar = ImGui::BeginTabBar("characterTabs");
+    ImGui::PopStyleVar();
+    if (tabBar) {
         const std::pair<const char*, int> tabs[] = {{"Identity", 0},      {"Looks", 1},    {"Pathway", 2},
-                                                     {"Customization", 3}, {"Stats", 4},    {"Sealed Artifacts", 5},
-                                                     {"Relationships", 6}, {"Dossier", 7},  {"Notes", 8},
-                                                     {"Sheet", 9}};
+                                                     {"Customization", 3}, {"Stats", 4},    {"Artifacts", 5},
+                                                     {"Relationships", 6}, {"Stages", 10},  {"Dossier", 7},
+                                                     {"Notes", 8},         {"Sheet", 9}};
         for (const auto& [name, index] : tabs) {
-            if (!ImGui::BeginTabItem(name, nullptr, index == 0 ? draft.firstTabFlags() : 0)) continue;
+            ImGuiTabItemFlags flags = index == 0 ? draft.firstTabFlags() : 0;
+            if (index == 9 && s.selectSheet) {
+                flags |= ImGuiTabItemFlags_SetSelected;
+                s.selectSheet = false;
+            }
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, tabPadding);
+            const bool open = ImGui::BeginTabItem(name, nullptr, flags);
+            ImGui::PopStyleVar();
+            if (!open) continue;
             ImGui::BeginChild("tab", ImVec2(0, 0), ImGuiChildFlags_None);
             switch (index) {
                 case 0: identityTab(draft); break;
@@ -1025,12 +1191,15 @@ void drawCharactersScreen(WindowState& w) {
                 case 6: relationshipsTab(w, c); break;
                 case 7: dossierTab(c); break;
                 case 8: multilineField("Anything else worth remembering", c.notes, 14); break;
-                default: drawSheet(w, sheet); break;
+                case 10: stagesTab(w, draft); break;
+                default: sheetTab(w, c, sheet); break;
             }
             ImGui::EndChild();
             ImGui::EndTabItem();
         }
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, tabPadding);
         ImGui::EndTabBar();
+        ImGui::PopStyleVar();
     }
     ImGui::EndChild();
 }

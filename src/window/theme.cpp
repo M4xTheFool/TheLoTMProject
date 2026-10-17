@@ -208,6 +208,25 @@ ImVec4 pathwayColour(const Database& db, const std::string& pathwayId) {
     return rgb(colour.r, colour.g, colour.b);
 }
 
+ImVec4 colourFromHex(const std::string& hex) {
+    Rgb colour;
+    if (hex.size() == 7 && hex[0] == '#') {
+        auto part = [&](size_t at) {
+            int value = 0;
+            for (size_t i = at; i < at + 2; ++i) {
+                const char ch = hex[i];
+                value = value * 16 + (ch >= '0' && ch <= '9' ? ch - '0' : ch >= 'a' && ch <= 'f' ? ch - 'a' + 10
+                                                                : ch >= 'A' && ch <= 'F'   ? ch - 'A' + 10
+                                                                                           : 0);
+            }
+            return value;
+        };
+        colour = {part(1), part(3), part(5)};
+    }
+    if (parchment) colour = onLightBackground(colour);
+    return rgb(colour.r, colour.g, colour.b);
+}
+
 Fonts loadFonts(const fs::path& dataDir) {
     const float size = 18.0f;
     const fs::path assets = fontsFolder(dataDir);

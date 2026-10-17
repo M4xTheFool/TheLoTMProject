@@ -34,23 +34,66 @@ struct LadderRung {
     bool risky = false;     // ... to a pathway that isn't a neighbour
 };
 
-enum class BlockKind { Field, Paragraph, Bullet, Subheading, Quote, Stats, Ladder };
+// One event on a timeline in a sheet (see story.hpp).
+struct TimelineEntry {
+    std::string date;     // "3 July 1360"; empty when it has no date
+    std::string title;
+    std::string kind;     // Battle, Meeting ...
+    std::string colour;   // the kind's colour as hex
+    std::string place;
+    std::string chapter;
+    std::string people;     // "Klein Moretti (attacker) and Audrey Hall"
+    std::string artifacts;  // "Creeping Hunger and Sealed Artifact 0-08"
+    std::string description;
+};
+
+// The relationship web as a picture (see web.hpp). HTML draws it; text and Markdown leave it out, and
+// the web's sheet lists the same connections in words.
+struct FigureNode {
+    float x = 0.0f;  // the centre, inside the figure's width and height
+    float y = 0.0f;
+    float radius = 18.0f;
+    std::string badge;   // initials
+    std::string name;
+    std::string colour;  // the pathway's colour as hex
+    std::string tip;     // shown when the pointer rests on it
+    std::string link;    // "#c-1" when the same export has their sheet
+    bool saved = true;   // false: someone who isn't a saved character, drawn smaller and grey
+};
+struct FigureEdge {
+    size_t a = 0;  // indexes into the nodes
+    size_t b = 0;
+    std::string label;
+    std::string colour;  // the kind of relationship's colour as hex
+    std::string tip;
+};
+struct WebFigure {
+    float width = 860.0f;
+    float height = 600.0f;
+    std::vector<FigureNode> nodes;
+    std::vector<FigureEdge> edges;
+    std::vector<std::pair<std::string, std::string>> legend;  // name and colour of each kind of relationship
+};
+
+enum class BlockKind { Field, Paragraph, Bullet, Subheading, Quote, Stats, Ladder, Timeline, Web };
 
 struct Block {
     BlockKind kind = BlockKind::Paragraph;
     std::string label;  // Field only
     std::string text;
-    std::vector<StatRow> stats;      // Stats only
-    std::vector<LadderRung> rungs;   // Ladder only
+    std::vector<StatRow> stats;           // Stats only
+    std::vector<LadderRung> rungs;        // Ladder only
+    std::vector<TimelineEntry> entries;   // Timeline only
+    WebFigure web;                        // Web only
 };
 
 // A short coloured label under a sheet's title: the power tier, state of mind, threat level ...
 struct Badge {
     std::string text;
-    // "pathway" (in the colour below), "good", "gold", "orange", "danger" or "muted"
+    // "pathway" (in the colour below), "colour" (any colour below), "good", "gold", "orange", "danger" or "muted"
     std::string tone = "muted";
     std::string pathwayId;  // tone "pathway" only
-    std::string colour;     // tone "pathway" only: the pathway's colour as hex
+    std::string colour;     // tones "pathway" and "colour": the colour as hex
 };
 
 struct Section {
@@ -78,7 +121,9 @@ struct Sheet {
     std::string footer;
 };
 
-Sheet buildCharacterSheet(const Character& c, const Database& db);
+// until: a date in the story, to show only the stages and events up to it (see buildCharacterSheetAsOf
+// in story.hpp, which also shows the character as they were then).
+Sheet buildCharacterSheet(const Character& c, const Database& db, const StoryDate* until = nullptr);
 // Sequence 9 up to theirs, each from the pathway it came from, then Above the Sequence. Empty for a mortal.
 std::vector<LadderRung> ladderRungs(const Character& c, const Database& db);
 Sheet buildArtifactSheet(const Artifact& a, const Database& db);

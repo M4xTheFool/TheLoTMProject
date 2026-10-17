@@ -1,6 +1,7 @@
 // Small self-contained checks for the rules, the save format and the exports.
 // Run with: ctest --test-dir build -C Release   (or run build/lotm_tests directly)
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -20,6 +21,8 @@
 #include "rules.hpp"
 #include "sheet.hpp"
 #include "storage.hpp"
+#include "story.hpp"
+#include "web.hpp"
 
 namespace fs = std::filesystem;
 using namespace lotm;
@@ -1504,6 +1507,456 @@ static void testComparison() {
     CHECK(text.find("Between them") != std::string::npos);
 }
 
+static StoryDate date(const std::string& text) { return parseStoryDate(text).value_or(StoryDate{}); }
+
+// Dates are read the way people write them and written back the way the books do.
+static void testStoryDates() {
+    const auto full = parseStoryDate("3 July 1360");
+    CHECK(full && full->epoch == 5 && full->year == 1360 && full->month == 7 && full->day == 3);
+    for (const std::string text : {"3 July 1360", "July 1360", "1360", "1200, Fourth Epoch", "29 February 1351"}) {
+        CHECK(storyDateText(date(text)) == text);
+    }
+    CHECK(storyDateText(date("July 3, 1360")) == "3 July 1360");
+    CHECK(storyDateText(date("3rd July 1360")) == "3 July 1360");
+    CHECK(storyDateText(date("jul 1360")) == "July 1360");
+    CHECK(storyDateText(date("Sept. 1349")) == "September 1349");
+    CHECK(storyDateText(date("Fourth Epoch 1200")) == "1200, Fourth Epoch");
+    CHECK(storyDateText(date("1349 of the Fifth Epoch")) == "1349");
+    CHECK(storyDateText(date("Epoch 3, year 12")) == "12, Third Epoch");
+    CHECK(epochName(1) == "First Epoch" && epochName(12) == "Epoch 12");
+
+    // No text is no date; text that isn't a date says why.
+    const auto none = parseStoryDate("   ");
+    CHECK(none && none->empty() && storyDateText(*none).empty());
+    std::string problem;
+    CHECK(!parseStoryDate("31 February 1360", &problem) && problem == "February has no day 31.");
+    CHECK(!parseStoryDate("3 1360", &problem) && problem.find("needs its month") != std::string::npos);
+    CHECK(!parseStoryDate("July", &problem) && problem.find("year") != std::string::npos);
+    CHECK(!parseStoryDate("July August 1360", &problem) && problem == "It names two months.");
+    CHECK(!parseStoryDate("1 2 1360", &problem) && problem.find("more numbers") != std::string::npos);
+    CHECK(!parseStoryDate("banana 1360", &problem) && problem.find("\"banana\"") != std::string::npos);
+    CHECK(!parseStoryDate("Fourth Epoch Fifth Epoch 1200", &problem) && problem == "It names two epochs.");
+    CHECK(parseStoryDate("3 July 1360", &problem) && problem.empty());
+
+    // Earliest first: epochs, then years, a bare year before its months, a month before its days; no date last.
+    CHECK(storyDateBefore(date("1200, Fourth Epoch"), date("1")));
+    CHECK(storyDateBefore(date("1349"), date("January 1349")));
+    CHECK(storyDateBefore(date("July 1349"), date("1 July 1349")));
+    CHECK(storyDateBefore(date("30 June 1349"), date("1 July 1349")));
+    CHECK(!storyDateBefore(date("1349"), date("1349")));
+    CHECK(storyDateBefore(date("1349"), StoryDate{}) && !storyDateBefore(StoryDate{}, date("1349")));
+    CHECK(!storyDateBefore(StoryDate{}, StoryDate{}));
+    CHECK(sameStoryDate(date("July 1349"), date("Jul 1349")) && !sameStoryDate(date("July 1349"), date("1349")));
+    CHECK(sameStoryDate(StoryDate{}, StoryDate{}));
+
+    // Saved as text, and read back the same.
+    const nlohmann::json j = date("3 July 1360");
+    CHECK(j == "3 July 1360");
+    CHECK(sameStoryDate(j.get<StoryDate>(), date("3 July 1360")));
+    CHECK(nlohmann::json(StoryDate{}).get<StoryDate>().empty());
+}
+
+// A character as they were on a date: their latest stage up to it, on top of how they are now.
+static void testCharacterAsOf() {
+    Database db;
+    db.pathways.push_back(warrior());
+    Artifact sword;
+    sword.id = 1;
+    sword.name = "Sword of Dawn";
+    db.artifacts.push_back(sword);
+    Character c;
+    c.id = 1;
+    c.name = "Leonard Mitchell";
+    c.pathwayId = "warrior";
+    c.sequence = 5;
+    c.titles = {"Captain"};
+    c.dossier.status = "Active";
+    c.affiliation.organization = "Nighthawks";
+    c.artifactIds = {1};
+    c.nowSince = date("1352");
+    CharacterStage later = stageFromNow(c);
+    CHECK(later.pathwayId == "warrior" && later.sequence == 5 && later.titles == c.titles);
+    CHECK(later.status == "Active" && later.artifactIds == c.artifactIds && later.affiliation.organization == "Nighthawks");
+    later.date = date("July 1350");
+    later.sequence = 7;
+    later.titles.clear();
+    CharacterStage first;
+    first.date = date("1349");
+    first.pathwayId = "warrior";
+    first.sequence = 9;
+    first.status = "Recruit";
+    first.label = "Joins the Nighthawks";
+    c.stages = {later, first};  // in any order
+
+    auto asOf = [&](const std::string& when) { return characterAsOf(c, date(when), db); };
+    CHECK(asOf("1348").beforeKnown && asOf("1348").stageIndex == 1 && asOf("1348").character.sequence == 9);
+    CHECK(!asOf("1349").beforeKnown && asOf("1349").stageIndex == 1);
+    CHECK(asOf("1349").character.dossier.status == "Recruit" && asOf("1349").character.artifactIds.empty());
+    CHECK(asOf("1349").character.name == "Leonard Mitchell" && asOf("1349").character.affiliation.organization.empty());
+    CHECK(asOf("June 1350").stageIndex == 1);
+    CHECK(asOf("3 July 1350").stageIndex == 0 && asOf("3 July 1350").character.sequence == 7);
+    CHECK(asOf("3 July 1350").character.titles.empty() && asOf("3 July 1350").character.artifactIds == c.artifactIds);
+    CHECK(asOf("1351").stageIndex == 0);
+    CHECK(asOf("1352").stageIndex == -1 && asOf("1352").character.sequence == 5 && !asOf("1352").beforeKnown);
+    CHECK(characterAsOf(c, StoryDate{}, db).stageIndex == -1);  // no date: as they are now
+    CHECK(stageLevelText(first, db) == "Sequence 9 Seq9, Warrior pathway");
+    CHECK(stageSummary(first, db).find("From 1349") == 0);
+
+    // Without stages they are always as they are now; before nowSince that's before anything known.
+    Character plain = c;
+    plain.stages.clear();
+    CHECK(characterAsOf(plain, date("1340"), db).stageIndex == -1 && characterAsOf(plain, date("1340"), db).beforeKnown);
+    plain.nowSince = StoryDate{};
+    CHECK(!characterAsOf(plain, date("1340"), db).beforeKnown);
+
+    // Stages are saved with the character.
+    const Character back = nlohmann::json(c).get<Character>();
+    CHECK(back.stages.size() == 2 && back.stages[1].label == "Joins the Nighthawks");
+    CHECK(sameStoryDate(back.stages[0].date, date("July 1350")) && sameStoryDate(back.nowSince, date("1352")));
+
+    // Every date where something changes, earliest first, each once.
+    db.characters.push_back(c);
+    StoryEvent e;
+    e.id = 1;
+    e.title = "A fight";
+    e.date = date("1349");
+    db.events.push_back(e);
+    const auto dates = storyDates(db);
+    CHECK(dates.size() == 3 && storyDateText(dates[0]) == "1349" && storyDateText(dates[1]) == "July 1350" &&
+          storyDateText(dates[2]) == "1352");
+}
+
+static Relationship knows(int id, const std::string& name, const std::string& type) { return {id, name, type, ""}; }
+
+// The relationship web: one line per pair, kinds of bond, paths between people, and the layout.
+static void testRelationshipWeb() {
+    CHECK(bondOf("Lover") == Bond::Love && bondOf("Mentor") == Bond::Teaching && bondOf("Student") == Bond::Teaching);
+    CHECK(bondOf("King") == Bond::Allies && bondOf("Sworn brother") == Bond::Family);
+    CHECK(bondOf("Old enemy") == Bond::Conflict && bondOf("close FRIEND") == Bond::Friendship);
+    CHECK(bondOf("Something odd") == Bond::Other && bondOf("") == Bond::Other);
+    CHECK(std::string(bondName(Bond::Allies)) == "Allies and work" && bondColour(Bond::Love).front() == '#');
+
+    Database db;
+    db.pathways.push_back(warrior());
+    auto add = [&](int id, const std::string& name) {
+        Character c;
+        c.id = id;
+        c.name = name;
+        db.characters.push_back(c);
+        return &db.characters.back();
+    };
+    add(1, "Klein Moretti")->relationships = {knows(2, "Audrey Hall", "Mentor"), knows(3, "Alger Wilson", "Ally")};
+    add(2, "Audrey Hall")->relationships = {knows(1, "Klein Moretti", "Student"), knows(0, "Fors Wall", "Friend")};
+    add(3, "Alger Wilson")->relationships = {knows(1, "Klein Moretti", "Ally"), knows(2, "Audrey Hall", "Old enemy")};
+    add(4, "Alista Tudor");
+
+    const Web web = buildWeb(db);
+    CHECK(web.nodes.size() == 4 && web.edges.size() == 3);
+    const int klein = web.nodeOf(1), audrey = web.nodeOf(2), alger = web.nodeOf(3), alista = web.nodeOf(4);
+    CHECK(klein >= 0 && audrey >= 0 && alger >= 0 && alista >= 0 && web.nodeOf(99) == -1 && web.nodeOf(0) == -1);
+    const WebEdge* taught = edgeBetween(web, static_cast<size_t>(audrey), static_cast<size_t>(klein));
+    CHECK(taught && taught->bond == Bond::Teaching && taught->label() == "Mentor / Student");
+    const WebEdge* allies = edgeBetween(web, static_cast<size_t>(klein), static_cast<size_t>(alger));
+    CHECK(allies && allies->bond == Bond::Allies && allies->label() == "Ally");
+    CHECK(web.nodes[static_cast<size_t>(klein)].connections == 2 && web.nodes[static_cast<size_t>(alista)].connections == 0);
+    CHECK(web.nodes[static_cast<size_t>(klein)].badge == "KM" && web.key(static_cast<size_t>(klein)) == "c1");
+
+    // Options: people who aren't saved, no loners, only some kinds of bond, one organization.
+    WebOptions options;
+    options.unsavedPeople = true;
+    const Web withFors = buildWeb(db, options);
+    CHECK(withFors.nodes.size() == 5 && withFors.edges.size() == 4);
+    CHECK(withFors.key(withFors.nodes.size() - 1) == "n:fors wall" && withFors.nodes.back().characterId == 0);
+    options.loners = false;
+    options.bonds[static_cast<size_t>(Bond::Conflict)] = false;
+    const Web noConflict = buildWeb(db, options);
+    CHECK(noConflict.nodes.size() == 4 && noConflict.edges.size() == 3 && noConflict.nodeOf(4) == -1);
+    db.characters[0].affiliation.organization = "Tarot Club";
+    db.characters[1].affiliation.organization = "tarot club";
+    WebOptions club;
+    club.organization = "Tarot Club";
+    const Web members = buildWeb(db, club);
+    CHECK(members.nodes.size() == 2 && members.edges.size() == 1);
+
+    // The shortest chain between two people, in words.
+    const auto fors = noConflict.nodes.size() - 1;
+    const auto path = shortestPath(noConflict, fors, static_cast<size_t>(noConflict.nodeOf(3)));
+    CHECK(path.size() == 4 && noConflict.nodes[path[1]].name == "Audrey Hall" && noConflict.nodes[path[2]].name == "Klein Moretti");
+    const std::string words = describePath(noConflict, path);
+    CHECK(words.find("Fors Wall") == 0 && words.find("Alger Wilson") != std::string::npos);
+    CHECK(shortestPath(web, static_cast<size_t>(klein), static_cast<size_t>(alista)).empty());
+    CHECK(shortestPath(web, static_cast<size_t>(klein), static_cast<size_t>(klein)).size() == 1);
+
+    // The layout: the same every time, nobody on top of anyone else, everything a number.
+    WebLayout layout, again;
+    layout.start(web, db);
+    layout.settle(web);
+    again.start(web, db);
+    again.settle(web);
+    CHECK(layout.settled() && layout.x.size() == web.nodes.size() && layout.x == again.x && layout.y == again.y);
+    float closest = 1e9f;
+    for (size_t i = 0; i < web.nodes.size(); ++i) {
+        CHECK(std::isfinite(layout.x[i]) && std::isfinite(layout.y[i]));
+        for (size_t j = i + 1; j < web.nodes.size(); ++j) {
+            closest = std::min(closest, std::hypot(layout.x[i] - layout.x[j], layout.y[i] - layout.y[j]));
+        }
+    }
+    CHECK(closest > 0.9f);
+    // People who know each other end up closer than the one who knows nobody.
+    const auto distance = [&](int a, int b) {
+        return std::hypot(layout.x[static_cast<size_t>(a)] - layout.x[static_cast<size_t>(b)],
+                          layout.y[static_cast<size_t>(a)] - layout.y[static_cast<size_t>(b)]);
+    };
+    CHECK(distance(klein, audrey) < distance(klein, alista));
+    // A rebuilt web keeps everyone where they were and warms up to fit in the newcomer.
+    WebLayout adapted = layout;
+    adapted.adapt(web, withFors, db);
+    CHECK(adapted.x.size() == withFors.nodes.size() && !adapted.settled());
+    const int kleinNow = withFors.nodeOf(1);
+    CHECK(adapted.x[static_cast<size_t>(kleinNow)] == layout.x[static_cast<size_t>(klein)]);
+    adapted.settle(withFors);
+    for (size_t i = 0; i < withFors.nodes.size(); ++i) CHECK(std::isfinite(adapted.x[i]) && std::isfinite(adapted.y[i]));
+
+    // As a sheet: the picture (linking to everyone's sheets), then the connections in words.
+    const Sheet sheet = buildWebSheet(db, true);
+    CHECK(sheet.title == "Who Knows Whom" && !sheet.sections.empty());
+    const std::string html = renderHtmlPage("Web", {sheet}, "dark");
+    CHECK(html.find("<svg class=\"web") != std::string::npos && html.find("href=\"#c-1\"") != std::string::npos);
+    CHECK(html.find("Mentor / Student") != std::string::npos);
+    const std::string text = renderText(sheet);
+    CHECK(text.find("Klein Moretti") != std::string::npos && text.find("<svg") == std::string::npos);
+}
+
+// Story events: saved in events.json, linked to characters by name, on the timeline, and cleaned up
+// when a character or a Sealed Artifact they name is deleted.
+static void testStoryEvents() {
+    const fs::path root = fs::temp_directory_path() / "lotm_tests_events";
+    fs::remove_all(root);
+    fs::create_directories(root / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+    App app{Database{}, Storage(root / "data"), Dice{}};
+    app.storage.loadAll(app.db);
+
+    Character klein;
+    klein.id = app.db.nextCharacterId();
+    klein.name = "Klein Moretti";
+    saveCharacter(app, klein, true);
+    Character audrey;
+    audrey.id = app.db.nextCharacterId();
+    audrey.name = "Audrey Hall";
+    saveCharacter(app, audrey, true);
+    Artifact mask;
+    mask.id = app.db.nextArtifactId();
+    mask.name = "Mask of Masks";
+    saveArtifact(app, mask, true);
+    Character savedAudrey = *app.db.findCharacter(audrey.id);
+    savedAudrey.artifactIds = {mask.id};
+    CharacterStage stage;
+    stage.date = date("1349");
+    stage.artifactIds = {mask.id};
+    savedAudrey.stages = {stage};
+    saveCharacter(app, savedAudrey, false);
+
+    StoryEvent gathering;
+    gathering.id = app.db.nextEventId();
+    gathering.title = "The first gathering";
+    gathering.date = date("3 July 1349");
+    gathering.kind = "Meeting";
+    gathering.place = "Above the grey fog";
+    gathering.chapter = "Chapter 2";
+    gathering.people = {{klein.id, "", "The Fool"}, {0, "audrey hall", "Justice"}, {0, "Fors Wall", ""}, {0, "", ""}};
+    gathering.artifactIds = {mask.id};
+    saveEvent(app, gathering, true);
+    CHECK(eventCode(gathering.id) == "E-001");
+    const StoryEvent* saved = app.db.findEvent(gathering.id);
+    CHECK(saved && saved->people.size() == 3 && !saved->createdAt.empty());
+    CHECK(saved->people[0].name == "Klein Moretti");  // a saved character's name is filled in
+    CHECK(saved->people[1].characterId == audrey.id && saved->people[1].name == "Audrey Hall");  // linked by name
+    CHECK(saved->people[2].characterId == 0);
+    CHECK(eventSummary(*saved) == "3 July 1349, Meeting, Above the grey fog");
+    CHECK(eventPeopleText(app.db, *saved) == "Klein Moretti (The Fool), Audrey Hall (Justice) and Fors Wall");
+
+    StoryEvent undated;
+    undated.id = app.db.nextEventId();
+    undated.title = "Someday";
+    saveEvent(app, undated, true);
+    StoryEvent earlier;
+    earlier.id = app.db.nextEventId();
+    earlier.title = "Klein wakes up";
+    earlier.date = date("June 1349");
+    earlier.people = {{klein.id, "", ""}};
+    saveEvent(app, earlier, true);
+    const auto ordered = eventsInOrder(app.db);
+    CHECK(ordered.size() == 3 && ordered[0]->title == "Klein wakes up" && ordered[2]->title == "Someday");
+    CHECK(eventsOf(app.db, audrey.id).size() == 1 && eventsOf(app.db, klein.id).size() == 2);
+    CHECK(fs::exists(app.storage.dataDir() / "events.json"));
+
+    // Everything comes back from disk.
+    Database reloaded;
+    app.storage.loadAll(reloaded);
+    CHECK(reloaded.events.size() == 3);
+    const StoryEvent* back = reloaded.findEvent(gathering.id);
+    CHECK(back && back->title == "The first gathering" && sameStoryDate(back->date, date("3 July 1349")));
+    CHECK(back->chapter == "Chapter 2" && back->people.size() == 3 && back->people[1].role == "Justice");
+    CHECK(reloaded.findCharacter(audrey.id)->stages.size() == 1);
+    CHECK(reloaded.nextEventId() == 4);
+
+    // The timeline, grouped by year, and the event's own sheet.
+    const Sheet timeline = buildTimelineSheet(app.db);
+    CHECK(timeline.title == "Timeline" && timeline.sections.size() == 2 && timeline.sections[1].heading == "No date");
+    const std::string timelineText = renderText(timeline);
+    CHECK(timelineText.find("3 July 1349") != std::string::npos && timelineText.find("Above the grey fog") != std::string::npos);
+    CHECK(renderHtmlPage("Timeline", {timeline}, "dark").find("<ol class=\"timeline\">") != std::string::npos);
+    CHECK(buildTimelineSheet(app.db, audrey.id).title == "Timeline: Audrey Hall");
+    CHECK(renderText(buildEventSheet(*app.db.findEvent(gathering.id), app.db)).find("Mask of Masks") != std::string::npos);
+    // Audrey as she was before the gathering doesn't list it.
+    const std::string before = renderText(buildCharacterSheetAsOf(*app.db.findCharacter(audrey.id), date("1348"), app.db));
+    const std::string after = renderText(buildCharacterSheetAsOf(*app.db.findCharacter(audrey.id), date("1350"), app.db));
+    CHECK(before.find("The first gathering") == std::string::npos && after.find("The first gathering") != std::string::npos);
+
+    // The catalogue export starts with the web and the timeline.
+    Character savedKlein = *app.db.findCharacter(klein.id);
+    savedKlein.relationships = {{audrey.id, "Audrey Hall", "Friend", ""}};
+    saveCharacter(app, savedKlein, false);
+    const auto sheets = catalogueSheets(app.db);
+    CHECK(sheets.size() >= 4 && sheets[0].title == "Who Knows Whom" && sheets[1].title == "Timeline");
+
+    // Deleting the Sealed Artifact takes it out of everyone's hands, their stages and the events.
+    deleteArtifact(app, mask.id);
+    CHECK(app.db.findCharacter(audrey.id)->artifactIds.empty() && app.db.findCharacter(audrey.id)->stages[0].artifactIds.empty());
+    CHECK(app.db.findEvent(gathering.id)->artifactIds.empty());
+    // Deleting Klein keeps him in the events by name.
+    deleteCharacter(app, klein.id);
+    CHECK(app.db.findEvent(gathering.id)->people[0].characterId == 0 && app.db.findEvent(gathering.id)->people[0].name == "Klein Moretti");
+    Database afterDeletes;
+    app.storage.loadAll(afterDeletes);
+    CHECK(afterDeletes.findEvent(gathering.id)->artifactIds.empty() && afterDeletes.findEvent(earlier.id)->people[0].characterId == 0);
+    // A new Klein links up again when the event is saved.
+    Character newKlein;
+    newKlein.id = app.db.nextCharacterId();
+    newKlein.name = "Klein Moretti";
+    saveCharacter(app, newKlein, true);
+    StoryEvent relinked = *app.db.findEvent(gathering.id);
+    saveEvent(app, relinked, false);
+    CHECK(app.db.findEvent(gathering.id)->people[0].characterId == newKlein.id);
+
+    deleteEvent(app, undated.id);
+    CHECK(app.db.events.size() == 2 && !app.db.findEvent(undated.id));
+    Database afterEventDelete;
+    app.storage.loadAll(afterEventDelete);
+    CHECK(afterEventDelete.events.size() == 2);
+    fs::remove_all(root);
+}
+
+// Events travel in sample sets with the characters in them, and link up when imported.
+static void testSampleSetEvents() {
+    const fs::path root = fs::temp_directory_path() / "lotm_tests_sample_events";
+    fs::remove_all(root);
+    fs::create_directories(root / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+    App app{Database{}, Storage(root / "data"), Dice{}};
+    app.storage.loadAll(app.db);
+
+    Artifact glove;
+    glove.id = app.db.nextArtifactId();
+    glove.name = "Creeping Hunger";
+    saveArtifact(app, glove, true);
+    Artifact mask;
+    mask.id = app.db.nextArtifactId();
+    mask.name = "Mask of Masks";
+    saveArtifact(app, mask, true);
+    Character klein;
+    klein.id = app.db.nextCharacterId();
+    klein.name = "Klein Moretti";
+    CharacterStage gloved;
+    gloved.date = date("1350");
+    gloved.artifactIds = {glove.id};  // only held in a stage
+    klein.stages = {gloved};
+    saveCharacter(app, klein, true);
+    Character audrey;
+    audrey.id = app.db.nextCharacterId();
+    audrey.name = "Audrey Hall";
+    saveCharacter(app, audrey, true);
+
+    auto event = [&](const std::string& title, const std::string& when, std::vector<EventPerson> people) {
+        StoryEvent e;
+        e.id = app.db.nextEventId();
+        e.title = title;
+        e.date = date(when);
+        e.people = std::move(people);
+        saveEvent(app, e, true);
+        return e.id;
+    };
+    const int both = event("The first gathering", "3 July 1349", {{klein.id, "", "The Fool"}, {audrey.id, "", "Justice"}});
+    app.db.findEvent(both)->artifactIds = {mask.id};
+    app.storage.saveEvents(app.db);
+    event("Audrey's ball", "1350", {{audrey.id, "", "Host"}});
+    event("A storm at sea", "1351", {{0, "Some sailor", ""}});
+
+    // Sharing Klein: his events and the events with nobody saved come along, and so do the glove
+    // (held in a stage) and the mask (at his event). Audrey stays a name.
+    const SampleSet set = makeSampleSet(app.db, "Klein's Story", "", {klein.id}, {});
+    CHECK(set.characters.size() == 1 && set.artifacts.size() == 2);
+    CHECK(set.events.size() == 2 && set.events[0].title == "The first gathering" && set.events[1].title == "A storm at sea");
+    CHECK(set.events[0].people[1].characterId == 0 && set.events[0].people[1].name == "Audrey Hall");
+    const fs::path file = app.storage.saveSampleSet(set, sampleSetFileName(set.title));
+    const auto loaded = app.storage.loadSampleSets();
+    CHECK(loaded.size() == 1 && loaded[0].events.size() == 2 && loaded[0].events[0].people.size() == 2);
+
+    // A friend with their own Audrey (and their own ids) imports it.
+    const fs::path other = root / "other";
+    fs::create_directories(other / "samples");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", other / "pathways.json");
+    fs::copy_file(file, other / "samples" / file.filename());
+    App friendApp{Database{}, Storage(other), Dice{}};
+    friendApp.storage.loadAll(friendApp.db);
+    Artifact friendOwn;
+    friendOwn.id = friendApp.db.nextArtifactId();
+    friendOwn.name = "Their own artifact";
+    saveArtifact(friendApp, friendOwn, true);
+    Character friendAudrey;
+    friendAudrey.id = friendApp.db.nextCharacterId();
+    friendAudrey.name = "Audrey Hall";
+    saveCharacter(friendApp, friendAudrey, true);
+    const SampleImportReport report = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
+    CHECK(report.addedCharacters.size() == 1 && report.addedArtifacts.size() == 2 && report.addedEvents.size() == 2);
+    const Character* friendKlein = friendApp.db.findCharactersByName("Klein Moretti", 0).at(0);
+    const Artifact* friendMask = nullptr;
+    const Artifact* friendGlove = nullptr;
+    for (const Artifact& a : friendApp.db.artifacts) {
+        if (a.name == "Mask of Masks") friendMask = &a;
+        if (a.name == "Creeping Hunger") friendGlove = &a;
+    }
+    CHECK(friendMask && friendGlove && friendMask->id != mask.id);
+    CHECK(friendKlein->stages.size() == 1 && friendKlein->stages[0].artifactIds == std::vector<int>{friendGlove->id});
+    const StoryEvent* gathering = nullptr;
+    for (const StoryEvent& e : friendApp.db.events) {
+        if (e.title == "The first gathering") gathering = &e;
+    }
+    CHECK(gathering && gathering->people.size() == 2);
+    CHECK(gathering->people[0].characterId == friendKlein->id && gathering->people[0].role == "The Fool");
+    CHECK(gathering->people[1].characterId == friendAudrey.id);  // linked to their Audrey by name
+    CHECK(gathering->artifactIds == std::vector<int>{friendMask->id});
+    Database friendReloaded;
+    friendApp.storage.loadAll(friendReloaded);
+    CHECK(friendReloaded.events.size() == 2);
+
+    // Importing again adds nothing; a newer version of an event replaces the saved one, keeping its id.
+    const SampleImportReport again = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
+    CHECK(again.addedEvents.empty() && again.updated.empty() && friendApp.db.events.size() == 2);
+    CHECK(std::count(again.skipped.begin(), again.skipped.end(), "The first gathering") == 1);
+    SampleSet changed = friendApp.storage.loadSampleSets().at(0);
+    changed.events[0].description = "Three strangers meet above the fog.";
+    changed.events[0].updatedAt = "2999-01-01 00:00:00";
+    friendApp.storage.saveSampleSet(changed, file.filename().string());
+    const int gatheringId = gathering->id;
+    const SampleImportReport update = importAllSampleSets(friendApp, friendApp.storage.loadSampleSets());
+    CHECK(update.updated == std::vector<std::string>{"The first gathering"} && update.addedEvents.empty());
+    const StoryEvent* updated = friendApp.db.findEvent(gatheringId);
+    CHECK(updated && updated->description == "Three strangers meet above the fog." && updated->people[1].characterId == friendAudrey.id);
+    fs::remove_all(root);
+}
+
 int main() {
     testModifiers();
     testTiers();
@@ -1531,6 +1984,11 @@ int main() {
     testSefirot();
     testCustomSefirot();
     testRendering();
+    testStoryDates();
+    testCharacterAsOf();
+    testRelationshipWeb();
+    testStoryEvents();
+    testSampleSetEvents();
     if (failures == 0) {
         std::cout << "All checks passed.\n";
         return 0;

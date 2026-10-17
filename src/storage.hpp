@@ -30,6 +30,7 @@ struct SampleSet {
     std::string description;
     std::vector<Character> characters;
     std::vector<Artifact> artifacts;
+    std::vector<StoryEvent> events;  // events the characters take part in, or that name nobody saved
 };
 
 class Storage {
@@ -43,11 +44,13 @@ public:
     std::filesystem::path customSefirotFile() const;   // data/custom_sefirot.json
     std::filesystem::path samplesDir() const;          // data/samples
 
-    // Reads pathways.json, custom_pathways.json, sefirot.json, custom_sefirot.json and the saves.
+    // Reads pathways.json, custom_pathways.json, sefirot.json, custom_sefirot.json and the saves
+    // (characters.json, artifacts.json, events.json and settings.json).
     // Only pathways.json must exist.
     void loadAll(Database& db) const;
     void saveCharacters(const Database& db) const;
     void saveArtifacts(const Database& db) const;
+    void saveEvents(const Database& db) const;  // data/events.json
     void saveSettings(const Database& db) const;
     // Writes the pathways marked custom to custom_pathways.json. pathways.json is never written.
     void saveCustomPathways(const Database& db) const;

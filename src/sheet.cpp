@@ -5,23 +5,24 @@
 
 #include "pathway_colours.hpp"
 #include "rules.hpp"
+#include "story.hpp"
 
 namespace lotm {
 
 void Section::field(const std::string& label, const std::string& text) {
-    if (!text.empty()) blocks.push_back({BlockKind::Field, label, text, {}, {}});
+    if (!text.empty()) blocks.push_back({BlockKind::Field, label, text, {}, {}, {}, {}});
 }
 
 void Section::paragraph(const std::string& text) {
-    if (!text.empty()) blocks.push_back({BlockKind::Paragraph, "", text, {}, {}});
+    if (!text.empty()) blocks.push_back({BlockKind::Paragraph, "", text, {}, {}, {}, {}});
 }
 
-void Section::bullet(const std::string& text) { blocks.push_back({BlockKind::Bullet, "", text, {}, {}}); }
+void Section::bullet(const std::string& text) { blocks.push_back({BlockKind::Bullet, "", text, {}, {}, {}, {}}); }
 
-void Section::subheading(const std::string& text) { blocks.push_back({BlockKind::Subheading, "", text, {}, {}}); }
+void Section::subheading(const std::string& text) { blocks.push_back({BlockKind::Subheading, "", text, {}, {}, {}, {}}); }
 
 void Section::quote(const std::string& text) {
-    if (!text.empty()) blocks.push_back({BlockKind::Quote, "", text, {}, {}});
+    if (!text.empty()) blocks.push_back({BlockKind::Quote, "", text, {}, {}, {}, {}});
 }
 
 namespace {
@@ -84,7 +85,7 @@ std::string pathwayWithGod(const Database& db, const std::string& id) {
 Section ladderSection(const Character& c, const Database& db) {
     Section ladder{"Sequence Ladder"};
     if (c.pathwayId.empty()) return ladder;
-    ladder.blocks.push_back({BlockKind::Ladder, "", "", {}, ladderRungs(c, db)});
+    ladder.blocks.push_back({BlockKind::Ladder, "", "", {}, ladderRungs(c, db), {}, {}});
     const auto switches = pathwaySwitches(c, db);
     for (const PathwaySwitch& change : switches) {
         ladder.field("Switch at Sequence " + std::to_string(change.atSequence),
@@ -148,7 +149,7 @@ std::vector<LadderRung> ladderRungs(const Character& c, const Database& db) {
     return rungs;
 }
 
-Sheet buildCharacterSheet(const Character& c, const Database& db) {
+Sheet buildCharacterSheet(const Character& c, const Database& db, const StoryDate* until) {
     const Pathway* pathway = db.findPathway(c.pathwayId);
     Sheet sheet;
     sheet.anchor = "c-" + std::to_string(c.id);
@@ -302,7 +303,7 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
 
     // Stat block
     Section stats{"Stat Block"};
-    Block table{BlockKind::Stats, "", "", {}, {}};
+    Block table{BlockKind::Stats, "", "", {}, {}, {}, {}};
     const auto bonus = statBonuses(c, pathway);
     const auto totals = statTotals(c, pathway);
     for (int i = 0; i < kStatCount; ++i) {
@@ -359,6 +360,27 @@ Sheet buildCharacterSheet(const Character& c, const Database& db) {
         relations.bullet(line);
     }
     addSection(sheet, relations);
+
+    // Their stages and the events they take part in; up to `until` only, for a sheet as of a date.
+    auto upTo = [until](const StoryDate& d) { return !until || (!d.empty() && !storyDateBefore(*until, d)); };
+    Section story{"In the Story"};
+    if (!until) story.field("As they are now since", storyDateText(c.nowSince));
+    bool anyStage = false;
+    for (const CharacterStage& stage : c.stages) {
+        if (!upTo(stage.date)) continue;
+        if (!anyStage) story.subheading("Stages");
+        anyStage = true;
+        story.bullet(stageSummary(stage, db));
+    }
+    Block events{BlockKind::Timeline, "", "", {}, {}, {}, {}};
+    for (const StoryEvent* e : eventsOf(db, c.id)) {
+        if (upTo(e->date)) events.entries.push_back(timelineEntry(*e, db));
+    }
+    if (!events.entries.empty()) {
+        story.subheading(until ? "Events up to " + storyDateText(*until) : "Events");
+        story.blocks.push_back(events);
+    }
+    addSection(sheet, story);
 
     const Dossier& file = c.dossier;
     Section dossier{"Dossier", "dossier"};

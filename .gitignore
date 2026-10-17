@@ -9,6 +9,7 @@ out/
 # custom_sefirot.json are tracked)
 data/characters.json
 data/artifacts.json
+data/events.json
 data/settings.json
 data/backups/
 data/*.tmp

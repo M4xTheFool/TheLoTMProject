@@ -5,12 +5,23 @@
 #include "presets.hpp"
 #include "records.hpp"
 #include "storage.hpp"
+#include "story.hpp"
 #include "ui.hpp"
 #include "window.hpp"
 
 namespace lotm::window {
 
 namespace {
+
+std::string countOf(size_t n, const char* one, const char* many) { return std::to_string(n) + " " + (n == 1 ? one : many); }
+
+// "3 characters, 2 Sealed Artifacts and 4 story events" (events only when there are some)
+std::string contents(size_t characters, size_t artifacts, size_t events) {
+    std::string text = countOf(characters, "character", "characters");
+    if (events == 0) return text + " and " + countOf(artifacts, "Sealed Artifact", "Sealed Artifacts");
+    return text + ", " + countOf(artifacts, "Sealed Artifact", "Sealed Artifacts") + " and " +
+           countOf(events, "story event", "story events");
+}
 
 std::vector<SampleSet>& sampleSets(WindowState& w) {
     if (!w.sampleSets) {
@@ -29,8 +40,8 @@ void importAll(WindowState& w) {
     try {
         const SampleImportReport report = importAllSampleSets(w.app, sampleSets(w));
         reloadCharacterDraft(w);
-        std::string text = "Added " + std::to_string(report.addedCharacters.size()) + " characters and " +
-                           std::to_string(report.addedArtifacts.size()) + " Sealed Artifacts.";
+        std::string text = "Added " + contents(report.addedCharacters.size(), report.addedArtifacts.size(),
+                                               report.addedEvents.size()) + ".";
         if (!report.updated.empty()) {
             text += " Updated " + std::to_string(report.updated.size()) + " to a newer version from a sample set.";
         }
@@ -72,8 +83,8 @@ void sampleSetsSection(WindowState& w) {
     else ImGui::TextDisabled("%zu sets", sets.size());
     for (const SampleSet& set : sets) {
         ImGui::PushID(set.file.string().c_str());
-        const std::string header = set.title + "  -  " + std::to_string(set.characters.size()) + " characters, " +
-                                   std::to_string(set.artifacts.size()) + " Sealed Artifacts###set";
+        const std::string header =
+            set.title + "  -  " + contents(set.characters.size(), set.artifacts.size(), set.events.size()) + "###set";
         if (ImGui::TreeNode(header.c_str())) {
             if (!set.description.empty()) ImGui::TextWrapped("%s", set.description.c_str());
             for (const Character& c : set.characters) {
@@ -83,6 +94,10 @@ void sampleSetsSection(WindowState& w) {
                                                       : sequenceLabel(w.app.db.findPathway(c.pathwayId), c.sequence).c_str());
             }
             for (const Artifact& a : set.artifacts) ImGui::BulletText("%s (Sealed Artifact)", a.name.c_str());
+            for (const StoryEvent& e : set.events) {
+                ImGui::BulletText("%s (story event%s)", e.title.c_str(),
+                                  e.date.empty() ? "" : (", " + storyDateText(e.date)).c_str());
+            }
             ImGui::TextDisabled("data/samples/%s", set.file.filename().string().c_str());
             ImGui::TreePop();
         }
@@ -109,7 +124,8 @@ void shareSection(WindowState& w) {
     ImGui::Spacing();
     heading(w, "Share your own");
     ImGui::TextWrapped("Turn your characters and Sealed Artifacts into a sample set. It is saved in the data/samples "
-                       "folder; commit it in GitHub Desktop and push, and anyone who pulls gets them with Import all. "
+                       "folder with the story events they take part in; commit it in GitHub Desktop and push, and "
+                       "anyone who pulls gets them with Import all. "
                        "Your own pathways and Sefirot are shared already: they are in custom_pathways.json and "
                        "custom_sefirot.json, which GitHub Desktop commits the same way.");
     textField("Title", share.title, "e.g. Max's characters");
@@ -173,9 +189,8 @@ void shareSection(WindowState& w) {
             w.sampleSets.reset();  // read the folder again, with the new set in it
             share.touched = false;
             share.pickedFor = fileName;
-            setStatus(w, "Saved " + std::to_string(set.characters.size()) + " characters and " +
-                             std::to_string(set.artifacts.size()) + " Sealed Artifacts to data/samples/" + fileName +
-                             ". Commit it in GitHub Desktop and push to share it.");
+            setStatus(w, "Saved " + contents(set.characters.size(), set.artifacts.size(), set.events.size()) +
+                             " to data/samples/" + fileName + ". Commit it in GitHub Desktop and push to share it.");
         } catch (const StorageError& e) {
             setStatus(w, std::string("Saving failed: ") + e.what(), true);
         }
@@ -185,7 +200,7 @@ void shareSection(WindowState& w) {
     if (ui::trim(share.title).empty()) ImGui::TextDisabled("Give it a title first.");
     else if (!ready) ImGui::TextDisabled("Tick at least one character or Sealed Artifact.");
     else if (replacing) ImGui::TextColored(palette().warning, "A sample set with this title is already there; this replaces it with the versions ticked here.");
-    else ImGui::TextDisabled("%zu characters, %zu Sealed Artifacts", set.characters.size(), set.artifacts.size());
+    else ImGui::TextDisabled("%s", contents(set.characters.size(), set.artifacts.size(), set.events.size()).c_str());
 }
 
 }  // namespace

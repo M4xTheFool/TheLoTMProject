@@ -710,7 +710,8 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
                                "Pathway switches and state of mind (a mixed-pathway Beyonder)",
                                "Customization (alignment, titles, aliases, honorific, Uniqueness, second pathway, Sefirah)",
                                "Affiliation and relationships", "Stat block, HP and Spirituality",
-                               "Sealed Artifacts", "Dossier (threat level, status, remarks)", "Notes", "Save"},
+                               "Sealed Artifacts", "Dossier (threat level, status, remarks)", "Notes",
+                               "Stages (how they were earlier in the story)", "Save"},
                               "Cancel without saving");
         switch (pick) {
             case 0: stepName(c); break;
@@ -724,7 +725,8 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
             case 8: stepArtifacts(app, c); break;
             case 9: stepDossier(c); break;
             case 10: stepNotes(c); break;
-            case 11:
+            case 11: editStages(app, c); break;
+            case 12:
                 if (save(app, c, isNew)) return c.id;
                 break;
             default:

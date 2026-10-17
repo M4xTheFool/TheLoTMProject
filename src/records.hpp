@@ -20,22 +20,31 @@ struct CharacterSaveReport {
 CharacterSaveReport saveCharacter(App& app, Character& c, bool isNew);
 // Saves a copy named "... (copy)" and returns its id.
 int duplicateCharacter(App& app, int id);
-// Other characters keep their relationship to it, by name only.
+// Other characters keep their relationship to it, and events the people in them, by name only.
 void deleteCharacter(App& app, int id);
 
 void saveArtifact(App& app, Artifact& a, bool isNew);
-// Also takes it away from every character who held it.
+// Also takes it away from every character who held it (now and in their stages) and every event.
 void deleteArtifact(App& app, int id);
+
+// Saves a story event (data/events.json). People typed by name who match one saved character
+// exactly (ignoring case) are linked to them.
+void saveEvent(App& app, StoryEvent& e, bool isNew);
+void deleteEvent(App& app, int id);
+// Links people in an event to saved characters by name, and unlinks ones whose character is gone.
+void linkEventPeopleByName(const Database& db, StoryEvent& e);
 
 struct SampleImportReport {
     std::vector<std::string> addedCharacters;
     std::vector<std::string> addedArtifacts;
+    std::vector<std::string> addedEvents;
     std::vector<std::string> updated;  // saved already, and the sample set had a newer version
     std::vector<std::string> skipped;  // saved already, and the same or edited more recently here
 };
 
-// Adds a sample set's characters and Sealed Artifacts, keeping who holds what and who knows whom.
-// A record with the same name as a saved one (ignoring case) is the same record: when the set's
+// Adds a sample set's characters, Sealed Artifacts and story events, keeping who holds what, who
+// knows whom and who was where. A record with the same name as a saved one (ignoring case; for an
+// event the same title and date) is the same record: when the set's
 // version was edited at the same time or later ("last edited") and differs, it replaces the saved
 // one, which keeps its id. A saved record edited here more recently is left as it is. Updated
 // characters keep their links to characters and Sealed Artifacts the set doesn't have. Importing
@@ -46,8 +55,10 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set);
 SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& sets);
 
 // Packs saved characters and Sealed Artifacts into a sample set, to share them through
-// data/samples. The Sealed Artifacts the characters hold go in too. A relationship to someone left
-// out keeps their name but no link, so it links up again if they are imported later.
+// data/samples. The Sealed Artifacts the characters hold (now or in a stage) go in too, and so do
+// the story events they take part in and the events that name no saved character at all. A
+// relationship to someone left out, or someone left out who was at an event, keeps their name but no
+// link, so it links up again if they are imported later.
 SampleSet makeSampleSet(const Database& db, const std::string& title, const std::string& description,
                         const std::vector<int>& characterIds, const std::vector<int>& artifactIds);
 // The file a sample set with this title is saved as: "Max's Creations" -> "maxs_creations.json".

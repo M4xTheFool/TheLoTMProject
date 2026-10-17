@@ -8,6 +8,7 @@
 #include "model_json.hpp"
 #include "relations.hpp"
 #include "rules.hpp"
+#include "story.hpp"
 
 namespace lotm {
 
@@ -63,6 +64,7 @@ int duplicateCharacter(App& app, int id) {
 
 void deleteCharacter(App& app, int id) {
     const auto backup = app.db.characters;
+    const auto eventsBackup = app.db.events;
     const Character* deleted = app.db.findCharacter(id);
     const std::string name = deleted ? deleted->name : "";
     auto& list = app.db.characters;
@@ -74,10 +76,21 @@ void deleteCharacter(App& app, int id) {
             if (!name.empty()) r.name = name;
         }
     }
+    bool inEvents = false;
+    for (auto& e : app.db.events) {
+        for (auto& p : e.people) {
+            if (p.characterId != id) continue;
+            p.characterId = 0;
+            if (!name.empty()) p.name = name;
+            inEvents = true;
+        }
+    }
     try {
         app.storage.saveCharacters(app.db);
+        if (inEvents) app.storage.saveEvents(app.db);
     } catch (const StorageError&) {
         app.db.characters = backup;
+        app.db.events = eventsBackup;
         throw;
     }
 }
@@ -102,17 +115,78 @@ void saveArtifact(App& app, Artifact& a, bool isNew) {
 void deleteArtifact(App& app, int id) {
     const auto artifactsBackup = app.db.artifacts;
     const auto charactersBackup = app.db.characters;
+    const auto eventsBackup = app.db.events;
+    auto drop = [id](std::vector<int>& ids) {
+        const size_t before = ids.size();
+        ids.erase(std::remove(ids.begin(), ids.end(), id), ids.end());
+        return ids.size() != before;
+    };
     auto& list = app.db.artifacts;
     list.erase(std::remove_if(list.begin(), list.end(), [id](const Artifact& a) { return a.id == id; }), list.end());
     for (auto& c : app.db.characters) {
-        c.artifactIds.erase(std::remove(c.artifactIds.begin(), c.artifactIds.end(), id), c.artifactIds.end());
+        drop(c.artifactIds);
+        for (auto& stage : c.stages) drop(stage.artifactIds);
     }
+    bool inEvents = false;
+    for (auto& e : app.db.events) inEvents = drop(e.artifactIds) || inEvents;
     try {
         app.storage.saveArtifacts(app.db);
         app.storage.saveCharacters(app.db);
+        if (inEvents) app.storage.saveEvents(app.db);
     } catch (const StorageError&) {
         app.db.artifacts = artifactsBackup;
         app.db.characters = charactersBackup;
+        app.db.events = eventsBackup;
+        throw;
+    }
+}
+
+void linkEventPeopleByName(const Database& db, StoryEvent& e) {
+    for (EventPerson& p : e.people) {
+        if (p.characterId != 0) {
+            if (const Character* c = db.findCharacter(p.characterId)) {
+                p.name = c->name;
+                continue;
+            }
+            p.characterId = 0;
+        }
+        const auto matches = db.findCharactersByName(p.name, 0);
+        if (!p.name.empty() && matches.size() == 1 && sameName(matches[0]->name, p.name)) {
+            p.characterId = matches[0]->id;
+            p.name = matches[0]->name;
+        }
+    }
+}
+
+void saveEvent(App& app, StoryEvent& e, bool isNew) {
+    const auto backup = app.db.events;
+    e.people.erase(std::remove_if(e.people.begin(), e.people.end(),
+                                  [](const EventPerson& p) { return p.characterId == 0 && p.name.empty(); }),
+                   e.people.end());
+    linkEventPeopleByName(app.db, e);
+    e.updatedAt = nowTimestamp();
+    if (isNew) {
+        e.createdAt = e.updatedAt;
+        app.db.events.push_back(e);
+    } else if (StoryEvent* existing = app.db.findEvent(e.id)) {
+        *existing = e;
+    }
+    try {
+        app.storage.saveEvents(app.db);
+    } catch (const StorageError&) {
+        app.db.events = backup;
+        throw;
+    }
+}
+
+void deleteEvent(App& app, int id) {
+    const auto backup = app.db.events;
+    auto& list = app.db.events;
+    list.erase(std::remove_if(list.begin(), list.end(), [id](const StoryEvent& e) { return e.id == id; }), list.end());
+    try {
+        app.storage.saveEvents(app.db);
+    } catch (const StorageError&) {
+        app.db.events = backup;
         throw;
     }
 }
@@ -128,6 +202,7 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
     SampleImportReport report;
     const auto charactersBackup = app.db.characters;
     const auto artifactsBackup = app.db.artifacts;
+    const auto eventsBackup = app.db.events;
     const std::string now = nowTimestamp();
     // A set's own edit time is kept, so a newer version shared later can be told apart. A record
     // with no edit time (written by hand) never counts as newer than a saved one.
@@ -182,11 +257,15 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
     for (size_t i = 0; i < set.characters.size(); ++i) {
         Character c = set.characters[i];
         c.id = characterIds[c.id];
-        std::vector<int> held;
-        for (int id : c.artifactIds) {
-            if (auto it = artifactIds.find(id); it != artifactIds.end()) held.push_back(it->second);
-        }
-        c.artifactIds = held;
+        auto mapArtifacts = [&](std::vector<int>& ids) {
+            std::vector<int> mapped;
+            for (int id : ids) {
+                if (auto it = artifactIds.find(id); it != artifactIds.end()) mapped.push_back(it->second);
+            }
+            ids = mapped;
+        };
+        mapArtifacts(c.artifactIds);
+        for (CharacterStage& stage : c.stages) mapArtifacts(stage.artifactIds);
         for (Relationship& r : c.relationships) {
             const auto it = characterIds.find(r.characterId);
             r.characterId = it != characterIds.end() ? it->second : 0;
@@ -248,12 +327,52 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
         charactersChanged = true;
     }
 
+    // Story events: the same title and date is the same event. People are linked to the set's
+    // characters as they are saved here, or by name.
+    bool eventsChanged = false;
+    for (StoryEvent e : set.events) {
+        for (EventPerson& p : e.people) {
+            const auto it = characterIds.find(p.characterId);
+            p.characterId = it != characterIds.end() ? it->second : 0;
+        }
+        std::vector<int> mapped;
+        for (int id : e.artifactIds) {
+            if (auto it = artifactIds.find(id); it != artifactIds.end()) mapped.push_back(it->second);
+        }
+        e.artifactIds = mapped;
+        linkEventPeopleByName(app.db, e);
+        const auto saved = std::find_if(app.db.events.begin(), app.db.events.end(), [&](const StoryEvent& x) {
+            return sameName(x.title, e.title) && sameStoryDate(x.date, e.date);
+        });
+        if (saved != app.db.events.end()) {
+            e.id = saved->id;
+            e.createdAt = saved->createdAt;
+            const bool eventIsNewer = newer(e.updatedAt, saved->updatedAt);
+            e.updatedAt = editedAt(e.updatedAt);
+            if (eventIsNewer && !sameDetails(e, *saved)) {
+                *saved = e;
+                eventsChanged = true;
+                report.updated.push_back(e.title);
+            } else {
+                report.skipped.push_back(e.title);
+            }
+            continue;
+        }
+        e.id = app.db.nextEventId();
+        e.createdAt = e.updatedAt = editedAt(e.updatedAt);
+        app.db.events.push_back(e);
+        eventsChanged = true;
+        report.addedEvents.push_back(e.title);
+    }
+
     try {
         if (artifactsChanged) app.storage.saveArtifacts(app.db);
         if (charactersChanged) app.storage.saveCharacters(app.db);
+        if (eventsChanged) app.storage.saveEvents(app.db);
     } catch (const StorageError&) {
         app.db.characters = charactersBackup;
         app.db.artifacts = artifactsBackup;
+        app.db.events = eventsBackup;
         throw;
     }
     return report;
@@ -265,6 +384,7 @@ SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& s
         SampleImportReport report = importSampleSet(app, set);
         for (auto& name : report.addedCharacters) total.addedCharacters.push_back(std::move(name));
         for (auto& name : report.addedArtifacts) total.addedArtifacts.push_back(std::move(name));
+        for (auto& name : report.addedEvents) total.addedEvents.push_back(std::move(name));
         for (auto& name : report.updated) total.updated.push_back(std::move(name));
         for (auto& name : report.skipped) total.skipped.push_back(std::move(name));
     }
@@ -290,7 +410,32 @@ SampleSet makeSampleSet(const Database& db, const std::string& title, const std:
         for (int id : copy.artifactIds) {
             if (!picked(artifacts, id)) artifacts.push_back(id);
         }
+        for (const CharacterStage& stage : copy.stages) {
+            for (int id : stage.artifactIds) {
+                if (!picked(artifacts, id)) artifacts.push_back(id);
+            }
+        }
         set.characters.push_back(std::move(copy));
+    }
+    // Events with a shared character in them, and events that name no saved character at all.
+    for (const StoryEvent* e : eventsInOrder(db)) {
+        const bool withShared = std::any_of(e->people.begin(), e->people.end(),
+                                            [&](const EventPerson& p) { return picked(characterIds, p.characterId); });
+        const bool withSaved = std::any_of(e->people.begin(), e->people.end(), [&](const EventPerson& p) {
+            return p.characterId != 0 && db.findCharacter(p.characterId);
+        });
+        if (!withShared && withSaved) continue;
+        StoryEvent copy = *e;
+        for (EventPerson& p : copy.people) {
+            if (p.characterId != 0 && !picked(characterIds, p.characterId)) {
+                p.name = eventPersonName(db, p);
+                p.characterId = 0;
+            }
+        }
+        for (int id : copy.artifactIds) {
+            if (!picked(artifacts, id)) artifacts.push_back(id);
+        }
+        set.events.push_back(std::move(copy));
     }
     for (const auto& a : db.artifacts) {
         if (picked(artifacts, a.id)) set.artifacts.push_back(a);

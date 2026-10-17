@@ -29,6 +29,9 @@ add_library(lotm_core STATIC
     src/compare.cpp
     src/list_filter.cpp
     src/pathway_colours.cpp
+    src/story.cpp
+    src/web.cpp
+    src/story_menu.cpp
     src/exporter.cpp
     src/artifact_creator.cpp
     src/character_creator.cpp
@@ -98,6 +101,8 @@ if(LOTM_BUILD_WINDOW)
         src/window/pathways_screen.cpp
         src/window/settings_screen.cpp
         src/window/compare_screen.cpp
+        src/window/web_screen.cpp
+        src/window/timeline_screen.cpp
         src/window/sefirot_screen.cpp
         src/window/theme.cpp)
     target_link_libraries(lotm_window PRIVATE lotm_core imgui)

@@ -136,7 +136,7 @@ int pointBuyCost(int score);  // -1 when the score is outside 8-15
 
 // Cleans up fields that no longer apply before saving (honorific name above Sequence 3,
 // a Uniqueness away from Sequence 1, a second pathway below Sequence 0, mixed Sequences they no
-// longer hold ...).
+// longer hold ...), and puts their stages in date order.
 // Returns notes describing anything that was removed.
 std::vector<std::string> normalizeCharacter(Character& c);
 

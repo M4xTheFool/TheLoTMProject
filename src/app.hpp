@@ -24,6 +24,10 @@ void runExportMenu(App& app);
 void runSettingsMenu(App& app);
 void runPathwayMenu(App& app);
 void runSefirotMenu(App& app);
+void runTimelineMenu(App& app);
+void runWebMenu(App& app);
+// The character creator's Stages step: how they were earlier in the story, each from a date on.
+void editStages(const App& app, Character& c);
 // Lists abilities ("Name: what it does") and lets you add, change, move and remove them.
 void editAbilityList(std::vector<std::string>& abilities, const std::string& whose);
 
@@ -33,5 +37,8 @@ void exportCharacter(App& app, int id);
 void exportArtifact(App& app, int id);
 void exportPathway(App& app, const std::string& id);
 void exportSefirah(App& app, const std::string& id);
+// Every story event, or one character's (characterId != 0).
+void exportTimeline(App& app, int characterId);
+void exportWeb(App& app);
 
 }  // namespace lotm
