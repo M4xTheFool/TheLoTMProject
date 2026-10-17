@@ -68,6 +68,7 @@ void open(WindowState& w, const Character& c, bool isNew) {
     w.characters.sheetStage = -1;
     w.characters.sheetEvent = 0;
     w.characters.openStage = -1;
+    w.characters.surprise.open = false;
 }
 
 void openNew(WindowState& w) {
@@ -143,7 +144,10 @@ void header(WindowState& w, const Character& c, bool isNew, const Sheet& sheet) 
     ImGui::SameLine(0.0f, font * 0.9f);
     ImGui::BeginGroup();
     ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.9f);
-    ImGui::TextUnformatted(c.name.empty() ? "(unnamed)" : c.name.c_str());
+    const SurpriseState& surprise = w.characters.surprise;
+    if (c.name.empty()) ImGui::TextUnformatted("(unnamed)");
+    else if (isNew && surprise.open) ImGui::TextUnformatted(settlingName(c.name, surprise.rolledAt[0], surprise.seed).c_str());
+    else ImGui::TextUnformatted(c.name.c_str());
     ImGui::PopFont();
     ImGui::SameLine();
     ImGui::AlignTextToFramePadding();
@@ -1357,6 +1361,28 @@ void sheetTab(WindowState& w, const Character& c, const Sheet& now) {
 
 bool saveCharacterDraft(WindowState& w) { return saveImpl(w); }
 
+void openSurprise(WindowState& w, bool another) {
+    auto& g = w.characters.surprise;
+    Character c = generateCharacter(w.app.db, g.options, w.app.dice);
+    c.id = w.app.db.nextCharacterId();
+    c.stats.hpIncluded = w.app.db.settings.hpMode == "always";
+    if (c.stats.hpIncluded) c.stats.hp = suggestedHp(c, w.app.db.findPathway(c.pathwayId));
+    open(w, c, true);
+    w.characters.draft.focusName = false;  // the Sheet tab, to see them whole
+    w.characters.selectSheet = true;
+    g.open = true;
+    g.made = another ? g.made + 1 : 0;
+    // Each part's line fades in a moment after the one above it.
+    const double now = ImGui::GetTime();
+    for (size_t i = 0; i < kGeneratorPartCount; ++i) {
+        g.rolledAt[i] = now + 0.07 * static_cast<double>(i);
+        g.faces[i] = w.app.dice.roll(6);
+    }
+    g.everythingAt = now;
+    g.everythingFace = w.app.dice.roll(6);
+    ++g.seed;
+}
+
 void openCharacter(WindowState& w, int id) {
     whenSaved(w, w.characters.draft.dirty(), [&w] { return saveImpl(w); }, [&w, id] {
         if (const Character* found = w.app.db.findCharacter(id)) open(w, *found, false);
@@ -1377,8 +1403,25 @@ void drawCharactersScreen(WindowState& w) {
 
     // ---- the list
     ImGui::BeginChild("list", ImVec2(ImGui::GetFontSize() * 17.0f, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
-    if (ImGui::Button("+ New character", ImVec2(-FLT_MIN, 0))) {
-        whenSaved(w, draft.dirty(), saveThis, [&w] { openNew(w); });
+    {
+        // "+ New character" and "Surprise me" side by side, or one above the other in a narrow list.
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float room = ImGui::GetContentRegionAvail().x;
+        const float plain = ImGui::CalcTextSize("+ New character").x + style.FramePadding.x * 2.0f;
+        const float surprise = ImGui::CalcTextSize("Surprise me").x + style.FramePadding.x * 2.0f +
+                               ImGui::GetFrameHeight() * 0.6f + style.ItemInnerSpacing.x;
+        const bool together = plain + surprise + style.ItemSpacing.x <= room;
+        const float extra = together ? (room - plain - surprise - style.ItemSpacing.x) * 0.5f : 0.0f;
+        if (ImGui::Button("+ New character", ImVec2(together ? plain + extra : -FLT_MIN, 0))) {
+            whenSaved(w, draft.dirty(), saveThis, [&w] { openNew(w); });
+        }
+        if (together) ImGui::SameLine();
+        if (dieButton(w, "##surpriseMe", "Surprise me", together ? surprise + extra : room, s.surprise.everythingAt,
+                      s.surprise.everythingFace, s.surprise.seed)) {
+            whenSaved(w, draft.dirty(), saveThis, [&w] { openSurprise(w); });
+        }
+        ImGui::SetItemTooltip("A random Beyonder in one click: pathway, Sequence, stats, looks, personality and a name.\n"
+                              "Roll any part again, then save them like any other character.");
     }
     const auto rows = filterCharacters(w.app.db, s.filter);
     {
@@ -1513,6 +1556,13 @@ void drawCharactersScreen(WindowState& w) {
     if (!draft.open) {
         ImGui::EndChild();
         return;
+    }
+    if (draft.isNew && s.surprise.open) {
+        ImGui::Spacing();
+        if (drawSurprisePanel(w) && saveImpl(w)) {
+            openSurprise(w, true);
+            if (s.surprise.made > 1) setStatus(w, w.status + " " + std::to_string(s.surprise.made) + " saved in a row.");
+        }
     }
 
     ImGui::Spacing();

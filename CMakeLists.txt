@@ -33,6 +33,7 @@ add_library(lotm_core STATIC
     src/pathway_colours.cpp
     src/story.cpp
     src/organizations.cpp
+    src/generator.cpp
     src/web.cpp
     src/story_menu.cpp
     src/exporter.cpp
@@ -109,6 +110,7 @@ if(LOTM_BUILD_WINDOW)
         src/window/web_screen.cpp
         src/window/timeline_screen.cpp
         src/window/dice_screen.cpp
+        src/window/surprise_panel.cpp
         src/window/sefirot_screen.cpp
         src/window/theme.cpp)
     target_link_libraries(lotm_window PRIVATE lotm_core imgui)

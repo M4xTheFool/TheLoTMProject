@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "app.hpp"
+#include "generator.hpp"
 #include "organizations.hpp"
 #include "presets.hpp"
 #include "records.hpp"
@@ -719,6 +720,70 @@ void stepNotes(Character& c) {
     c.notes = ui::readMultiline("Anything else worth remembering (optional)", c.notes);
 }
 
+// "Surprise me": a random Beyonder from a few choices (pathway, Sequences, where the name comes from, an
+// organization), then any part rolled again until they look right. False: step by step after all.
+bool stepSurprise(App& app, Character& c) {
+    ui::header("Surprise me");
+    GeneratorOptions options;
+    const int pathway = ui::choose("Which pathway?", {"Any pathway", "One pathway (pick it next)", "An ordinary mortal"},
+                                   "Make them step by step instead");
+    if (pathway == ui::Choice::kZero) return false;
+    if (pathway == 1) {
+        const int pick = choosePathway(app, "Choose the pathway", "Any pathway after all", false);
+        if (pick >= 0) options.pathwayId = app.db.pathways[static_cast<size_t>(pick)].id;
+    }
+    options.mortal = pathway == 2;
+    if (!options.mortal) {
+        ui::info("A Sequence from one number to another: 9 to 7 for a street gang, 7 to 5 for a Nighthawk squad.");
+        options.weakest = ui::readInt("From Sequence (9 is the weakest)", 0, 9, 9);
+        options.strongest = ui::readInt("To Sequence", 0, options.weakest, std::min(7, options.weakest));
+    }
+    std::vector<std::string> origins = {"Anywhere"};
+    origins.insert(origins.end(), kNameOrigins.begin(), kNameOrigins.end());
+    const int origin = ui::choose("Names from:", origins, "");
+    if (origin > 0) options.origin = kNameOrigins[static_cast<size_t>(origin - 1)];
+    if (!app.db.organizations.empty()) {
+        std::vector<std::string> names = {"None"};
+        for (const Organization& o : app.db.organizations) names.push_back(o.name);
+        const int pick = ui::choose("Do they belong to one of your organizations?", names, "");
+        if (pick > 0) {
+            const Organization& o = app.db.organizations[static_cast<size_t>(pick - 1)];
+            options.organizationId = o.id;
+            ui::info("They get one of its ranks, but not the highest.");
+            if (!options.mortal && options.pathwayId.empty() && !o.pathwayIds.empty()) {
+                options.organizationPathways = ui::yesNo("Only the pathways " + o.name + " is known for?", true);
+            }
+        }
+    }
+    if (!options.mortal && generatorPathways(app.db, options).empty()) {
+        ui::info("No pathway here has a Sequence in that range, so they come out as an ordinary mortal.");
+    }
+
+    const int id = c.id;
+    c = generateCharacter(app.db, options, app.dice);
+    c.id = id;
+    const std::string& hp = app.db.settings.hpMode;
+    c.stats.hpIncluded = hp == "always" || (hp != "never" && ui::yesNo("Include HP for them?", false));
+    if (c.stats.hpIncluded) c.stats.hp = suggestedHp(c, pathwayOf(app, c));
+    const std::vector<GeneratorPart> parts = {GeneratorPart::Name, GeneratorPart::Looks, GeneratorPart::Power,
+                                              GeneratorPart::Stats, GeneratorPart::Personality};
+    while (true) {
+        ui::header("Surprise me: " + c.name);
+        std::vector<std::string> lines;
+        for (GeneratorPart part : parts) lines.push_back(generatorPartName(part) + ": " + generatorPartSummary(c, part, app.db));
+        lines.push_back("Everything again");
+        lines.push_back("Keep them (on to the review, where anything can still be changed)");
+        const int pick = ui::choose("Roll a part again, or keep them:", lines, "Make them step by step instead");
+        if (pick == ui::Choice::kZero) return false;
+        if (pick == static_cast<int>(parts.size()) + 1) return true;
+        if (pick == static_cast<int>(parts.size())) {
+            for (GeneratorPart part : parts) rerollPart(c, part, app.db, options, app.dice);
+        } else if (pick >= 0) {
+            rerollPart(c, parts[static_cast<size_t>(pick)], app.db, options, app.dice);
+        }
+    }
+}
+
 bool save(App& app, Character& c, bool isNew) {
     try {
         const CharacterSaveReport report = saveCharacter(app, c, isNew);
@@ -747,9 +812,22 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
         }
     }
 
+    bool surprised = false;
     if (isNew) {
         c.id = app.db.nextCharacterId();
         ui::header("Create a character");
+        const int how = ui::choose("How do you want to start?",
+                                   {"Step by step (ten short steps)",
+                                    "Surprise me (a random Beyonder: pathway, Sequence, stats, looks, personality, name)"},
+                                   "Cancel");
+        if (how == ui::Choice::kZero) return std::nullopt;
+        surprised = how == 1 && stepSurprise(app, c);
+    }
+    if (isNew && !surprised) {
+        const int id = c.id;
+        c = Character{};  // nothing left over from "Surprise me", for one who went back to step by step
+        c.id = id;
+        ui::blank();
         ui::info("Ten short steps. Enter keeps a value or skips an optional one; \"-\" clears text.");
         ui::info("Everything can be changed on the review screen at the end.");
         stepName(c);

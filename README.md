@@ -21,6 +21,11 @@ It comes as two programs that share the same saves:
   characters or organizations, or type any name), a D&D-style stat block (roll, re-roll, type or point-buy), Speed, optional
   HP, Spirituality, the Sealed Artifacts the character holds, a dossier with an automatic threat level,
   and stages: how they were earlier in your story, from a date on.
+- **Surprise me:** a random Beyonder in one click, for side characters in seconds (a Nighthawk squad, a
+  street gang of Sequence 9 Beyonders): a pathway (any, one you pick, or an organization's), a Sequence in
+  the range you ask for (9 to 7), rolled stats, looks from the suggestion lists, an alignment, a state of
+  mind, a line about them, and a name that sounds like it comes from Loen, Intis or Feysac. Roll any part
+  again, then save them like any other character.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
 - **Organizations:** the groups your characters belong to, like the Tarot Club or the Nighthawks, with
   what they are, their leader, headquarters, founding date, symbol, pathways and ranks. Their members are
@@ -147,6 +152,16 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   sorts by name, ID, power or pathway. **Clear** takes the filters off and the list says how many it shows.
 - A character has its own tabs: Identity, Looks, Pathway, Customization, Stats, Artifacts,
   Relationships, Stages, Dossier, Notes, and Sheet, which shows the finished sheet as it will be exported.
+- **Surprise me**, under **+ New character**, makes a whole new character at once and opens them on the
+  Sheet tab. Above their tabs, each part has a die: **Name** (with gender and age), **Looks**, **Pathway
+  and Sequence**, **Stats** and **Personality** (alignment, state of mind and a line about them). Click a
+  die to roll that part again; **Re-roll everything** rolls them all. The button next to it shows the
+  options and changes them: the pathway (any, one, an ordinary mortal, or the organization's pathways),
+  the Sequences (from 9 to 7, say), where names come from (Loen, Intis, Feysac or anywhere) and one of
+  your organizations they belong to, with any of its ranks but the highest. Changing an option rolls the
+  part it decides again. **Save and make another** saves this one and rolls the next with the same
+  options, so a whole squad takes a few clicks. Every tab can still be changed by hand before saving;
+  **Fold** leaves only the top row for more room.
 - The Sequence, the six stats, Speed and a Sealed Artifact's level are sliders. Next to each stat,
   **Roll** rolls 4d6 and drops the lowest die; hover over the slider to see the last roll. **Check** rolls
   a check with that stat on the Dice tab, with the character as they are on screen (unsaved changes too).
@@ -313,6 +328,11 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   Student, Parent and Child, Superior and Subordinate flip; the rest stay the same). Removing it removes
   both sides. If you list someone by name first and create them later, they link up when you save them.
 - Every creator finishes on a review screen where you can change any step before saving.
+- **Create a character** starts by asking **Step by step** or **Surprise me**. Surprise me asks a few
+  questions (which pathway, from which Sequence to which, where the name comes from, and one of your
+  organizations if you have any), then shows the character it made, one line per part. Type a part's
+  number to roll it again, **Everything again** for a new character, or **Keep them** to go on to the
+  review screen.
 - In the stat block, `R` rolls 4d6 and drops the lowest die; roll again as often as you like or type a value.
 - The Sequence question takes 9 to 0, and a Sequence 0 is then asked whether they are Above the Sequence
   and whether they are a dual-pathway god with a second pathway.
@@ -503,6 +523,7 @@ src/story.*           story dates, events, the timeline, and characters as of a 
 src/web.*             the relationship web: who knows whom, and where everyone sits in the picture
 src/story_menu.cpp    the console's Timeline and Relationship web menus
 src/checks.*          dice written like 2d6+3, checks, contests and their chances, shared by both programs
+src/generator.*       Surprise me: random Beyonders, their names and every part rolled again on its own
 src/dice_menu.cpp     the console's Dice and checks menu
 src/list_filter.*     searching, filtering and sorting the lists, shared by both programs
 src/sefirot_menu.cpp  the console's Sefirot menu
