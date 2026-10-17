@@ -467,28 +467,6 @@ void throwDice(WindowState& w) {
 
 // ---------------------------------------------------------------- the controls on the left
 
-// A row of buttons of equal width, one of them lit. Returns the one pressed, or -1.
-int segmented(const char* id, const std::vector<std::string>& labels, int selected, const std::vector<std::string>& tips = {}) {
-    ImGui::PushID(id);
-    const float spacing = ImGui::GetStyle().ItemSpacing.x * 0.5f;
-    const float width = (ImGui::GetContentRegionAvail().x - spacing * static_cast<float>(labels.size() - 1)) / static_cast<float>(labels.size());
-    int pressed = -1;
-    for (size_t i = 0; i < labels.size(); ++i) {
-        if (i > 0) ImGui::SameLine(0.0f, spacing);
-        const bool on = static_cast<int>(i) == selected;
-        if (on) {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(palette().gold.x, palette().gold.y, palette().gold.z, 0.26f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(palette().gold.x, palette().gold.y, palette().gold.z, 0.34f));
-            ImGui::PushStyleColor(ImGuiCol_Text, palette().gold);
-        }
-        if (ImGui::Button((labels[i] + "##" + std::to_string(i)).c_str(), ImVec2(std::max(1.0f, width), 0.0f))) pressed = static_cast<int>(i);
-        if (on) ImGui::PopStyleColor(3);
-        if (i < tips.size() && !tips[i].empty()) ImGui::SetItemTooltip("%s", tips[i].c_str());
-    }
-    ImGui::PopID();
-    return pressed;
-}
-
 // "Who": a dropdown of the saved characters with a search box, then their medallion, name and level.
 void whoPicker(WindowState& w, DiceScreen::Side& side, const ImVec4& accent) {
     const Character* c = rollerFor(w, side.characterId);

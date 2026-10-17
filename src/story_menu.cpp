@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "app.hpp"
+#include "organizations.hpp"
 #include "presets.hpp"
 #include "records.hpp"
 #include "render.hpp"
@@ -34,12 +35,9 @@ int chooseCharacter(const App& app, const std::string& title, const std::string&
     return pick >= 0 ? app.db.characters[static_cast<size_t>(pick)].id : 0;
 }
 
-namespace {
-
 // ---------------------------------------------------------------- dates
 
-// Reads a date until it makes sense. Enter keeps the current one, "-" clears it.
-StoryDate readStoryDate(const std::string& prompt, const StoryDate& current, bool required = false) {
+StoryDate readStoryDate(const std::string& prompt, const StoryDate& current, bool required) {
     while (true) {
         const std::string shown = current.empty() ? "" : " [" + storyDateText(current) + "]";
         const std::string text = ui::trim(ui::readLine(prompt + shown + ": "));
@@ -53,6 +51,8 @@ StoryDate readStoryDate(const std::string& prompt, const StoryDate& current, boo
         ui::info(problem.empty() ? "Type a date like 3 July 1360, July 1360 or 1360." : problem);
     }
 }
+
+namespace {
 
 // ---------------------------------------------------------------- stages
 
@@ -83,8 +83,13 @@ void editStage(const App& app, const Character& c, CharacterStage& stage, bool a
     takeStageLevel(stage, level);
     if (isKingOfAngels(level)) ui::info("A King of Angels then.");
     stage.stateOfMind = ui::choosePreset("State of mind then", kStatesOfMind, stage.stateOfMind);
-    stage.affiliation.organization = ui::choosePreset("Organization then", kOrganizations, stage.affiliation.organization);
-    if (!stage.affiliation.organization.empty()) stage.affiliation.rank = ui::readText("Rank or role", stage.affiliation.rank);
+    stage.affiliation.organization =
+        ui::choosePreset("Organization then", organizationSuggestions(app.db), stage.affiliation.organization);
+    if (!stage.affiliation.organization.empty()) {
+        const auto ranks = rankSuggestions(app.db, stage.affiliation.organization);
+        stage.affiliation.rank = ranks.empty() ? ui::readText("Rank or role", stage.affiliation.rank)
+                                               : ui::choosePreset("Rank or role", ranks, stage.affiliation.rank);
+    }
     stage.status = ui::choosePreset("Status then", kStatuses, stage.status);
     if (ui::yesNo("Change their titles or aliases then?", false)) {
         ui::editList("Titles then", stage.titles);

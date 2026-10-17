@@ -208,6 +208,11 @@ ImVec4 pathwayColour(const Database& db, const std::string& pathwayId) {
     return rgb(colour.r, colour.g, colour.b);
 }
 
+ImVec4 organizationColour(const Database& db, const Organization& o) {
+    const Rgb colour = parchment ? onLightBackground(organizationRgb(db, o)) : organizationRgb(db, o);
+    return rgb(colour.r, colour.g, colour.b);
+}
+
 ImVec4 colourFromHex(const std::string& hex) {
     Rgb colour;
     if (hex.size() == 7 && hex[0] == '#') {

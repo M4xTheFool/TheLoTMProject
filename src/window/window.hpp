@@ -1,4 +1,4 @@
-// The app window: the same characters, Sealed Artifacts, pathways and Sefirot as the console program,
+// The app window: the same characters, organizations, Sealed Artifacts, pathways and Sefirot as the console program,
 // edited with text boxes, dropdowns and sliders. Built with Dear ImGui, which redraws the whole
 // window many times a second: every draw* function below runs once per frame.
 #pragma once
@@ -20,6 +20,7 @@
 #include "exporter.hpp"
 #include "list_filter.hpp"
 #include "model_json.hpp"
+#include "records.hpp"
 #include "sheet.hpp"
 #include "web.hpp"
 
@@ -111,8 +112,24 @@ struct SefirotScreen {
 };
 
 struct CompareScreen {
+    bool organizations = false;  // comparing organizations instead of characters
     std::vector<int> ids;  // the characters being compared, in the order they were ticked (up to four)
+    std::vector<int> organizationIds;  // ... or the organizations
     std::string search;
+};
+
+// The Organizations tab: your organizations on the left, the one open on the right, its members drawn
+// around it as at the Tarot Club's long table.
+struct OrganizationScreen {
+    Draft<Organization> draft;
+    std::string search;
+    std::string memberSearch;  // in "Add a member"
+    std::string newMemberRank;
+    std::string addPathway;    // the pathway picked in "Add a pathway"
+    std::string newRank;       // the half-typed rank in "add a rank"
+    double openedAt = -100.0;  // when the open organization was picked, for its members to gather
+    std::map<int, double> seatedAt;  // when each member took their seat at the table, by character id
+    int hovered = 0;           // the member under the pointer at the table
 };
 
 // The Web tab: everyone as a circle, every relationship a line, settling into place as you watch.
@@ -208,7 +225,7 @@ struct DiceScreen {
     bool rollNow = false;  // throw on the next frame (the Check buttons on a character's Stats tab)
 };
 
-enum class Tab { Characters, Compare, Web, Timeline, Dice, Artifacts, Pathways, Sefirot, Settings };
+enum class Tab { Characters, Compare, Web, Timeline, Dice, Artifacts, Organizations, Pathways, Sefirot, Settings };
 
 struct WindowState {
     App app{Database{}, Storage{std::filesystem::path()}, Dice{}};  // loaded once the window is open
@@ -222,6 +239,7 @@ struct WindowState {
     TimelineScreen timeline;
     DiceScreen dice;
     ArtifactScreen artifacts;
+    OrganizationScreen organizations;
     PathwayScreen pathways;
     SefirotScreen sefirot;
 
@@ -229,13 +247,12 @@ struct WindowState {
     std::optional<std::vector<SampleSet>> sampleSets;
     std::string sampleSetsProblem;
     bool showSampleSets = false;  // scroll the Settings tab down to them on the next frame
-    // Settings > Share your own: packing your characters and Sealed Artifacts into a sample set.
+    // Settings > Share your own: packing your characters, organizations, Sealed Artifacts and story
+    // events into a sample set.
     struct Share {
         std::string title;
         std::string description;
-        std::vector<int> characterIds;
-        std::vector<int> artifactIds;
-        std::vector<int> eventIds;
+        SharePicks picks;
         bool touched = false;  // ticked by hand, so a new title no longer changes the ticks
         std::string pickedFor = "\x01";  // the file the default ticks were made for
     } share;
@@ -261,6 +278,7 @@ void drawWebScreen(WindowState& w);
 void drawTimelineScreen(WindowState& w);
 void drawDiceScreen(WindowState& w);
 void drawArtifactsScreen(WindowState& w);
+void drawOrganizationsScreen(WindowState& w);
 void drawPathwaysScreen(WindowState& w);
 void drawSefirotScreen(WindowState& w);
 void drawSettingsScreen(WindowState& w);
@@ -271,12 +289,20 @@ bool saveArtifactDraft(WindowState& w);
 bool savePathwayDraft(WindowState& w);
 bool saveSefirahDraft(WindowState& w);
 bool saveEventDraft(WindowState& w);
+bool saveOrganizationDraft(WindowState& w);
 
 // Opens a saved character on the Characters tab (asking first about unsaved changes there).
 void openCharacter(WindowState& w, int id);
 // A stage's fields (all but its date), for the Stages tab and an event's People tab. `key` tells
 // stages apart (each list's half-typed entry is kept by it).
 void stageFields(WindowState& w, const Character& c, CharacterStage& stage, const std::string& key);
+// Opens a saved organization on the Organizations tab (asking first about unsaved changes there).
+void openOrganization(WindowState& w, int id);
+// Starts a new organization on the Organizations tab, filled in from the characters who already name it
+// (their ranks), or empty when nobody does.
+void openNewOrganization(WindowState& w, const std::string& name = "");
+// An organization's colour: its first pathway's, its leader's, or one made from its name.
+ImVec4 organizationColour(const Database& db, const Organization& o);
 // Opens a story event on the Timeline tab, or a new one with these people in it.
 void openEvent(WindowState& w, int id);
 void openNewEvent(WindowState& w, const std::vector<int>& characterIds = {});
@@ -388,6 +414,9 @@ bool listCard(const WindowState& w, const std::string& id, bool selected, const 
               const CardMarks& marks = {});
 // Chips on as many lines as they need.
 void chipRow(const std::vector<std::pair<std::string, ImVec4>>& chips);
+// A row of buttons of equal width across the space left, the selected one lit in gold. Returns the one
+// pressed, or -1. `tips` are their tooltips, in order.
+int segmented(const char* id, const std::vector<std::string>& labels, int selected, const std::vector<std::string>& tips = {});
 // The colour a sheet's badge is drawn in, and a row of them.
 ImVec4 badgeColour(const WindowState& w, const Badge& badge);
 void badgeRow(const WindowState& w, const std::vector<Badge>& badges);

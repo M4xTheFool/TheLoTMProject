@@ -675,8 +675,8 @@ std::string renderHtmlPage(const std::string& pageTitle, const std::vector<Sheet
             << "</h1>\n";
         const std::pair<const char*, const char*> kinds[] = {
             {"Relationship web", "Who knows whom"}, {"Timeline", "Timeline"}, {"Character", "Characters"},
-            {"Story event", "Story events"}, {"Sealed Artifact", "Sealed Artifacts"}, {"Pathway", "Pathways"},
-            {"Sefirah", "Sefirot"}};
+            {"Organization", "Organizations"}, {"Story event", "Story events"},
+            {"Sealed Artifact", "Sealed Artifacts"}, {"Pathway", "Pathways"}, {"Sefirah", "Sefirot"}};
         for (const auto& [kind, plural] : kinds) {
             bool any = false;
             for (const auto& s : sheets) {

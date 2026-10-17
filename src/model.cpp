@@ -145,6 +145,20 @@ const StoryEvent* Database::findEvent(int id) const {
     return nullptr;
 }
 
+Organization* Database::findOrganization(int id) {
+    for (auto& o : organizations) {
+        if (o.id == id) return &o;
+    }
+    return nullptr;
+}
+
+const Organization* Database::findOrganization(int id) const {
+    for (const auto& o : organizations) {
+        if (o.id == id) return &o;
+    }
+    return nullptr;
+}
+
 int Database::nextCharacterId() const {
     int highest = 0;
     for (const auto& c : characters) highest = std::max(highest, c.id);
@@ -160,6 +174,12 @@ int Database::nextArtifactId() const {
 int Database::nextEventId() const {
     int highest = 0;
     for (const auto& e : events) highest = std::max(highest, e.id);
+    return highest + 1;
+}
+
+int Database::nextOrganizationId() const {
+    int highest = 0;
+    for (const auto& o : organizations) highest = std::max(highest, o.id);
     return highest + 1;
 }
 
@@ -222,6 +242,7 @@ static std::string code(char prefix, int id) {
 std::string characterCode(int id) { return code('C', id); }
 std::string artifactCode(int id) { return code('A', id); }
 std::string eventCode(int id) { return code('E', id); }
+std::string organizationCode(int id) { return code('O', id); }
 
 std::string pathwayLabel(const Database& db, const std::string& pathwayId) {
     if (pathwayId.empty()) return "None";

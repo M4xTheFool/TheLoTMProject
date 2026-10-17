@@ -22,7 +22,8 @@ std::filesystem::path findDataDir(const char* argv0);
 
 std::string nowTimestamp();  // "2026-10-09 14:05:33", local time
 
-// A ready-made set of characters and Sealed Artifacts from data/samples, such as the Tarot Club.
+// A ready-made set of characters, Sealed Artifacts, story events and organizations from data/samples,
+// such as the Tarot Club.
 // Its ids only connect the entries inside the file; importSampleSet (records.hpp) gives them new ones.
 struct SampleSet {
     std::filesystem::path file;
@@ -31,6 +32,7 @@ struct SampleSet {
     std::vector<Character> characters;
     std::vector<Artifact> artifacts;
     std::vector<StoryEvent> events;  // events the characters take part in, or that name nobody saved
+    std::vector<Organization> organizations;  // the ones the characters belong to, and any others shared
 };
 
 class Storage {
@@ -45,12 +47,13 @@ public:
     std::filesystem::path samplesDir() const;          // data/samples
 
     // Reads pathways.json, custom_pathways.json, sefirot.json, custom_sefirot.json and the saves
-    // (characters.json, artifacts.json, events.json and settings.json).
+    // (characters.json, artifacts.json, events.json, organizations.json and settings.json).
     // Only pathways.json must exist.
     void loadAll(Database& db) const;
     void saveCharacters(const Database& db) const;
     void saveArtifacts(const Database& db) const;
     void saveEvents(const Database& db) const;  // data/events.json
+    void saveOrganizations(const Database& db) const;  // data/organizations.json
     void saveSettings(const Database& db) const;
     // Writes the pathways marked custom to custom_pathways.json. pathways.json is never written.
     void saveCustomPathways(const Database& db) const;

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <fstream>
 
+#include "organizations.hpp"
 #include "render.hpp"
 #include "storage.hpp"
 #include "story.hpp"
@@ -58,6 +59,7 @@ std::string exportName(const Character& c) { return "character-" + std::to_strin
 std::string exportName(const Artifact& a) { return "artifact-" + std::to_string(a.id) + "-" + fileSlug(a.name); }
 std::string exportName(const Pathway& p) { return "pathway-" + fileSlug(p.id); }
 std::string exportName(const Sefirah& s) { return "sefirah-" + fileSlug(s.id); }
+std::string exportName(const Organization& o) { return "organization-" + std::to_string(o.id) + "-" + fileSlug(o.name); }
 std::string catalogueExportName() { return "catalogue-" + compactTimestamp(); }
 
 std::vector<Sheet> catalogueSheets(const Database& db) {
@@ -68,6 +70,7 @@ std::vector<Sheet> catalogueSheets(const Database& db) {
     if (related) sheets.push_back(buildWebSheet(db, true));
     if (!db.events.empty()) sheets.push_back(buildTimelineSheet(db));
     for (const auto& c : db.characters) sheets.push_back(buildCharacterSheet(c, db));
+    for (const Organization* o : organizationsByName(db)) sheets.push_back(buildOrganizationSheet(*o, db));
     for (const auto& a : db.artifacts) sheets.push_back(buildArtifactSheet(a, db));
     for (const auto& p : db.pathways) {
         if (p.custom) sheets.push_back(buildPathwaySheet(p, db));

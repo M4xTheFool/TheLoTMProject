@@ -36,8 +36,11 @@ void importAll(App& app) {
     }
     ui::blank();
     for (const auto& set : sets) {
-        ui::info(set.title + ": " + std::to_string(set.characters.size()) + " characters, " +
-                 std::to_string(set.artifacts.size()) + " Sealed Artifacts");
+        std::string line = set.title + ": " + std::to_string(set.characters.size()) + " characters, " +
+                           std::to_string(set.artifacts.size()) + " Sealed Artifacts";
+        if (!set.events.empty()) line += ", " + std::to_string(set.events.size()) + " story events";
+        if (!set.organizations.empty()) line += ", " + std::to_string(set.organizations.size()) + " organizations";
+        ui::info(line);
     }
     ui::info("Anything already saved under the same name is updated when the set has a newer version,");
     ui::info("and left as it is when you edited it here more recently.");
@@ -47,8 +50,11 @@ void importAll(App& app) {
         ui::blank();
         if (!report.addedCharacters.empty()) ui::info("Characters added: " + joined(report.addedCharacters));
         if (!report.addedArtifacts.empty()) ui::info("Sealed Artifacts added: " + joined(report.addedArtifacts));
+        if (!report.addedEvents.empty()) ui::info("Story events added: " + joined(report.addedEvents));
+        if (!report.addedOrganizations.empty()) ui::info("Organizations added: " + joined(report.addedOrganizations));
         if (!report.updated.empty()) ui::info("Updated to a newer version: " + joined(report.updated));
-        if (report.addedCharacters.empty() && report.addedArtifacts.empty() && report.updated.empty()) {
+        if (report.addedCharacters.empty() && report.addedArtifacts.empty() && report.addedEvents.empty() &&
+            report.addedOrganizations.empty() && report.updated.empty()) {
             ui::info("Nothing new to add.");
         }
         if (!report.skipped.empty()) ui::info("Up to date or edited here more recently, so left as they are: " + joined(report.skipped));
@@ -98,15 +104,17 @@ void pickRecords(const std::string& title, const std::vector<Record>& records, s
     }
 }
 
-// Packs your own characters, Sealed Artifacts and story events into a sample set in data/samples, to
-// share them.
+// Packs your own characters, Sealed Artifacts, story events and organizations into a sample set in
+// data/samples, to share them.
 void shareOwn(App& app) {
     ui::header("Share your own");
-    ui::info("Your characters, Sealed Artifacts and story events become a sample set in the data/samples");
-    ui::info("folder. Commit it in GitHub Desktop and push, and anyone who pulls gets them with Import all.");
-    ui::info("Your own pathways and Sefirot are shared already, in custom_pathways.json and custom_sefirot.json.");
-    if (app.db.characters.empty() && app.db.artifacts.empty() && app.db.events.empty()) {
-        ui::info("There is nothing to share yet: save a character, a Sealed Artifact or a story event first.");
+    ui::info("Your characters, Sealed Artifacts, story events and organizations become a sample set in the");
+    ui::info("data/samples folder. Commit it in GitHub Desktop and push, and anyone who pulls gets them with");
+    ui::info("Import all. Your own pathways and Sefirot are shared already, in custom_pathways.json and");
+    ui::info("custom_sefirot.json.");
+    if (app.db.characters.empty() && app.db.artifacts.empty() && app.db.events.empty() && app.db.organizations.empty()) {
+        ui::info("There is nothing to share yet: save a character, a Sealed Artifact, a story event or an");
+        ui::info("organization first.");
         ui::pause();
         return;
     }
@@ -118,22 +126,25 @@ void shareOwn(App& app) {
     const auto inSet = [&](const std::string& name) {
         return std::find(taken.begin(), taken.end(), ui::toLower(name)) != taken.end() ? ", already in a sample set" : "";
     };
-    std::vector<int> characters, artifacts, events;
-    defaultSharePicks(app.db, sets, fileName, characters, artifacts, events);
-    pickRecords("Characters to share:", app.db.characters, characters,
+    SharePicks picks = defaultSharePicks(app.db, sets, fileName);
+    pickRecords("Characters to share:", app.db.characters, picks.characterIds,
                 [&](const Character& c) { return c.name + " (" + characterCode(c.id) + ")" + inSet(c.name); });
-    pickRecords("Sealed Artifacts to share (the ones your characters hold go in too):", app.db.artifacts, artifacts,
+    pickRecords("Sealed Artifacts to share (the ones your characters hold go in too):", app.db.artifacts,
+                picks.artifactIds,
                 [&](const Artifact& a) { return a.name + " (" + artifactCode(a.id) + ")" + inSet(a.name); });
+    pickRecords("Organizations to share (the ones your characters belong to go in too):", app.db.organizations,
+                picks.organizationIds,
+                [&](const Organization& o) { return o.name + " (" + organizationCode(o.id) + ")" + inSet(o.name); });
     std::vector<StoryEvent> ordered;
     for (const StoryEvent* e : eventsInOrder(app.db)) ordered.push_back(*e);
     pickRecords("Story events to share (people not ticked above go as names, and link up again when imported):",
-                ordered, events,
+                ordered, picks.eventIds,
                 [&](const StoryEvent& e) {
                     return e.title + " (" + eventCode(e.id) + (e.date.empty() ? "" : ", " + storyDateText(e.date)) +
                            ")" + (eventInSampleSets(sets, fileName, e) ? ", already in a sample set" : "");
                 });
-    const SampleSet set = makeSampleSet(app.db, title, description, characters, artifacts, events);
-    if (set.characters.empty() && set.artifacts.empty() && set.events.empty()) {
+    const SampleSet set = makeSampleSet(app.db, title, description, picks);
+    if (set.characters.empty() && set.artifacts.empty() && set.events.empty() && set.organizations.empty()) {
         ui::info("Nothing is ticked, so nothing was saved.");
         ui::pause();
         return;
@@ -141,8 +152,9 @@ void shareOwn(App& app) {
     const bool replacing = std::filesystem::exists(app.storage.samplesDir() / fileName);
     const std::string question = std::string(replacing ? "Replace" : "Save") + " data/samples/" + fileName + " with " +
                                  std::to_string(set.characters.size()) + " characters, " +
-                                 std::to_string(set.artifacts.size()) + " Sealed Artifacts and " +
-                                 std::to_string(set.events.size()) + " story events?";
+                                 std::to_string(set.artifacts.size()) + " Sealed Artifacts, " +
+                                 std::to_string(set.events.size()) + " story events and " +
+                                 std::to_string(set.organizations.size()) + " organizations?";
     if (!ui::yesNo(question, true)) return;
     try {
         app.storage.saveSampleSet(set, fileName);
@@ -164,7 +176,7 @@ void runSettingsMenu(App& app) {
                                "Export theme: " + s.exportTheme + " (auto follows your system, or light / dark)",
                                "Backups kept per file: " + std::to_string(s.backupsToKeep),
                                "Import all sample sets (the Tarot Club, Adam and Amon, and any shared ones)",
-                               "Share your own characters, Sealed Artifacts and story events as a sample set"},
+                               "Share your own characters, Sealed Artifacts, story events and organizations as a sample set"},
                               "Back to the main menu");
         if (pick == 0) {
             int m = ui::choose("HP mode:", kHpModes, "Cancel");

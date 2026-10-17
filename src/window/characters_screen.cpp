@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "organizations.hpp"
 #include "presets.hpp"
 #include "records.hpp"
 #include "relations.hpp"
@@ -18,6 +19,28 @@ namespace {
 void removeEmpty(std::vector<std::string>& items) {
     items.erase(std::remove_if(items.begin(), items.end(), [](const std::string& s) { return ui::trim(s).empty(); }),
                 items.end());
+}
+
+// Organization and rank, offering your own organizations and the ranks they list. Under it, a link to
+// the organization, or to write up one your characters name that isn't saved yet.
+void affiliationFields(WindowState& w, Affiliation& a) {
+    const Database& db = w.app.db;
+    presetField("Organization", a.organization, organizationSuggestions(db));
+    if (a.organization.empty()) return;
+    const std::vector<std::string> ranks = rankSuggestions(db, a.organization);
+    if (ranks.empty()) textField("Rank or role", a.rank);
+    else presetField("Rank or role", a.rank, ranks);
+    if (isIndependent(a.organization)) return;
+    fieldLabel("");
+    if (const Organization* o = organizationNamed(db, a.organization)) {
+        statusDot(organizationColour(db, *o));
+        const int id = o->id;
+        if (ImGui::TextLink(("Open " + o->name + " on the Organizations tab").c_str())) openOrganization(w, id);
+    } else {
+        const std::string name = ui::trim(a.organization);
+        if (ImGui::TextLink(("Write up " + name + " as an organization").c_str())) openNewOrganization(w, name);
+        ImGui::SetItemTooltip("A page of its own on the Organizations tab: leader, headquarters, ranks and members.");
+    }
 }
 
 ImVec4 threatColour(const std::string& level) {
@@ -762,8 +785,7 @@ void artifactsTab(WindowState& w, Character& c) {
 }
 
 void relationshipsTab(WindowState& w, Character& c) {
-    presetField("Organization", c.affiliation.organization, kOrganizations);
-    if (!c.affiliation.organization.empty()) textField("Rank or role", c.affiliation.rank);
+    affiliationFields(w, c.affiliation);
 
     ImGui::SeparatorText("Relationships");
     ImGui::TextWrapped("Pick one of your saved characters, or type anyone's name. Saved characters are linked when "
@@ -835,12 +857,10 @@ void relationshipsTab(WindowState& w, Character& c) {
     if (ImGui::Button("+ Add someone by name")) c.relationships.push_back({0, "", "Friend", ""});
 }
 
-void dossierTab(Character& c) {
+void dossierTab(const WindowState& w, Character& c) {
     Dossier& d = c.dossier;
     ImGui::TextDisabled("An official file on the character, as the Nighthawks or another agency would keep it.");
-    std::vector<std::string> keepers = kOrganizations;
-    keepers.erase(std::remove(keepers.begin(), keepers.end(), "Independent"), keepers.end());
-    presetField("Filed by", d.filedBy, keepers);
+    presetField("Filed by", d.filedBy, keeperSuggestions(w.app.db));
 
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Recent actions");
@@ -905,8 +925,7 @@ void stageFields(WindowState& w, const Character& c, CharacterStage& stage, cons
 
     ImGui::SeparatorText("Then");
     presetField("State of mind", stage.stateOfMind, kStatesOfMind);
-    presetField("Organization", stage.affiliation.organization, kOrganizations);
-    if (!stage.affiliation.organization.empty()) textField("Rank or role", stage.affiliation.rank);
+    affiliationFields(w, stage.affiliation);
     presetField("Status", stage.status, kStatuses);
     sefirahCombo("Sefirah", db, stage.sefirahId, "None");
     ImGui::SeparatorText("Titles then");
@@ -1273,7 +1292,7 @@ void drawCharactersScreen(WindowState& w) {
                 case 4: statsTab(w, c); break;
                 case 5: artifactsTab(w, c); break;
                 case 6: relationshipsTab(w, c); break;
-                case 7: dossierTab(c); break;
+                case 7: dossierTab(w, c); break;
                 case 8: multilineField("Anything else worth remembering", c.notes, 14); break;
                 case 10: stagesTab(w, draft); break;
                 default: sheetTab(w, c, sheet); break;

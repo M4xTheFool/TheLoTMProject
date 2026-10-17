@@ -21,6 +21,11 @@ It comes as two programs that share the same saves:
   HP, Spirituality, the Sealed Artifacts the character holds, a dossier with an automatic threat level,
   and stages: how they were earlier in your story, from a date on.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
+- **Organizations:** the groups your characters belong to, like the Tarot Club or the Nighthawks, with
+  what they are, their leader, headquarters, founding date, symbol, pathways and ranks. Their members are
+  the characters whose affiliation names them, so the member list builds itself; each one shows how
+  strong its members make it, and two to four can be compared side by side. Your organizations are
+  suggested first wherever you type an affiliation.
 - **Pathways:** read any pathway Sequence by Sequence, create and edit your own inside the program, start
   one from a copy of a built-in pathway, and export a pathway as a sheet. The Acrobat pathway from the
   book is already in as one of your own.
@@ -29,8 +34,8 @@ It comes as two programs that share the same saves:
   Sefirah as a sheet.
 - **Catalogue:** browse, search by name, alias or ID, filter by power, first letter and pathway, sort,
   edit, duplicate, delete.
-- **Compare:** two to four characters side by side, with their stats on one chart and the highest value
-  in each row marked.
+- **Compare:** two to four characters (or organizations) side by side, with their stats on one chart and
+  the highest value in each row marked.
 - **Relationship web:** everyone you've saved as a picture, with a coloured line for each relationship
   (love, family, friends, allies, teaching, conflict), so you can see who knows whom at a glance, and
   the shortest chain of people between any two of them.
@@ -42,8 +47,8 @@ It comes as two programs that share the same saves:
   gold and a natural 1 shakes red.
 - **Sample sets:** the members of the Tarot Club, the brothers Adam and Amon, and a few canon Sealed
   Artifacts, added to your saves with one **Import all** button in Settings. Share your own characters the
-  same way: Settings turns them, your Sealed Artifacts and your story events into a sample set that you
-  commit to GitHub.
+  same way: Settings turns them, your organizations, your Sealed Artifacts and your story events into a
+  sample set that you commit to GitHub.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
   Markdown, or plain text.
 
@@ -132,7 +137,7 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 ## Using the app window
 
 - The tabs at the top are **Characters**, **Compare**, **Web**, **Timeline**, **Dice**, **Sealed Artifacts**,
-  **Pathways**, **Sefirot** and **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
+  **Organizations**, **Pathways**, **Sefirot** and **Settings**. Each one lists everything on the left (with a search box) and shows the one you picked on
   the right. Drag the list's right edge to make it wider.
 - **Filters:** the search box over the Characters and Sealed Artifacts lists finds names, aliases and IDs
   (`C-012`, `c12` or just `12`). **Filter and sort** under it narrows the list by power (Mortal,
@@ -208,7 +213,34 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   them (**Now since** can give that a date too). Everything else, like their name, looks and stats, is the
   same in every stage. **See their sheet as of then** shows the sheet for that time, and the Timeline uses
   the stages to show everyone on any date.
-- **Compare** puts two to four characters side by side: tick them in the list. It shows their pathway,
+- **Organizations** lists your organizations, and under **Named by your characters** the ones your
+  characters belong to that have no page yet: pick one to write it up, with the ranks its members use
+  already filled in. An organization has four tabs:
+  - **Members:** everyone in it around a table, the leader at the head in gold and the rest in the order
+    of its ranks, gathering from its emblem when you open it. Members who aren't saved characters sit at
+    the table in grey. Hover over someone to see who they are and click them to open their page. Below
+    the table, **+ Add a member** picks one of your characters to join (with a rank), **Take out** clears
+    someone's affiliation, and **Former members** lists those who belonged to it in an earlier stage.
+  - **Details:** its name and other names it goes by, kind, status, leader (one of your characters or
+    anyone's name), headquarters, when it was founded, its symbol, the pathways it is known for (the first
+    gives it its colour), what it is, its ranks from highest to lowest, members who aren't saved
+    characters, and notes.
+  - **Strength:** how many members it has, their threat scores added up and the Sealed Artifacts they
+    hold, its strongest and most dangerous members, and bars for how many are at each power and threat
+    level. **Compare with other organizations** opens it on the Compare tab.
+  - **Sheet:** the finished sheet, as it will be exported.
+
+  A character belongs to an organization when their affiliation (on their Relationships tab) is its
+  name or another name it goes by, in any capitals; "Nighthawks" also counts for "Nighthawks (Church of
+  the Evernight Goddess)". Under the affiliation, a link opens the organization, or writes it up if it
+  has no page yet. Renaming an organization renames it on every character that used the old name (in
+  their stages and as who filed their dossier too). Deleting one leaves its members' affiliations as
+  they are, as typed text.
+- **Compare** puts two to four characters side by side: tick them in the list. **Characters** and
+  **Organizations** at the top of the list switch between comparing characters and organizations: their
+  kind, status, leader and headquarters, members (drawn as dots in their colours), strongest member,
+  how many gods, angels and saints they have, combined threat and Sealed Artifacts, and who knows whom
+  between them. It shows their pathway,
   Sequence, tier and threat level, every stat with a bar (and the six stats on one chart), Speed, HP,
   Spirituality, abilities, Sealed Artifacts and how they're related to each other. The highest value in
   each row is in bold, in that character's colour. Rows none of them has filled in are left out.
@@ -254,6 +286,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - In the stat block, `R` rolls 4d6 and drops the lowest die; roll again as often as you like or type a value.
 - The Sequence question takes 9 to 0, and a Sequence 0 is then asked whether they are Above the Sequence
   and whether they are a dual-pathway god with a second pathway.
+- **Organizations** in the main menu lists your organizations and the ones your characters name without
+  a page yet. Open one to read its sheet, edit it, add a member or take one out, export it or delete it.
+  **Compare organizations side by side** prints two to four of them as a table.
 - **Sefirot** in the main menu lists the nine Sefirot and your own; open one to read it, make a saved
   character its holder or take it away, or export it. **Create a new Sefirah of your own** asks for its
   details step by step; your own can be edited or deleted, and a canon one can be copied into a new one.
@@ -283,11 +318,12 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 | Your characters | `data/characters.json` |
 | Your Sealed Artifacts | `data/artifacts.json` |
 | Your story events | `data/events.json` |
+| Your organizations | `data/organizations.json` |
 | Settings (HP mode, export theme, backups, window text size and theme) | `data/settings.json` |
 | Backups (last 5 of each file) | `data/backups/` |
 | Exports | `exports/` |
 
-Your own characters, artifacts, story events and exports are **not** uploaded to GitHub (see
+Your own characters, artifacts, organizations, story events and exports are **not** uploaded to GitHub (see
 `.gitignore`); they stay on your computer. Copy the `data` folder to back them up or move them to another
 PC. Your own pathways are different: GitHub Desktop shows `custom_pathways.json` as changed after you edit
 a pathway, and committing it shares your pathways with anyone else who uses the repository. Your own Sefirot work the same way, in
@@ -321,14 +357,14 @@ recently edited version wins.
 
 ### Sharing your own characters and story events on GitHub
 
-Your characters, Sealed Artifacts and story events stay on your computer until you share them as a sample
-set:
+Your characters, organizations, Sealed Artifacts and story events stay on your computer until you share
+them as a sample set:
 
 1. In the app window, open **Settings** and scroll to **Share your own** (in the console: **Settings**, then
    **Share your own characters, Sealed Artifacts and story events as a sample set**).
-2. Give the set a title, like *Max's characters*, and tick what goes in: characters, Sealed Artifacts and
-   story events. Everything that isn't already in another sample set starts ticked, and the Sealed
-   Artifacts your characters hold go in by themselves. **Tick the ones with your ticked characters**
+2. Give the set a title, like *Max's characters*, and tick what goes in: characters, organizations, Sealed
+   Artifacts and story events. Everything that isn't already in another sample set starts ticked, and the
+   organizations your characters belong to and the Sealed Artifacts they hold go in by themselves. **Tick the ones with your ticked characters**
    ticks every event they were at. A set can be only story events: the people at them go as names and
    link up again (with what changed for them there) when they are imported from another set, because
    **Import all** brings in everyone before any events.
@@ -344,9 +380,12 @@ Anyone who then pulls (**Fetch origin**, then **Pull origin** in GitHub Desktop)
 and gets everything with **Import all**. Your own pathways and Sefirot need no extra step: they are in
 `custom_pathways.json` and `custom_sefirot.json`, which GitHub Desktop commits the same way.
 
-A sample set is a JSON file with a `title`, a `description`, and `characters`, `artifacts` and `events`
-lists in the same layout as `characters.json`, `artifacts.json` and `events.json`. The ids inside it only
-need to match each other. An event counts as one you already have when it has the same title and date.
+A sample set is a JSON file with a `title`, a `description`, and `characters`, `artifacts`,
+`organizations` and `events` lists in the same layout as `characters.json`, `artifacts.json`,
+`organizations.json` and `events.json`. The ids inside it only need to match each other. An event counts as
+one you already have when it has the same title and date, and an organization when it has the same name.
+An organization's leader who isn't in the set goes by name, and is linked again when someone with that
+name is saved.
 
 ### Adding your own pathways
 
@@ -425,7 +464,9 @@ src/presets.hpp       the suggestion lists (hair colours, organizations ...)
 src/*_creator.cpp     the two creators
 src/pathway_menu.cpp  the Pathways menu (your own pathways)
 src/catalogue.cpp     the catalogue
-src/compare.*         comparing characters side by side, shared by both programs
+src/compare.*         comparing characters or organizations side by side, shared by both programs
+src/organizations.*   organizations: who belongs to one, its strength, suggestions and its sheet
+src/organization_menu.cpp  the console's Organizations menu
 src/story.*           story dates, events, the timeline, and characters as of a date
 src/web.*             the relationship web: who knows whom, and where everyone sits in the picture
 src/story_menu.cpp    the console's Timeline and Relationship web menus

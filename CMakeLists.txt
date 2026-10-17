@@ -32,6 +32,7 @@ add_library(lotm_core STATIC
     src/list_filter.cpp
     src/pathway_colours.cpp
     src/story.cpp
+    src/organizations.cpp
     src/web.cpp
     src/story_menu.cpp
     src/exporter.cpp
@@ -41,6 +42,7 @@ add_library(lotm_core STATIC
     src/export_menu.cpp
     src/settings_menu.cpp
     src/sefirot_menu.cpp
+    src/organization_menu.cpp
 )
 target_include_directories(lotm_core PUBLIC src)
 target_link_libraries(lotm_core PUBLIC nlohmann_json::nlohmann_json)
@@ -100,6 +102,7 @@ if(LOTM_BUILD_WINDOW)
         src/window/widgets.cpp
         src/window/characters_screen.cpp
         src/window/artifacts_screen.cpp
+        src/window/organizations_screen.cpp
         src/window/pathways_screen.cpp
         src/window/settings_screen.cpp
         src/window/compare_screen.cpp

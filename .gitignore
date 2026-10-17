@@ -10,6 +10,7 @@ out/
 data/characters.json
 data/artifacts.json
 data/events.json
+data/organizations.json
 data/settings.json
 data/backups/
 data/*.tmp

@@ -16,16 +16,17 @@ enum class ExportFormat { Html, Markdown, Text };
 std::string fileSlug(const std::string& name);
 
 // "character-1-klein-moretti", "artifact-2-creeping-hunger", "pathway-maestro", "sefirah-chaos-sea",
-// "catalogue-20261009-140533".
+// "organization-1-tarot-club", "catalogue-20261009-140533".
 std::string exportName(const Character& c);
 std::string exportName(const Artifact& a);
 std::string exportName(const Pathway& p);
 std::string exportName(const Sefirah& s);
+std::string exportName(const Organization& o);
 std::string catalogueExportName();
 
 // The relationship web and the timeline (when there is something on them), then every character,
-// every Sealed Artifact, your own pathways and the Sefirot your characters hold, for exporting
-// everything at once.
+// every organization, every Sealed Artifact, your own pathways and the Sefirot your characters hold,
+// for exporting everything at once.
 std::vector<Sheet> catalogueSheets(const Database& db);
 
 // Writes the sheets to <exports folder>/<baseName>.html/.md/.txt and returns the file's full path.
