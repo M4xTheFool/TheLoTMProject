@@ -13,19 +13,21 @@ It comes as two programs that share the same saves:
 - **Character Creator:** name, looks (hair colour, length and style, eyes, skin, face, build, height,
   voice, clothing) and bio, one of the 22 pathways or one of your own, Sequence 9 to 0 with every ability
   described, or Above the Sequence (a Great Old One), a switch to another pathway on the way up (a
-  mixed-pathway Beyonder, shown on a Sequence ladder) and their state of mind, alignment, titles, aliases,
+  mixed-pathway Beyonder, shown on a Sequence ladder) and their state of mind, whether they are alive or
+  dead (and when and how they died), alignment, titles, aliases,
   honorific name with as many lines as you need (Sequence 3 and up), Beyonder characteristics and the
   Uniqueness with its look and the Sequence 0 powers it grants (Sequence 1), a second pathway for a
   dual-pathway god, the Sefirah they hold, affiliation, two-way relationships (pick one of your saved
-  characters or type any name), a D&D-style stat block (roll, re-roll, type or point-buy), Speed, optional
+  characters or organizations, or type any name), a D&D-style stat block (roll, re-roll, type or point-buy), Speed, optional
   HP, Spirituality, the Sealed Artifacts the character holds, a dossier with an automatic threat level,
   and stages: how they were earlier in your story, from a date on.
 - **Sealed Artifact Creator:** name, look, pathway, sequence level, ability, drawback.
 - **Organizations:** the groups your characters belong to, like the Tarot Club or the Nighthawks, with
   what they are, their leader, headquarters, founding date, symbol, pathways and ranks. Their members are
   the characters whose affiliation names them, so the member list builds itself; each one shows how
-  strong its members make it, and two to four can be compared side by side. Your organizations are
-  suggested first wherever you type an affiliation.
+  strong its living members make it, and two to four can be compared side by side. Your organizations are
+  suggested first wherever you type an affiliation. A character can have a relationship with a whole
+  organization (an enemy of the Tarot Club), and it reaches every member.
 - **Pathways:** read any pathway Sequence by Sequence, create and edit your own inside the program, start
   one from a copy of a built-in pathway, and export a pathway as a sheet. The Acrobat pathway from the
   book is already in as one of your own.
@@ -159,9 +161,27 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   pathway, then choose one or two of its Sequence 1 Beyonder characteristics and whether they hold its
   Uniqueness. They have every ability of the second pathway, Sequence 9 to 0, shown as one line, "All
   abilities of the ... pathway". The sheet, the exports and Compare show both pathways.
-- **Relationships:** the arrow next to a name lists your saved characters, and **+ Add a saved character**
-  opens a searchable list of them, so you don't have to type names. **+ Add someone by name** still takes
-  anyone, saved or not.
+- **Relationships:** the arrow next to a name lists your saved characters and organizations, and **+ Add a
+  saved character** opens a searchable list of them, so you don't have to type names. **+ Add someone by
+  name** still takes anyone, saved or not.
+- **Relationships with an organization:** **+ Add an organization** picks one of your organizations (it
+  starts as Enemy). The relationship reaches every member: each of them has it with this character too,
+  and it shows on their Relationships tab under **Through organizations**, on their sheet, on the Web as
+  a dashed line and on Compare. To change it for one member, click **Change for ...** next to them: it
+  gives the two of them a relationship of their own, which counts instead. Someone who joins the
+  organization later has it too, and someone who leaves loses it.
+- **Names typed by hand find the characters you create:** when you save a character, every place that
+  already named them by hand is linked to them. A relationship that named them gets linked (and they get
+  the relationship back), an organization's leader typed by name becomes them, story events that listed
+  them by name now have them, and an organization that listed them among its members who aren't saved
+  characters ("Dunn Smith, Captain") makes them a member with that rank, unless they belong somewhere
+  else already. The same goes for organizations: a relationship that typed an organization's name is
+  linked to it when it is saved. When two saved characters share a name, nothing is linked by that name.
+- **Alive or dead:** on a character's Identity tab, **Alive** or **Dead** (or your own words, like
+  Revived or A wandering spirit). For someone dead, write when they died, so the Timeline shows them
+  alive before it, and how. Someone who has died is greyed, with a dark band across the corner of their
+  circle, in every list, on the Web, the Timeline and at an organization's table; their sheet says when
+  and how they died.
 - **Sefirot** lists the nine Sefirot. Pick one to read what it is, which pathways it gathers, its Great Old
   One and who has held it. **+ Make one of your characters its holder** links a saved character to it. A
   character holds one Sefirah at a time; you can also pick it in their Customization tab.
@@ -186,7 +206,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   people they know follow, the rest stay still, and they stay where you put them until **Let them move
   again**), scroll to zoom and drag the background to look
   around. On the left you can hide kinds of relationship, show only one organization, add people who are
-  only named in a relationship, and pick two people under **How Are They Connected?** to find the
+  only named in a relationship, turn off the dashed lines a relationship with an organization draws to
+  each of its members (**Through organizations**), and pick two people under **How Are They Connected?** to find the
   shortest chain between them ("Audrey Hall is Friend of Klein Moretti, who is Enemy of Amon").
   **Export...** saves the web as a page with the picture and every connection written out.
 - **Timeline** lists your story events, earliest first. **+ New event** asks what happened, when, what
@@ -200,6 +221,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   King of Angels ...), click **+ Change** and set it; it starts from how they were. From the event's date
   on they are like that, until their next stage, so an Advancement event really advances them. The
   change also shows on their Stages tab (with **Open the event**), on their sheet and on the Timeline.
+  **+ Dies here** next to someone is the quickest change: they die at this event, and from its date on
+  they are dead.
 - **Dates** are written the way the books write them: `3 July 1360`, `July 1360` or just `1360`. The
   month and day are optional. Everything is in the Fifth Epoch unless you name another (`1200, Fourth
   Epoch`). `July 3, 1360`, `3rd July 1360` and `Jul 1360` work too; under the box it says how it reads
@@ -212,22 +235,28 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   dual-pathway god). A stage lasts until their next one, and after the last one they are as the other tabs describe
   them (**Now since** can give that a date too). Everything else, like their name, looks and stats, is the
   same in every stage. **See their sheet as of then** shows the sheet for that time, and the Timeline uses
-  the stages to show everyone on any date.
+  the stages to show everyone on any date. A stage can say they are dead from its date on, and **Their
+  death** on the Stages tab shows when and where they died (**+ They die** sets it, **They didn't die
+  after all** takes it back).
 - **Organizations** lists your organizations, and under **Named by your characters** the ones your
   characters belong to that have no page yet: pick one to write it up, with the ranks its members use
   already filled in. An organization has four tabs:
   - **Members:** everyone in it around a table, the leader at the head in gold and the rest in the order
     of its ranks, gathering from its emblem when you open it. Members who aren't saved characters sit at
-    the table in grey. Hover over someone to see who they are and click them to open their page. Below
-    the table, **+ Add a member** picks one of your characters to join (with a rank), **Take out** clears
-    someone's affiliation, and **Former members** lists those who belonged to it in an earlier stage.
+    the table in grey, and members who died are greyed with a dark band. Hover over someone to see who
+    they are and click them to open their page. Below the table, **+ Add a member** picks one of your
+    characters to join (with a rank), **Take out** clears someone's affiliation, and **Former members**
+    lists those who belonged to it in an earlier stage. A member who isn't a saved character but has the
+    name of one gets **Make them a member**, and **Relationships with it** lists your characters'
+    relationships with the whole organization.
   - **Details:** its name and other names it goes by, kind, status, leader (one of your characters or
     anyone's name), headquarters, when it was founded, its symbol, the pathways it is known for (the first
     gives it its colour), what it is, its ranks from highest to lowest, members who aren't saved
     characters, and notes.
   - **Strength:** how many members it has, their threat scores added up and the Sealed Artifacts they
     hold, its strongest and most dangerous members, and bars for how many are at each power and threat
-    level. **Compare with other organizations** opens it on the Compare tab.
+    level. Members who died aren't counted. **Compare with other organizations** opens it on the Compare
+    tab.
   - **Sheet:** the finished sheet, as it will be exported.
 
   A character belongs to an organization when their affiliation (on their Relationships tab) is its
@@ -278,7 +307,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - When a value is shown in `[brackets]`, pressing Enter keeps it. Typing `-` clears an optional text.
 - Longer texts (descriptions, backstory, abilities) end with an empty line.
 - Relationships take any name, like `Fors Wall`, or type `P` to pick one of your saved characters from a
-  numbered list. If the name matches a character you've already saved,
+  numbered list, or `O` to pick one of your organizations (the relationship reaches all its members). A
+  typed name that is an organization's links to it too. If the name matches a character you've already saved,
   the two are linked and the other character gets the relationship back when you save (Mentor and
   Student, Parent and Child, Superior and Subordinate flip; the rest stay the same). Removing it removes
   both sides. If you list someone by name first and create them later, they link up when you save them.
@@ -299,8 +329,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   prints them as a table, with the highest value in each row marked `*`.
 - **Timeline** in the main menu shows every story event, or one character's, adds, changes and deletes
   events, and prints everyone as they were on a date you type (`3 July 1360`, `July 1360`, `1360`).
-  The character creator has a **Stages** step for how a character was earlier in the story. In an
-  event's **Who was there**, a saved character's number gives **Something changed for them here**.
+  The character creator has a **Stages** step for how a character was earlier in the story, and asks
+  whether they are alive or dead in **Looks and bio**. In an event's **Who was there**, a saved
+  character's number gives **Something changed for them here** and **They die here**.
 - **Relationship web** lists who one character knows, finds how two characters are connected through
   others, and lists who has the most connections. Its export draws the web as a picture in the HTML file.
 - **Dice and checks** makes a check for a saved character (or nobody in particular) against a difficulty,
@@ -454,6 +485,7 @@ assets/fonts/         the window's heading fonts (Cinzel, Cormorant Garamond) an
 src/main.cpp          the console version's main menu
 src/model.*           the data structures (characters, artifacts, pathways)
 src/rules.*           modifiers, tiers, bonuses, suggestions
+src/relations.*       relationships: both sides kept in step, names linked, ties through organizations
 src/storage.*         loading and saving JSON, backups
 src/ui.*              console prompts
 src/records.*         saving, deleting and adding sample sets, shared by both programs

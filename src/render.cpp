@@ -407,6 +407,9 @@ blockquote { margin: 8px 0; padding: 8px 16px; border-left: 3px solid var(--gold
 .web.labels .edge-label, .web.focus .edge.on .edge-label { opacity: 1; }
 .web .node circle { fill: var(--card); stroke: var(--c); stroke-width: 2.5; }
 .web .node.unsaved circle { stroke: var(--muted); stroke-dasharray: 3 3; }
+.web .edge.through line { stroke-dasharray: 6 4; }
+.web .node.dead circle { stroke: var(--muted); fill: var(--rule); }
+.web .node.dead .badge { fill: var(--muted); }
 .web .node .badge { font-size: 13px; font-weight: bold; fill: var(--c); text-anchor: middle; dominant-baseline: central; }
 .web .node.unsaved .badge { fill: var(--muted); }
 .web .node .name { font-size: 12px; fill: var(--ink); text-anchor: middle; paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
@@ -558,7 +561,7 @@ void renderHtmlWeb(std::ostringstream& out, const WebFigure& web) {
         if (e.a >= web.nodes.size() || e.b >= web.nodes.size()) continue;
         const FigureNode& a = web.nodes[e.a];
         const FigureNode& b = web.nodes[e.b];
-        out << "<g class=\"edge tinted\" data-a=\"" << e.a << "\" data-b=\"" << e.b << "\"" << colourVariables(e.colour)
+        out << "<g class=\"edge tinted" << (e.through ? " through" : "") << "\" data-a=\"" << e.a << "\" data-b=\"" << e.b << "\"" << colourVariables(e.colour)
             << "><line x1=\"" << number(a.x) << "\" y1=\"" << number(a.y) << "\" x2=\"" << number(b.x) << "\" y2=\""
             << number(b.y) << "\"/><text class=\"edge-label\" x=\"" << number((a.x + b.x) * 0.5f) << "\" y=\""
             << number((a.y + b.y) * 0.5f - 3.0f) << "\">" << escapeHtml(e.label) << "</text><title>" << escapeHtml(e.tip)
@@ -572,7 +575,7 @@ void renderHtmlWeb(std::ostringstream& out, const WebFigure& web) {
         std::string style = colourVariables(n.colour);
         const std::string delay = "--d:" + number(static_cast<float>(std::min<size_t>(i, 40)) * 0.03f) + "s";
         style = style.empty() ? " style=\"" + delay + "\"" : style.substr(0, style.size() - 1) + ";" + delay + "\"";
-        out << "<g class=\"node tinted" << (n.saved ? "" : " unsaved") << "\" data-i=\"" << i << "\"" << style
+        out << "<g class=\"node tinted" << (n.saved ? "" : " unsaved") << (n.dead ? " dead" : "") << "\" data-i=\"" << i << "\"" << style
             << " transform=\"translate(" << number(n.x) << " " << number(n.y)
             << ")\"><circle r=\"" << number(n.radius) << "\"/><text class=\"badge\">" << escapeHtml(n.badge)
             << "</text><text class=\"name\" y=\"" << number(n.radius + 15.0f) << "\">" << escapeHtml(n.name)

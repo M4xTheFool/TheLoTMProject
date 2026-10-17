@@ -103,6 +103,10 @@ struct Relationship {
     std::string name;     // who they are; for a saved character, their name when the link was made
     std::string type;     // Ally, Rival, Mentor ...
     std::string note;
+    // A relationship with a whole saved organization instead of one person (characterId is then 0). It
+    // reaches every member, unless a member has a relationship of their own with this character; see
+    // tiesThroughOrganizations in relations.hpp.
+    int organizationId = 0;
 };
 
 // An official file on the character, as a church or agency would keep it.
@@ -179,6 +183,7 @@ struct CharacterStage {
     SecondPathway secondPathway;
     std::string sefirahId;
     std::string stateOfMind;
+    std::string life;  // alive or dead then: empty = alive, "Dead", or your own words
     Affiliation affiliation;
     std::string status;  // as in the dossier: Active, Missing, Deceased ...
     std::vector<std::string> titles;
@@ -204,6 +209,11 @@ struct Character {
     // kStatesOfMind in rules.hpp, or your own words. Empty = not recorded.
     std::string stateOfMind;
     std::string stateOfMindNote;
+    // Alive or dead now: "Dead", "Alive", or your own words ("Revived", "A wandering spirit"). Empty is
+    // alive, unless their latest stage or a change at a story event has them dead (see deathOf in story.hpp).
+    std::string life;
+    std::string lifeNote;  // how they died, or came back
+    StoryDate diedOn;      // when they died, for one who is dead now
     std::string alignment;
     std::vector<std::string> titles;
     std::vector<std::string> aliases;
@@ -368,7 +378,8 @@ std::string organizationCode(int id);  // "O-001"
 std::string pathwayLabel(const Database& db, const std::string& pathwayId);  // "Seer (The Fool)"
 std::string sequenceLabel(const Pathway* pathway, int sequence);             // "Sequence 7: Magician"
 std::string sefirahLabel(const Database& db, const std::string& sefirahId);   // "Sefirah Castle (Lord of the Mysteries)"
-std::string relationshipName(const Database& db, const Relationship& r);     // "Fors Wall (C-002)" or "Fors Wall"
+// "Fors Wall (C-002)", "Aurora Order (O-003)" for an organization, or "Fors Wall"
+std::string relationshipName(const Database& db, const Relationship& r);
 // "Klein Moretti" -> "KM": the first letter of the first and last word, stopping at a bracket.
 std::string nameInitials(const std::string& name);
 

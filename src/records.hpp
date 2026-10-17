@@ -14,10 +14,13 @@ namespace lotm {
 
 struct CharacterSaveReport {
     std::vector<std::string> cleanups;  // fields removed because they no longer apply (see normalizeCharacter)
-    std::vector<std::string> linked;    // relationships added or removed on other characters
+    std::vector<std::string> linked;    // relationships, events and organizations that found them, one line each
 };
 
 // Cleans up `c`, keeps relationships two-way, stamps the time and saves. `c` is updated in place.
+// Names typed by hand elsewhere find them too: people at story events and an organization's leader
+// with their name are linked to them, and an organization that lists them by name among the members
+// who aren't saved characters makes them a member (when they have no affiliation yet).
 CharacterSaveReport saveCharacter(App& app, Character& c, bool isNew);
 // Saves a copy named "... (copy)" and returns its id.
 int duplicateCharacter(App& app, int id);
@@ -41,10 +44,10 @@ void tidyEventChanges(StoryEvent& e);
 
 // Saves an organization (data/organizations.json), linking a leader typed by name to the saved character.
 // Renaming one renames it for its members too: every affiliation that named it by its old name (now, in
-// a stage, at a story event, or as who filed a dossier) gets the new one. Returns how many characters'
-// affiliations were renamed.
+// a stage, at a story event, or as who filed a dossier) gets the new one. Relationships that name it by
+// hand are linked to it. Returns how many characters' affiliations were renamed.
 int saveOrganization(App& app, Organization& o, bool isNew);
-// Its members keep it as their affiliation, as typed text.
+// Its members keep it as their affiliation, and relationships with it keep its name, as typed text.
 void deleteOrganization(App& app, int id);
 // Makes a saved character a member: their affiliation becomes the organization's name, with this rank.
 void joinOrganization(App& app, int characterId, const Organization& o, const std::string& rank);

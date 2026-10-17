@@ -6,6 +6,7 @@
 
 #include "rules.hpp"
 #include "storage.hpp"
+#include "story.hpp"
 #include "window.hpp"
 
 namespace lotm::window {
@@ -14,20 +15,28 @@ namespace {
 
 float mix(float a, float b, float t) { return a + (b - a) * t; }
 
-// What the web is built from: who is saved, their pathways and relationships, and what is shown.
-// When any of it changes, the web is built again.
+// What the web is built from: who is saved, their pathways, relationships and deaths, the organizations
+// (whose members a relationship with one reaches), and what is shown. When any of it changes, the web is
+// built again.
 std::string signatureOf(const Database& db, const WebOptions& options) {
     std::string sig;
     for (bool shown : options.bonds) sig += shown ? '1' : '0';
     sig += options.unsavedPeople ? 'u' : '-';
     sig += options.loners ? 'l' : '-';
+    sig += options.throughOrganizations ? 'o' : '-';
     sig += options.organization + '\x1f';
     for (const Character& c : db.characters) {
         sig += std::to_string(c.id) + '\x1e' + c.name + '\x1e' + c.pathwayId + '\x1e' + std::to_string(c.sequence) +
-               (c.aboveSequence ? "a" : "") + '\x1e' + c.affiliation.organization;
+               (c.aboveSequence ? "a" : "") + '\x1e' + c.affiliation.organization + '\x1e' + deathText(deathOf(c, db), db);
         for (const Relationship& r : c.relationships) {
-            sig += '\x1d' + std::to_string(r.characterId) + '\x1c' + r.name + '\x1c' + r.type + '\x1c' + r.note;
+            sig += '\x1d' + std::to_string(r.characterId) + '\x1c' + std::to_string(r.organizationId) + '\x1c' + r.name +
+                   '\x1c' + r.type + '\x1c' + r.note;
         }
+        sig += '\x1f';
+    }
+    for (const Organization& o : db.organizations) {
+        sig += std::to_string(o.id) + '\x1e' + o.name;
+        for (const std::string& other : o.alsoKnownAs) sig += '\x1d' + other;
         sig += '\x1f';
     }
     return sig;
@@ -109,6 +118,19 @@ void marchingLine(ImDrawList* draw, ImVec2 a, ImVec2 b, ImU32 colour, float thic
         if (to <= from) continue;
         draw->AddLine(ImVec2(a.x + unit.x * from, a.y + unit.y * from), ImVec2(a.x + unit.x * to, a.y + unit.y * to),
                       colour, thickness);
+    }
+}
+
+// A line of still dashes from a to b, for a relationship through an organization.
+void dashedLine(ImDrawList* draw, ImVec2 a, ImVec2 b, ImU32 colour, float thickness) {
+    const float length = std::hypot(b.x - a.x, b.y - a.y);
+    if (length < 1.0f) return;
+    const ImVec2 unit((b.x - a.x) / length, (b.y - a.y) / length);
+    const float dash = 7.0f, gap = 5.0f;
+    for (float at = 0.0f; at < length; at += dash + gap) {
+        const float to = std::min(at + dash, length);
+        draw->AddLine(ImVec2(a.x + unit.x * at, a.y + unit.y * at), ImVec2(a.x + unit.x * to, a.y + unit.y * to), colour,
+                      thickness);
     }
 }
 
@@ -217,11 +239,12 @@ void pathSection(WindowState& w, std::vector<size_t>& path) {
             const WebEdge* edge = edgeBetween(s.web, path[i - 1], path[i]);
             std::string how = edge ? (edge->a == path[i - 1] ? edge->fromA : edge->fromB) : "";
             if (edge && how.empty()) how = edge->label();
+            if (edge && !edge->through.empty()) how += ", through " + edge->through;
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + font * 0.55f);
             ImGui::TextColored(edge ? colourFromHex(bondColour(edge->bond)) : palette().muted, "|  %s", how.c_str());
         }
         const ImVec4 colour = node.characterId ? pathwayColour(w.app.db, node.pathwayId) : palette().muted;
-        medallion(w, node.badge, colour, font * 0.7f);
+        medallion(w, node.badge, node.death.empty() ? colour : mourned(colour, 1.0f), font * 0.7f);
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted(node.name.c_str());
@@ -239,7 +262,7 @@ void pickedSection(WindowState& w) {
     const WebNode& node = s.web.nodes[static_cast<size_t>(index)];
     const float font = ImGui::GetFontSize();
     const ImVec4 colour = node.characterId ? pathwayColour(w.app.db, node.pathwayId) : palette().muted;
-    medallion(w, node.badge, colour, font * 1.3f);
+    medallion(w, node.badge, node.death.empty() ? colour : mourned(colour, 1.0f), font * 1.3f);
     ImGui::SameLine();
     ImGui::BeginGroup();
     ImGui::PushFont(w.fonts.heading, ImGui::GetStyle().FontSizeBase * 1.35f);
@@ -254,6 +277,11 @@ void pickedSection(WindowState& w) {
         ImGui::TextWrapped("Not a saved character");
     }
     ImGui::PopStyleColor();
+    if (!node.death.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, deathColour());
+        ImGui::TextWrapped("%s", node.death.c_str());
+        ImGui::PopStyleColor();
+    }
     ImGui::EndGroup();
 
     ImGui::TextDisabled("%s", connectionsText(node.connections).c_str());
@@ -273,6 +301,10 @@ void pickedSection(WindowState& w) {
         if (!how.empty() || !e.label().empty()) {
             ImGui::SameLine();
             ImGui::TextDisabled("%s", (how.empty() ? e.label() : how).c_str());
+        }
+        if (!e.through.empty()) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("through %s", e.through.c_str());
         }
         if (!e.note.empty()) ImGui::SetItemTooltip("%s", e.note.c_str());
     }
@@ -498,7 +530,9 @@ void canvas(WindowState& w, const std::vector<size_t>& path) {
         const ImVec2 mid((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f);
         const ImVec2 from(mid.x + (a.x - mid.x) * appear, mid.y + (a.y - mid.y) * appear);
         const ImVec2 to(mid.x + (b.x - mid.x) * appear, mid.y + (b.y - mid.y) * appear);
-        draw->AddLine(from, to, colourU32(colour, alpha), touches ? mix(1.8f, 3.0f, focus) : 1.8f);
+        // Through an organization: dashed, as the organization's relationship rather than their own.
+        if (e.through.empty()) draw->AddLine(from, to, colourU32(colour, alpha), touches ? mix(1.8f, 3.0f, focus) : 1.8f);
+        else dashedLine(draw, from, to, colourU32(colour, alpha), touches ? mix(1.6f, 2.6f, focus) : 1.6f);
         if ((wordsFit && focus < 0.5f) || (touches && focus > 0.3f)) {
             // Around someone hovered, each word sits nearer the other person, so they don't pile up in the middle.
             ImVec2 at = mid;
@@ -531,11 +565,14 @@ void canvas(WindowState& w, const std::vector<size_t>& path) {
         if (grow <= 0.0f) continue;
         const float r = nodeRadius(s, node) * std::max(grow, 0.0f);
         const float alpha = (on[i] ? 1.0f : mix(1.0f, 0.18f, focus)) * std::clamp(grow, 0.0f, 1.0f);
-        ImVec4 colour = node.characterId ? pathwayColour(db, node.pathwayId) : palette().muted;
+        // Someone who has died: greyed, with a mourning band across the corner.
+        const float dead = glide(ImGui::GetID(("webDead " + s.web.key(i)).c_str()), node.death.empty() ? 0.0f : 1.0f, 5.0f);
+        ImVec4 colour = node.characterId ? mourned(pathwayColour(db, node.pathwayId), dead) : palette().muted;
         colour.w = alpha;
         draw->AddCircleFilled(p, r, colourU32(ImGui::GetStyleColorVec4(ImGuiCol_ChildBg), alpha));
         if (node.characterId) {
             medallionAt(w, p, r, colour, node.badge);
+            mourningBand(draw, p, r, dead, alpha);
         } else {
             dashedCircle(draw, p, r, colourU32(colour), 1.6f);
             const float textSize = r * 0.8f;
@@ -575,6 +612,7 @@ void canvas(WindowState& w, const std::vector<size_t>& path) {
             const Pathway* p = db.findPathway(node.pathwayId);
             ImGui::TextDisabled("%s%s", node.level.c_str(), p ? (", " + p->name + " pathway").c_str() : "");
             if (!node.organization.empty()) ImGui::TextDisabled("%s", node.organization.c_str());
+            if (!node.death.empty()) ImGui::TextColored(deathColour(), "%s", node.death.c_str());
         } else {
             ImGui::TextDisabled("Named in a relationship; not a saved character");
         }
@@ -645,6 +683,8 @@ void drawWebScreen(WindowState& w) {
     }
     ImGui::Checkbox("People who aren't saved", &s.options.unsavedPeople);
     ImGui::SetItemTooltip("People named in a relationship who aren't saved characters, drawn dashed.");
+    ImGui::Checkbox("Through organizations", &s.options.throughOrganizations);
+    ImGui::SetItemTooltip("A relationship with a whole organization, as a dashed line to each of its members.");
     ImGui::Checkbox("Characters with no lines", &s.options.loners);
     ImGui::SetItemTooltip("Characters without any relationship shown wait in a ring around the rest.");
     ImGui::Checkbox("Words on the lines", &s.labels);

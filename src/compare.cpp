@@ -63,8 +63,14 @@ bool saysNothing(const CompareRow& row) {
                        [](const std::string& value) { return value.empty() || value == "-"; });
 }
 
-// The relationships between the compared characters, each pair described once.
-std::vector<std::string> relationshipsBetween(const std::vector<const Character*>& characters) {
+// "Klein Moretti and Amon: Enemy", or "Dunn Smith is Leonard Mitchell's superior".
+std::string pairLine(const std::string& from, const std::string& to, const std::string& type) {
+    return reciprocalType(type) == type ? from + " and " + to + ": " + type : to + " is " + from + "'s " + inSentence(type);
+}
+
+// The relationships between the compared characters, each pair described once, and then the ones that
+// reach them through an organization.
+std::vector<std::string> relationshipsBetween(const std::vector<const Character*>& characters, const Database& db) {
     std::vector<std::string> lines;
     for (size_t i = 0; i < characters.size(); ++i) {
         for (size_t j = 0; j < characters.size(); ++j) {
@@ -81,11 +87,16 @@ std::vector<std::string> relationshipsBetween(const std::vector<const Character*
                         });
                     if (saidAlready) continue;
                 }
-                std::string line = reciprocalType(r.type) == r.type
-                                       ? from.name + " and " + to.name + ": " + r.type
-                                       : to.name + " is " + from.name + "'s " + inSentence(r.type);
+                std::string line = pairLine(from.name, to.name, r.type);
                 if (!r.note.empty()) line += " (" + r.note + ")";
                 lines.push_back(line);
+            }
+        }
+    }
+    for (size_t i = 0; i < characters.size(); ++i) {
+        for (size_t j = i + 1; j < characters.size(); ++j) {
+            for (const auto& [type, organization] : tiesBetween(db, *characters[i], *characters[j])) {
+                lines.push_back(pairLine(characters[i]->name, characters[j]->name, type) + ", through the " + organization);
             }
         }
     }
@@ -193,6 +204,17 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
             return it == kThreatLevels.end() ? kMissing : static_cast<int>(it - kThreatLevels.begin());
         })));
     overview.rows.push_back(textRow("State of mind", each([](const Character& c, const Pathway*) { return c.stateOfMind; })));
+    {
+        // Only when one of them has died or has their own words for it.
+        CompareRow life = textRow("Alive or dead", each([&](const Character& c, const Pathway*) {
+            const Death death = deathOf(c, db);
+            if (death.dead) return deathText(death, db);
+            return c.life.empty() ? std::string("Alive") : c.life;
+        }));
+        if (std::any_of(life.values.begin(), life.values.end(), [](const std::string& v) { return v != "Alive"; })) {
+            overview.rows.push_back(life);
+        }
+    }
     overview.rows.push_back(textRow("Sefirah", each([&](const Character& c, const Pathway*) {
         return c.sefirahId.empty() ? std::string() : sefirahLabel(db, c.sefirahId);
     })));
@@ -255,7 +277,7 @@ Comparison buildComparison(const std::vector<const Character*>& characters, cons
         section.rows.erase(std::remove_if(section.rows.begin(), section.rows.end(), saysNothing), section.rows.end());
     }
 
-    out.between = relationshipsBetween(characters);
+    out.between = relationshipsBetween(characters, db);
     return out;
 }
 
@@ -371,8 +393,20 @@ Comparison buildOrganizationComparison(const std::vector<const Organization*>& o
                 }
                 const std::string fromName = from.name + " (" + organizations[groupOf[i]]->name + ")";
                 const std::string toName = to.name + " (" + organizations[groupOf[j]]->name + ")";
-                std::string line = reciprocalType(r.type) == r.type ? fromName + " and " + toName + ": " + r.type
-                                                                    : toName + " is " + fromName + "'s " + inSentence(r.type);
+                std::string line = pairLine(fromName, toName, r.type);
+                if (!r.note.empty()) line += " (" + r.note + ")";
+                out.between.push_back(line);
+            }
+        }
+    }
+    // A member of one with a relationship with another as a whole.
+    for (size_t i = 0; i < people.size(); ++i) {
+        for (const Relationship& r : people[i]->relationships) {
+            for (size_t j = 0; j < organizations.size(); ++j) {
+                if (j == groupOf[i] || r.organizationId != organizations[j]->id || r.type.empty()) continue;
+                std::string line = pairLine(people[i]->name + " (" + organizations[groupOf[i]]->name + ")",
+                                            "the " + organizations[j]->name, r.type);
+                line[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(line[0])));  // "The Aurora Order is ..."
                 if (!r.note.empty()) line += " (" + r.note + ")";
                 out.between.push_back(line);
             }

@@ -13,6 +13,7 @@
 #include "render.hpp"
 #include "rules.hpp"
 #include "sheet.hpp"
+#include "story.hpp"
 #include "ui.hpp"
 
 namespace lotm {
@@ -28,7 +29,28 @@ void stepName(Character& c) {
     c.name = ui::readRequired("Character name", c.name);
 }
 
-void stepLooks(Character& c) {
+// Alive or dead, as on the window's Identity tab: for someone dead by this, when and how they died.
+void askLife(const App& app, Character& c) {
+    Character before = c;  // without this setting: what their stages and story events say
+    before.life.clear();
+    const Death elsewhere = deathOf(before, app.db);
+    if (elsewhere.dead) {
+        ui::info(deathText(elsewhere, app.db) + (elsewhere.eventId != 0 ? ", as the story event says." : ", in one of their stages."));
+        ui::info("Alive here means they came back.");
+    }
+    c.life = ui::choosePreset("Alive or dead", kLifeStates, c.life);
+    if (elsewhere.dead && ui::toLower(c.life) == "alive") c.life = "Alive";
+    if (isDead(c.life)) {
+        c.diedOn = readStoryDate("When did they die? (e.g. 3 July 1360; Enter for not known)", c.diedOn);
+        c.lifeNote = ui::readText("How they died (optional)", c.lifeNote);
+    } else if (!c.life.empty()) {
+        c.lifeNote = ui::readText("More about it (optional)", c.lifeNote);
+    } else {
+        c.lifeNote.clear();
+    }
+}
+
+void stepLooks(const App& app, Character& c) {
     ui::header("2. Looks and bio");
     ui::info("Pick from the lists or type your own. Enter keeps the current value, 0 skips.");
     c.appearance.hair = ui::choosePreset("Hair colour", kHair, c.appearance.hair);
@@ -47,6 +69,7 @@ void stepLooks(Character& c) {
     ui::info("About them (all optional):");
     c.age = ui::readText("Age", c.age);
     c.gender = ui::readText("Gender", c.gender);
+    askLife(app, c);
     c.shortDescription = ui::readMultiline("Short description", c.shortDescription);
     c.backstory = ui::readMultiline("Backstory", c.backstory);
 }
@@ -372,7 +395,8 @@ void finishRelationship(const App& app, Character& c, Relationship r) {
     c.relationships.push_back(r);
 }
 
-// Anyone can be named. If the name matches a saved character, the two are linked.
+// Anyone can be named. If the name matches a saved character, the two are linked; failing that, a saved
+// organization's name links it, and the relationship reaches every member.
 void addRelationship(const App& app, Character& c, const std::string& typed) {
     Relationship r;
     r.name = typed;
@@ -386,6 +410,36 @@ void addRelationship(const App& app, Character& c, const std::string& typed) {
         int pick = ui::choose("Is this one of your saved characters?", names, "No, just add \"" + typed + "\"");
         if (pick >= 0) r.characterId = matches[pick]->id;
     }
+    if (r.characterId == 0) {
+        if (const Organization* o = organizationNamed(app.db, typed)) {
+            r.organizationId = o->id;
+            r.name = o->name;
+            ui::info("Linked to the organization " + relationshipName(app.db, r) + ": it reaches all its members.");
+        }
+    }
+    finishRelationship(app, c, r);
+}
+
+// Picks one of the saved organizations: the relationship is with it as a whole, so with every member.
+void pickOrganization(const App& app, Character& c) {
+    const std::vector<const Organization*> offered = organizationsByName(app.db);
+    if (offered.empty()) {
+        ui::info("There are no saved organizations yet. Add them in the Organizations menu.");
+        return;
+    }
+    std::vector<std::string> names;
+    for (const Organization* o : offered) {
+        const size_t members = membersOf(*o, app.db).size();
+        names.push_back(o->name + " (" + organizationCode(o->id) + ", " + std::to_string(members) +
+                        (members == 1 ? " saved member)" : " saved members)"));
+    }
+    const int pick = ui::choose("Which organization?", names, "Cancel");
+    if (pick < 0) return;
+    Relationship r;
+    r.organizationId = offered[static_cast<size_t>(pick)]->id;
+    r.name = offered[static_cast<size_t>(pick)]->name;
+    ui::info("It reaches all its members, unless one has a relationship of their own with " +
+             (c.name.empty() ? std::string("them") : c.name) + ".");
     finishRelationship(app, c, r);
 }
 
@@ -423,10 +477,15 @@ void editRelationships(const App& app, Character& c) {
             std::cout << "\n";
         }
         std::string value = ui::readLine(
-            "  P picks one of your saved characters, a typed name adds anyone, a number removes one, Enter when done: ");
+            "  P picks one of your saved characters, O an organization, a typed name adds anyone, a number removes one,\n"
+            "  Enter when done: ");
         if (value.empty()) return;
         if (value == "p" || value == "P") {
             pickSavedCharacter(app, c);
+            continue;
+        }
+        if (value == "o" || value == "O") {
+            pickOrganization(app, c);
             continue;
         }
         const bool isNumber =
@@ -694,7 +753,7 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
         ui::info("Ten short steps. Enter keeps a value or skips an optional one; \"-\" clears text.");
         ui::info("Everything can be changed on the review screen at the end.");
         stepName(c);
-        stepLooks(c);
+        stepLooks(app, c);
         stepPathway(app, c, false);
         if (!c.pathwayId.empty()) {
             stepSequence(app, c);
@@ -714,7 +773,7 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
         ui::header(isNew ? "Review the new character" : "Edit character");
         std::cout << renderText(buildCharacterSheet(c, app.db));
         int pick = ui::choose("\nChange something, or save:",
-                              {"Name", "Looks and bio", "Pathway", "Sequence",
+                              {"Name", "Looks and bio (and alive or dead)", "Pathway", "Sequence",
                                "Pathway switches and state of mind (a mixed-pathway Beyonder)",
                                "Customization (alignment, titles, aliases, honorific, Uniqueness, second pathway, Sefirah)",
                                "Affiliation and relationships", "Stat block, HP and Spirituality",
@@ -723,7 +782,7 @@ std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
                               "Cancel without saving");
         switch (pick) {
             case 0: stepName(c); break;
-            case 1: stepLooks(c); break;
+            case 1: stepLooks(app, c); break;
             case 2: stepPathway(app, c, true); break;
             case 3: stepSequence(app, c); break;
             case 4: stepPathwaySwitches(app, c); break;

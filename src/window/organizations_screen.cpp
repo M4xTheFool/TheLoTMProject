@@ -6,6 +6,7 @@
 
 #include "organizations.hpp"
 #include "records.hpp"
+#include "relations.hpp"
 #include "rules.hpp"
 #include "storage.hpp"
 #include "story.hpp"
@@ -139,7 +140,9 @@ void listPanel(WindowState& w) {
         if (!shows(o->name, o->alsoKnownAs)) continue;
         ++shown;
         const bool selected = draft.open && !draft.isNew && draft.value.id == o->id;
-        const size_t members = membersOf(*o, db).size() + o->otherMembers.size();
+        // The living, as its page counts them.
+        size_t members = o->otherMembers.size();
+        for (const Member& m : membersOf(*o, db)) members += deadNow(*m.character, db) ? 0 : 1;
         const std::string subtitle = countOf(members, "member", "members") + "  \xC2\xB7  " +
                                      (o->kind.empty() ? organizationCode(o->id) : o->kind);
         if (listCard(w, "o" + std::to_string(o->id), selected, organizationColour(db, *o), initials(o->name), o->name,
@@ -334,6 +337,7 @@ struct Seat {
     ImVec4 colour;
     bool leader = false;
     const Character* character = nullptr;  // nullptr for the others
+    std::string death;                     // "Died 1349 ..." for a member who has died
 };
 
 // The leader, then its saved members as membersOf orders them, then the others. "Dunn Smith, Captain" is
@@ -342,7 +346,7 @@ std::vector<Seat> seatsAt(const Database& db, const Organization& o, const std::
     std::vector<Seat> seats;
     for (const Member& m : members) {
         seats.push_back({m.character->id, m.character->name, memberRole(m), pathwayColour(db, m.character->pathwayId), m.leader,
-                         m.character});
+                         m.character, deathText(deathOf(*m.character, db), db)});
     }
     const std::string leader = ui::toLower(ui::trim(leaderName(o, db)));
     int next = -1;
@@ -451,7 +455,10 @@ void roundTable(WindowState& w, const Organization& o, const std::vector<Member>
         if (who.leader) {
             draw->AddCircle(p.at, r + font * 0.28f, colourU32(palette().gold, 0.9f * p.shown), 0, std::max(1.5f, font * 0.1f));
         }
-        medallionAt(w, p.at, r, faded(who.colour, p.shown), initials(who.name));
+        // A member who has died: greyed, with a mourning band.
+        const float dead = glide(ImGui::GetID(("seatDead " + std::to_string(who.key)).c_str()), who.death.empty() ? 0.0f : 1.0f, 5.0f);
+        medallionAt(w, p.at, r, faded(mourned(who.colour, dead), p.shown), initials(who.name));
+        mourningBand(draw, p.at, r, dead * p.shown);
         // The name and rank below, once they have arrived.
         const float words = std::clamp((p.shown - 0.6f) / 0.4f, 0.0f, 1.0f);
         if (words <= 0.0f) continue;
@@ -485,6 +492,7 @@ void roundTable(WindowState& w, const Organization& o, const std::vector<Member>
         if (!it->role.empty()) ImGui::TextColored(it->leader ? palette().gold : palette().muted, "%s", it->role.c_str());
         if (it->character) {
             ImGui::TextDisabled("%s", levelText(*it->character, db).c_str());
+            if (!it->death.empty()) ImGui::TextColored(deathColour(), "%s", it->death.c_str());
             ImGui::TextDisabled("Click to open their page.");
         } else {
             ImGui::TextDisabled("Not a saved character. Change them on the Details tab.");
@@ -545,6 +553,8 @@ void addMemberPopup(WindowState& w, const Organization& saved) {
             const std::string before = isIndependent(c->affiliation.organization) ? "" : ui::trim(c->affiliation.organization);
             try {
                 joinOrganization(w.app, picked, saved, s.newMemberRank);
+                // A line naming them among the members who aren't saved characters is gone now.
+                if (!s.draft.dirty()) open(w, saved, false);
                 reloadCharacterDraft(w);
                 setStatus(w, name + " joined " + saved.name + (before.empty() ? "." : ", leaving " + before + "."));
                 s.newMemberRank.clear();
@@ -588,14 +598,21 @@ void membersTab(WindowState& w, const Organization& o, const Organization& view,
             ImGui::PushID(c.id);
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            statusDot(pathwayColour(db, c.pathwayId));
+            const Death death = deathOf(c, db);
+            statusDot(death.dead ? deathColour() : pathwayColour(db, c.pathwayId));
             if (ImGui::TextLink(c.name.c_str())) openCharacter(w, c.id);
             ImGui::TableNextColumn();
             if (m.leader) ImGui::TextColored(palette().gold, "%s", memberRole(m).c_str());
             else if (m.rank.empty()) ImGui::TextDisabled("-");
             else ImGui::TextUnformatted(m.rank.c_str());
             ImGui::TableNextColumn();
-            ImGui::TextWrapped("%s", levelText(c, db).c_str());
+            if (death.dead) {
+                ImGui::PushStyleColor(ImGuiCol_Text, deathColour());
+                ImGui::TextWrapped("%s. %s", levelText(c, db).c_str(), deathText(death, db).c_str());
+                ImGui::PopStyleColor();
+            } else {
+                ImGui::TextWrapped("%s", levelText(c, db).c_str());
+            }
             ImGui::TableNextColumn();
             const bool editing = w.characters.draft.dirty() && w.characters.draft.value.id == c.id;
             ImGui::BeginDisabled(editing);
@@ -624,11 +641,81 @@ void membersTab(WindowState& w, const Organization& o, const Organization& view,
     if (!others.empty()) {
         ImGui::Spacing();
         heading(w, "Not saved as characters");
+        int join = 0;
+        std::string joinRank;
         for (const auto& line : others) {
+            ImGui::PushID(line.c_str());
             ImGui::Bullet();
             ImGui::TextWrapped("%s", line.c_str());
+            // Someone saved since with that name: one click makes them a member, with the line's role as their rank.
+            const auto comma = line.find(',');
+            const std::string name = ui::trim(line.substr(0, comma));
+            const auto found = db.findCharactersByName(name, 0);
+            const Character* c = found.size() == 1 && ui::toLower(found[0]->name) == ui::toLower(name) ? found[0] : nullptr;
+            if (c && saved) {
+                ImGui::SameLine();
+                const std::string where = isIndependent(c->affiliation.organization)
+                                              ? "is a saved character now"
+                                              : "is a saved character, in " + c->affiliation.organization;
+                ImGui::TextDisabled("%s", where.c_str());
+                ImGui::SameLine();
+                const bool editing = w.characters.draft.dirty() && w.characters.draft.value.id == c->id;
+                ImGui::BeginDisabled(editing || s.draft.dirty());
+                if (ImGui::SmallButton("Make them a member")) {
+                    join = c->id;
+                    joinRank = comma == std::string::npos ? "" : ui::trim(line.substr(comma + 1));
+                }
+                ImGui::EndDisabled();
+                ImGui::SetItemTooltip("%s", editing           ? "They have unsaved changes on the Characters tab."
+                                            : s.draft.dirty() ? "Save the changes here first."
+                                                              : "Their affiliation becomes this organization, and the line here goes.");
+            }
+            ImGui::PopID();
         }
-        ImGui::TextDisabled("Change these on the Details tab.");
+        ImGui::TextDisabled("Change these on the Details tab. Anyone here saved as a character later joins by themselves.");
+        if (join != 0 && saved) {
+            const std::string name = db.findCharacter(join)->name;
+            const std::string organization = saved->name;
+            try {
+                joinOrganization(w.app, join, *saved, joinRank);  // which takes the line away too
+                if (const Organization* now = db.findOrganization(o.id)) open(w, *now, false);
+                reloadCharacterDraft(w);
+                setStatus(w, name + " joined " + organization + ".");
+            } catch (const StorageError& e) {
+                setStatus(w, std::string("Saving failed: ") + e.what(), true);
+            }
+        }
+    }
+
+    // Relationships your characters have with it as a whole, which reach every member.
+    const std::vector<OrganizationRelationship> ties = saved ? relationshipsWithOrganization(db, saved->id)
+                                                             : std::vector<OrganizationRelationship>{};
+    if (!ties.empty()) {
+        ImGui::Spacing();
+        heading(w, "Relationships with it");
+        ImGui::TextDisabled("Each reaches every member, unless a member has a relationship of their own with them.");
+        int openId = 0;
+        for (const OrganizationRelationship& r : ties) {
+            ImGui::PushID(r.character->id);
+            ImGui::PushID(r.relationship);
+            const float shown = glideFrom(ImGui::GetID("shown"), 0.0f, 1.0f, 8.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * shown);
+            const bool dead = deadNow(*r.character, db);
+            statusDot(dead ? deathColour() : pathwayColour(db, r.character->pathwayId));
+            if (ImGui::TextLink(r.character->name.c_str())) openId = r.character->id;
+            ImGui::SameLine();
+            // As the organization sees them: someone who calls it their Mentor is its Student.
+            ImGui::TextUnformatted(reciprocalType(r.relationship->type).c_str());
+            if (!r.relationship->note.empty()) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("%s", r.relationship->note.c_str());
+            }
+            ImGui::PopStyleVar();
+            ImGui::PopID();
+            ImGui::PopID();
+        }
+        ImGui::TextDisabled("Add or change them on a character's Relationships tab.");
+        if (openId != 0) openCharacter(w, openId);
     }
 
     const std::vector<FormerMember> former = formerMembersOf(view, db);
@@ -698,8 +785,9 @@ void strengthTab(WindowState& w, const Organization& o, const Organization& view
     const OrganizationStrength st = organizationStrength(view, db);
     if (st.members == 0) {
         ImGui::Spacing();
-        ImGui::TextWrapped("Its strength comes from its members who are saved characters: their Sequences, threat "
+        ImGui::TextWrapped("Its strength comes from its living members who are saved characters: their Sequences, threat "
                            "levels and Sealed Artifacts. Add some on the Members tab.");
+        if (st.dead > 0) ImGui::TextColored(deathColour(), "%d of its members died.", st.dead);
         return;
     }
     const std::string id = std::to_string(o.id);
@@ -710,6 +798,10 @@ void strengthTab(WindowState& w, const Organization& o, const Organization& view
     ImGui::SetItemTooltip("Every member's threat score added up: their Sequence, recent actions and Sealed Artifacts.");
     ImGui::SameLine(0.0f, font * 3.0f);
     bigNumber(w, "Sealed Artifacts held", st.artifacts, "artifacts " + id);
+    if (st.dead > 0) {
+        ImGui::TextColored(deathColour(), "Not counting the %d %s who died: nothing on this tab does.", st.dead,
+                           st.dead == 1 ? "member" : "members");
+    }
 
     ImGui::Spacing();
     auto person = [&](const char* title, const Character* c, const std::string& extra, const ImVec4& extraColour) {
@@ -822,6 +914,7 @@ void drawOrganizationsScreen(WindowState& w) {
     std::vector<std::pair<std::string, ImVec4>> chips;
     if (!o.status.empty()) chips.push_back({o.status, palette().gold});
     chips.push_back({countOf(static_cast<size_t>(strength.members + strength.others), "member", "members"), colour});
+    if (strength.dead > 0) chips.push_back({countOf(static_cast<size_t>(strength.dead), "member died", "members died"), deathColour()});
     if (!strength.threatLevel.empty()) chips.push_back({"Threat: " + strength.threatLevel, threatColour(strength.threatLevel)});
     if (const std::string leader = leaderName(o, db); !leader.empty()) chips.push_back({"Led by " + leader, palette().muted});
     chipRow(chips);

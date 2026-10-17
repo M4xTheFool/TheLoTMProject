@@ -27,6 +27,7 @@ struct WebNode {
     std::string badge;  // their initials
     std::string level;  // "Sequence 7", "Above the Sequence", "Mortal"; empty for people who aren't saved
     std::string organization;
+    std::string death;  // "Died 3 July 1360 ..." for a saved character who is dead now (see deathOf)
     int connections = 0;
 };
 
@@ -38,6 +39,9 @@ struct WebEdge {
     std::string fromA;
     std::string fromB;
     std::string note;
+    // Not a relationship of their own: one of them has it with an organization the other belongs to.
+    // The organizations, "the Aurora Order" (or "the Aurora Order and the Tarot Club"); empty for their own.
+    std::string through;
     std::string label() const;  // "Friend", "Mentor / Student"
 };
 
@@ -45,6 +49,7 @@ struct WebOptions {
     std::array<bool, kBondCount> bonds{true, true, true, true, true, true, true};  // which kinds to show
     bool unsavedPeople = false;  // people named in relationships who aren't saved characters
     bool loners = true;          // characters without any relationship shown
+    bool throughOrganizations = true;  // relationships with an organization, as a line to each member
     std::string organization;    // only members of this organization; empty for everyone
 };
 

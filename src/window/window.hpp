@@ -173,6 +173,7 @@ struct TimelineScreen {
     double playedAt = 0.0;
     int viewingCharacter = 0;  // a cast card opened as a sheet, as of the marker's date
     int changingPerson = -1;   // the event's person whose change is open (an index into its people)
+    std::map<int, double> diedAt;  // when + Dies here was pressed for a person (by index), so the words fade in
     // What each character's card said last frame, and when it changed, so a change lights up.
     std::map<int, std::string> castLines;
     std::map<int, double> castChangedAt;
@@ -406,7 +407,15 @@ struct CardMarks {
     std::vector<ImVec4> ring;  // the ring in these colours, in equal parts: a mixed-pathway Beyonder's Sequences
     bool dot = false;          // a small dot at the top right in dotColour: their state of mind
     ImVec4 dotColour;
+    bool dead = false;         // greyed, with a mourning band across the corner (see mourningBand)
 };
+// Someone who has died: the colour of a Death on the Timeline, a grey violet.
+ImVec4 deathColour();
+// A colour faded towards grey, by `amount` from 0 (as it is) to 1 (grey), keeping its alpha.
+ImVec4 mourned(const ImVec4& colour, float amount);
+// A dark band across the top right of a medallion, as on a portrait in mourning. `amount` (0 to 1) grows
+// it out from its middle.
+void mourningBand(ImDrawList* draw, ImVec2 centre, float radius, float amount, float alpha = 1.0f);
 // One row of a list on the left: a medallion with `badge`, the title, and a muted line below.
 // Returns true when clicked. `id` must be unique in the list.
 bool listCard(const WindowState& w, const std::string& id, bool selected, const ImVec4& colour,

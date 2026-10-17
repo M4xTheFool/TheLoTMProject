@@ -4,6 +4,8 @@
 #include <cctype>
 #include <utility>
 
+#include "organizations.hpp"
+
 namespace lotm {
 
 namespace {
@@ -19,6 +21,20 @@ bool hasLink(const Character& from, int toId, const std::string& type) {
     return std::any_of(from.relationships.begin(), from.relationships.end(), [&](const Relationship& r) {
         return r.characterId == toId && sameType(r.type, type);
     });
+}
+
+// Whether either of them lists the other, as any kind of relationship.
+bool ownRelationship(const Character& a, const Character& b) {
+    auto lists = [](const Character& from, int id) {
+        return std::any_of(from.relationships.begin(), from.relationships.end(),
+                           [id](const Relationship& r) { return r.characterId == id; });
+    };
+    return lists(a, b.id) || lists(b, a.id);
+}
+
+bool byName(const Character* a, const Character* b) {
+    const std::string x = lowercase(a->name), y = lowercase(b->name);
+    return x != y ? x < y : a->id < b->id;
 }
 
 }  // namespace
@@ -41,7 +57,7 @@ std::vector<std::string> syncRelationships(Database& db, Character& c, const Cha
     for (auto& other : db.characters) {
         if (other.id == c.id || name.empty()) continue;
         for (auto& r : other.relationships) {
-            if (r.characterId != 0 || lowercase(r.name) != name) continue;
+            if (r.characterId != 0 || r.organizationId != 0 || lowercase(r.name) != name) continue;
             r.characterId = c.id;
             changes.push_back(other.name + " already listed " + c.name + " (" + r.type + "); the two are now linked.");
             if (!hasLink(c, other.id, reciprocalType(r.type))) {
@@ -81,6 +97,15 @@ std::vector<std::string> syncRelationships(Database& db, Character& c, const Cha
 
 void linkRelationshipsByName(const Database& db, Character& c) {
     for (auto& r : c.relationships) {
+        if (r.organizationId != 0) {
+            const Organization* linked = db.findOrganization(r.organizationId);
+            if (linked && namesOrganization(*linked, r.name)) {
+                r.characterId = 0;
+                r.name = linked->name;
+                continue;
+            }
+            r.organizationId = 0;
+        }
         if (r.characterId != 0) {
             const Character* linked = db.findCharacter(r.characterId);
             if (linked && lowercase(linked->name) == lowercase(r.name)) continue;
@@ -90,8 +115,72 @@ void linkRelationshipsByName(const Database& db, Character& c) {
         if (!r.name.empty() && matches.size() == 1 && lowercase(matches[0]->name) == lowercase(r.name)) {
             r.characterId = matches[0]->id;
             r.name = matches[0]->name;
+        } else if (const Organization* o = organizationNamed(db, r.name)) {
+            r.organizationId = o->id;
+            r.name = o->name;
         }
     }
+}
+
+std::vector<Tie> tiesThroughOrganizations(const Database& db, const Character& c) {
+    std::vector<Tie> outgoing, incoming;
+    for (const Relationship& r : c.relationships) {
+        const Organization* o = r.organizationId != 0 ? db.findOrganization(r.organizationId) : nullptr;
+        if (!o) continue;
+        std::vector<const Character*> members;
+        for (const Member& m : membersOf(*o, db)) {
+            if (m.character->id != c.id) members.push_back(m.character);
+        }
+        std::sort(members.begin(), members.end(), byName);
+        for (const Character* m : members) outgoing.push_back({m, o, r.type, r.note, true, ownRelationship(c, *m)});
+    }
+    for (const Organization* o : organizationsByName(db)) {
+        if (!belongsTo(db, *o, c.affiliation.organization)) continue;
+        std::vector<Tie> here;
+        for (const Character& other : db.characters) {
+            if (other.id == c.id) continue;
+            for (const Relationship& r : other.relationships) {
+                if (r.organizationId != o->id) continue;
+                here.push_back({&other, o, reciprocalType(r.type), r.note, false, ownRelationship(c, other)});
+            }
+        }
+        std::stable_sort(here.begin(), here.end(), [](const Tie& a, const Tie& b) { return byName(a.other, b.other); });
+        incoming.insert(incoming.end(), here.begin(), here.end());
+    }
+    std::stable_sort(outgoing.begin(), outgoing.end(), [](const Tie& a, const Tie& b) {
+        return lowercase(a.organization->name) < lowercase(b.organization->name);
+    });
+    outgoing.insert(outgoing.end(), incoming.begin(), incoming.end());
+    return outgoing;
+}
+
+std::vector<std::pair<std::string, std::string>> tiesBetween(const Database& db, const Character& a, const Character& b) {
+    std::vector<std::pair<std::string, std::string>> ties;
+    if (a.id == b.id || ownRelationship(a, b)) return ties;
+    // a's relationships with an organization b belongs to, and b's with one a belongs to.
+    for (const Relationship& r : a.relationships) {
+        const Organization* o = r.organizationId != 0 ? db.findOrganization(r.organizationId) : nullptr;
+        if (o && belongsTo(db, *o, b.affiliation.organization)) ties.emplace_back(r.type, o->name);
+    }
+    for (const Relationship& r : b.relationships) {
+        const Organization* o = r.organizationId != 0 ? db.findOrganization(r.organizationId) : nullptr;
+        if (o && belongsTo(db, *o, a.affiliation.organization)) ties.emplace_back(reciprocalType(r.type), o->name);
+    }
+    return ties;
+}
+
+std::vector<OrganizationRelationship> relationshipsWithOrganization(const Database& db, int organizationId) {
+    std::vector<OrganizationRelationship> found;
+    if (organizationId == 0) return found;
+    for (const Character& c : db.characters) {
+        for (const Relationship& r : c.relationships) {
+            if (r.organizationId == organizationId) found.push_back({&c, &r});
+        }
+    }
+    std::stable_sort(found.begin(), found.end(), [](const OrganizationRelationship& x, const OrganizationRelationship& y) {
+        return byName(x.character, y.character);
+    });
+    return found;
 }
 
 }  // namespace lotm

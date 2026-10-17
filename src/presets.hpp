@@ -43,8 +43,8 @@ inline const std::vector<std::string> kOrganizations = {
     "Independent"};
 // Mentor/Student, Parent/Child and Superior/Subordinate flip on the other character's sheet (relations.cpp).
 inline const std::vector<std::string> kRelationshipTypes = {
-    "Lover",  "Spouse", "Close friend", "Friend",  "Acquaintance", "Ally",      "Colleague",   "Rival", "Enemy",
-    "Mentor", "Student", "Parent",      "Child",   "Sibling",      "Relative",  "Superior",    "Subordinate"};
+    "Lover",   "Spouse", "Close friend", "Friend", "Acquaintance", "Ally",    "Colleague", "Rival",    "Enemy",
+    "Neutral", "Mentor", "Student",      "Parent", "Child",        "Sibling", "Relative",  "Superior", "Subordinate"};
 inline const std::vector<std::string> kStatuses = {"Active", "At large", "Under watch", "Cooperating", "In custody",
                                                    "Missing", "Deceased", "Unknown"};
 inline const std::vector<std::string> kSpeedGrades = {"Slow", "Average", "Fast", "Very fast"};

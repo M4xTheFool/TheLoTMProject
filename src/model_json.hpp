@@ -24,7 +24,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Sefirah, id, name, alsoKnownAs, 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Appearance, hair, hairLength, hairStyle, eyes, skin, face, voice,
                                                 build, height, clothing, distinguishingMark, description)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Affiliation, organization, rank)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Relationship, characterId, name, type, note)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Relationship, characterId, name, type, note, organizationId)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Dossier, filedBy, recentActions, recentActionsNote, threatLevel, status,
                                                 lastSeen, remarks)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StatBlock, base, speedBase, hpIncluded, hp, spirituality)
@@ -33,11 +33,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SecondPathway, pathwayId, beyond
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SequenceStep, sequence, pathwayId)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(CharacterStage, date, label, pathwayId, sequence, aboveSequence,
                                                 beyonderCharacteristics, hasUniqueness, uniquenessForm,
-                                                uniquenessAbilities, secondPathway, sefirahId, stateOfMind,
+                                                uniquenessAbilities, secondPathway, sefirahId, stateOfMind, life,
                                                 affiliation, status, titles, aliases, artifactIds, note)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, appearance, age, gender, shortDescription,
                                                 backstory, pathwayId, sequence, mixedSequences, stateOfMind,
-                                                stateOfMindNote, alignment, titles, aliases,
+                                                stateOfMindNote, life, lifeNote, diedOn, alignment, titles, aliases,
                                                 honorificName, beyonderCharacteristics, hasUniqueness, uniquenessForm,
                                                 uniquenessAbilities, aboveSequence, secondPathway, sefirahId, stats,
                                                 artifactIds, affiliation, relationships, dossier, notes, stages,
