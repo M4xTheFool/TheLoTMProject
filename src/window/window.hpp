@@ -18,6 +18,7 @@
 #include "app.hpp"
 #include "checks.hpp"
 #include "exporter.hpp"
+#include "generator.hpp"
 #include "list_filter.hpp"
 #include "model_json.hpp"
 #include "records.hpp"
@@ -82,8 +83,23 @@ struct Draft {
     }
 };
 
+// "Surprise me" on the Characters tab: a new character made by the generator, shown with each part's
+// re-roll button above its tabs until it is saved.
+struct SurpriseState {
+    bool open = false;    // the generator is shown above the new character's tabs
+    bool folded = false;  // shown as one line
+    GeneratorOptions options;  // kept until the window closes, for the next "Surprise me"
+    std::array<double, kGeneratorPartCount> rolledAt{};  // when each part was last rolled, for its die and fade
+    std::array<int, kGeneratorPartCount> faces{};        // the face each part's die landed on
+    double everythingAt = -100.0;  // "Surprise me" and "Re-roll everything", the same
+    int everythingFace = 5;
+    unsigned seed = 1;  // the tumbles and the name's flicker look different every roll
+    int made = 0;       // saved with "Save and make another" since "Surprise me" was clicked
+};
+
 struct CharacterScreen {
     Draft<Character> draft;
+    SurpriseState surprise;
     int sheetStage = -1;         // the Sheet tab shows them as of this stage of theirs ...
     int sheetEvent = 0;          // ... or of their change at this story event; neither: as they are now
     int openStage = -1;          // the stage to unfold on the Stages tab next frame
@@ -297,6 +313,14 @@ void openCharacter(WindowState& w, int id);
 // A stage's fields (all but its date), for the Stages tab and an event's People tab. `key` tells
 // stages apart (each list's half-typed entry is kept by it).
 void stageFields(WindowState& w, const Character& c, CharacterStage& stage, const std::string& key);
+// "Surprise me": a new character from the generator, with the options used last time, opened on the
+// Sheet tab with the generator above it. `another`: after "Save and make another" (the count goes on).
+void openSurprise(WindowState& w, bool another = false);
+// The generator above a new character's tabs (surprise_panel.cpp). True when "Save and make another"
+// was pressed.
+bool drawSurprisePanel(WindowState& w);
+// A name settling after it was rolled at `since`: its letters flicker, then settle one by one from the left.
+std::string settlingName(const std::string& name, double since, unsigned seed);
 // Opens a saved organization on the Organizations tab (asking first about unsaved changes there).
 void openOrganization(WindowState& w, int id);
 // Starts a new organization on the Organizations tab, filled in from the characters who already name it
@@ -435,6 +459,14 @@ ImVec4 stateOfMindColour(const std::string& state);
 // came from, joined by a line that turns dashed at a switch of pathway (red when not a neighbour), with
 // the pathways named below.
 void sequenceLadder(const WindowState& w, const std::vector<LadderRung>& rungs);
+// One die, lying flat and turned by `angle`: its outline for the number of sides, its facets, and `value`
+// (pips on a d6). `r` is about half its width. The Dice tab's tray and the generator's buttons draw them.
+void drawDie(const WindowState& w, ImDrawList* draw, ImVec2 c, float r, float angle, int sides, int value,
+             const ImVec4& accent, float alpha);
+// A button with a d6 in front of its label. The die tumbles for a moment after `rolledAt` (ImGui::GetTime()),
+// flickering through faces, and lands on `face`; hovered, it leans. `width` 0 fits the label.
+bool dieButton(const WindowState& w, const char* id, const std::string& label, float width, double rolledAt, int face,
+               unsigned seed);
 // The six stats as boxes: the total large, the modifier below, base and bonus small.
 void statBoxes(const WindowState& w, const std::vector<StatRow>& stats);
 // The six stats on one chart with six spokes, one outline per set of totals, in the Compare colours.

@@ -74,10 +74,11 @@ DiceTone contestTone(const ContestOutcome& o) {
 ImVec4 checkColour(const CheckOutcome& o) { return toneColour(checkTone(o)); }
 ImVec4 contestColour(const ContestOutcome& o) { return toneColour(contestTone(o)); }
 
+}  // namespace
+
 // ---------------------------------------------------------------- the dice
 
-// One die, lying flat and turned by `angle`: its outline for the number of sides, its facets, and the number
-// (pips on a d6). Drawn upright, then every point is turned, the number with it.
+// Drawn upright, then every point is turned, the number with it.
 void drawDie(const WindowState& w, ImDrawList* draw, ImVec2 c, float r, float angle, int sides, int value,
              const ImVec4& accent, float alpha) {
     const int first = draw->VtxBuffer.Size;
@@ -193,6 +194,8 @@ void drawDie(const WindowState& w, ImDrawList* draw, ImVec2 c, float r, float an
         }
     }
 }
+
+namespace {
 
 // Where each die comes to rest, and how big they are: one group in the middle, or one for each side of a contest.
 struct Resting {

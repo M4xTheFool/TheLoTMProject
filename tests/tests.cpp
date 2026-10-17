@@ -13,6 +13,7 @@
 #include "compare.hpp"
 #include "dice.hpp"
 #include "exporter.hpp"
+#include "generator.hpp"
 #include "list_filter.hpp"
 #include "model_json.hpp"
 #include "organizations.hpp"
@@ -2804,6 +2805,160 @@ static void testTiesDeathsAndLinkedNames() {
     fs::remove_all(root);
 }
 
+static void testGenerator() {
+    Database db;
+    Storage(fs::path(LOTM_SOURCE_DIR) / "data").loadAll(db);
+    db.characters.clear();
+    db.organizations.clear();
+    Dice dice(20261017);
+
+    // Sequence 9 to 7 of any pathway: every one has a Sequence in range, and so does each character.
+    GeneratorOptions options;
+    CHECK(generatorPathways(db, options).size() == db.pathways.size());
+    for (int i = 0; i < 60; ++i) {
+        const Character c = generateCharacter(db, options, dice);
+        CHECK(c.id == 0);
+        CHECK(c.name.find(' ') != std::string::npos);
+        CHECK(c.gender == "Male" || c.gender == "Female");
+        CHECK(std::stoi(c.age) >= 17 && std::stoi(c.age) <= 61);
+        const Pathway* p = db.findPathway(c.pathwayId);
+        CHECK(p != nullptr && c.sequence >= 7 && c.sequence <= 9 && p->findSequence(c.sequence));
+        for (int stat : c.stats.base) CHECK(stat >= 3 && stat <= 18);
+        CHECK(c.stats.speedBase >= 3 && c.stats.speedBase <= 18);
+        CHECK(std::find(kAlignments.begin(), kAlignments.end(), c.alignment) != kAlignments.end());
+        CHECK(stateOfMindLevel(c.stateOfMind) >= 0 && stateOfMindLevel(c.stateOfMind) <= 2);
+        CHECK(c.shortDescription.rfind("A", 0) == 0 && c.shortDescription.back() == '.');
+        CHECK(!c.appearance.hair.empty() && !c.appearance.eyes.empty() && !c.appearance.clothing.empty());
+        if (c.appearance.hair == "Bald") CHECK(c.appearance.hairLength.empty() && c.appearance.hairStyle.empty());
+        if (c.gender == "Female") CHECK(c.appearance.face != "Full beard" && c.appearance.hair != "Bald");
+        CHECK(c.affiliation.organization.empty());
+        db.characters.push_back(c);  // saved: no later name may match it
+    }
+    for (size_t i = 0; i < db.characters.size(); ++i) {
+        for (size_t j = i + 1; j < db.characters.size(); ++j) CHECK(db.characters[i].name != db.characters[j].name);
+    }
+
+    // One pathway, a range written either way round; a pathway without Sequences in the range is skipped.
+    options.pathwayId = "seer";
+    options.weakest = 4;
+    options.strongest = 6;
+    CHECK(generatorPathways(db, options).size() == 1);
+    for (int i = 0; i < 20; ++i) {
+        const Character c = generateCharacter(db, options, dice);
+        CHECK(c.pathwayId == "seer" && c.sequence >= 4 && c.sequence <= 6);
+    }
+    Pathway half;
+    half.id = "half";
+    half.name = "Half";
+    half.sequences = {{9, "Beginner", {}}, {8, "Apprentice", {}}};
+    db.pathways.push_back(half);
+    options.pathwayId.clear();
+    const auto fitting = generatorPathways(db, options);
+    CHECK(std::none_of(fitting.begin(), fitting.end(), [](const Pathway* p) { return p->id == "half"; }));
+    options.pathwayId = "half";
+    CHECK(generatorPathways(db, options).empty());
+    const Character none = generateCharacter(db, options, dice);
+    CHECK(none.pathwayId.empty());  // nothing fits: a mortal rather than a made-up Sequence
+
+    // A mortal: no pathway, and always sane.
+    options = GeneratorOptions{};
+    options.mortal = true;
+    for (int i = 0; i < 10; ++i) {
+        const Character c = generateCharacter(db, options, dice);
+        CHECK(c.pathwayId.empty() && c.stateOfMind == "Sane");
+    }
+
+    // Names from one place.
+    for (int i = 0; i < 30; ++i) {
+        const std::string woman = randomName(dice, "Feysac", "Female");
+        const std::string family = woman.substr(woman.find(' ') + 1);
+        CHECK(!family.ends_with("ov") && !family.ends_with("ev"));  // Volkova, not Volkov
+    }
+    options = GeneratorOptions{};
+    options.origin = "Intis";
+    Character c = generateCharacter(db, options, dice);
+    const std::string intisFamilies = "Dubois Moreau Laurent Fontaine Girard Marchand Rousseau Duval Lefevre Beaumont "
+                                      "Delacroix Valois Chevalier Garnier Mercier Bonnet Lambert Fournier Renard "
+                                      "Blanchard Picard Lemaire Gautier Boucher";
+    CHECK(intisFamilies.find(c.name.substr(c.name.find(' ') + 1)) != std::string::npos);
+
+    // Rolling one part again leaves the others alone.
+    const Character before = c;
+    rerollPart(c, GeneratorPart::Stats, db, options, dice);
+    CHECK(c.name == before.name && c.pathwayId == before.pathwayId && c.appearance.eyes == before.appearance.eyes &&
+          c.alignment == before.alignment);
+    Character again = c;
+    rerollPart(again, GeneratorPart::Name, db, options, dice);
+    CHECK(again.stats.base == c.stats.base && again.pathwayId == c.pathwayId && again.sequence == c.sequence);
+    // A new name may be a woman's: a beard goes, the eyes stay.
+    for (int i = 0; i < 30; ++i) {
+        again = c;
+        again.gender = "Male";
+        again.appearance.face = "Full beard";
+        again.appearance.hair = "Bald";
+        rerollPart(again, GeneratorPart::Name, db, options, dice);
+        CHECK(again.appearance.eyes == c.appearance.eyes && again.appearance.voice == c.appearance.voice);
+        if (again.gender == "Female") {
+            CHECK(again.appearance.face != "Full beard" && again.appearance.hair != "Bald");
+            CHECK(!again.appearance.hairLength.empty());
+        } else {
+            CHECK(again.appearance.face == "Full beard" && again.appearance.hair == "Bald");
+        }
+        if (std::stoi(again.age) < 30) CHECK(again.appearance.hair != "Grey" && again.appearance.hair != "White");
+    }
+    again = c;
+    rerollPart(again, GeneratorPart::Looks, db, options, dice);
+    CHECK(again.name == c.name && again.stats.base == c.stats.base && again.shortDescription == c.shortDescription);
+    again = c;
+    rerollPart(again, GeneratorPart::Personality, db, options, dice);
+    CHECK(again.name == c.name && again.appearance.hair == c.appearance.hair && again.sequence == c.sequence);
+    again = c;
+    again.aboveSequence = true;
+    again.honorificName = {"a", "b", "c"};
+    rerollPart(again, GeneratorPart::Power, db, options, dice);
+    CHECK(again.name == c.name && again.stats.base == c.stats.base && !again.aboveSequence && again.honorificName.empty());
+    for (GeneratorPart part : {GeneratorPart::Name, GeneratorPart::Looks, GeneratorPart::Power, GeneratorPart::Stats,
+                               GeneratorPart::Personality}) {
+        CHECK(!generatorPartName(part).empty());
+        CHECK(!generatorPartSummary(c, part, db).empty());
+    }
+    CHECK(generatorPartSummary(c, GeneratorPart::Name, db).rfind(c.name + ", a ", 0) == 0);
+    CHECK(generatorPartSummary(c, GeneratorPart::Stats, db).find("Speed ") != std::string::npos);
+
+    // Spirituality as suggested, and HP for one who has it, kept up with a new Sequence or new stats.
+    CHECK(c.stats.spirituality == suggestedSpirituality(c, db.findPathway(c.pathwayId)));
+    again = c;
+    again.stats.hpIncluded = true;
+    rerollPart(again, GeneratorPart::Power, db, options, dice);
+    CHECK(again.stats.hp == suggestedHp(again, db.findPathway(again.pathwayId)) && again.stats.hp > 0);
+    CHECK(again.stats.spirituality == suggestedSpirituality(again, db.findPathway(again.pathwayId)));
+    Character mortal = c;
+    mortal.pathwayId.clear();
+    CHECK(generatorPartSummary(mortal, GeneratorPart::Power, db) == "An ordinary mortal");
+
+    // Members of an organization: one of its pathways, and any rank but the top one.
+    Organization nighthawks;
+    nighthawks.id = 1;
+    nighthawks.name = "Nighthawks";
+    nighthawks.pathwayIds = {"sleepless"};
+    nighthawks.ranks = {"Archbishop", "Captain", "Member"};
+    db.organizations.push_back(nighthawks);
+    options = GeneratorOptions{};
+    options.organizationId = 1;
+    options.organizationPathways = true;
+    for (int i = 0; i < 20; ++i) {
+        const Character member = generateCharacter(db, options, dice);
+        CHECK(member.pathwayId == "sleepless");
+        CHECK(member.affiliation.organization == "Nighthawks");
+        CHECK(member.affiliation.rank == "Captain" || member.affiliation.rank == "Member");
+    }
+    // Known for pathways that aren't here: any pathway instead.
+    db.organizations.back().pathwayIds = {"no-such-pathway"};
+    CHECK(generatorPathways(db, options).size() > 1);
+    db.organizations.back().ranks = {"Only rank"};
+    CHECK(generateCharacter(db, options, dice).affiliation.rank == "Only rank");
+}
+
 int main() {
     testModifiers();
     testTiers();
@@ -2841,6 +2996,7 @@ int main() {
     testEventChanges();
     testOrganizations();
     testTiesDeathsAndLinkedNames();
+    testGenerator();
     if (failures == 0) {
         std::cout << "All checks passed.\n";
         return 0;
