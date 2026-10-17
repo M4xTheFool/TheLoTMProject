@@ -19,6 +19,9 @@
 #endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_NATIVE_INCLUDE_NONE  // windows.h is included just above
+#include <GLFW/glfw3native.h>
 #endif
 
 #include "storage.hpp"
@@ -201,6 +204,42 @@ void drawWindow(WindowState& w) {
     ImGui::End();
 }
 
+// Windows draws the title bar above the window itself, white unless the computer is set to dark mode.
+// This asks for a dark one on the night theme and a light one on parchment; Windows 11 also takes the
+// window's own colours, so the bar matches the window. Older Windows ignores what it doesn't know.
+void matchTitleBar(GLFWwindow* window, const std::string& theme) {
+#ifdef _WIN32
+    HWND hwnd = glfwGetWin32Window(window);
+    if (!hwnd) return;
+    HMODULE dwm = LoadLibraryW(L"dwmapi.dll");  // looked up here, so nothing extra is needed to build
+    if (!dwm) return;
+    using SetAttribute = HRESULT(WINAPI*)(HWND, DWORD, LPCVOID, DWORD);
+    if (const auto set = reinterpret_cast<SetAttribute>(GetProcAddress(dwm, "DwmSetWindowAttribute"))) {
+        auto colourRef = [](const ImVec4& c) {
+            auto channel = [](float x) { return static_cast<BYTE>(std::clamp(x, 0.0f, 1.0f) * 255.0f + 0.5f); };
+            return static_cast<COLORREF>(RGB(channel(c.x), channel(c.y), channel(c.z)));
+        };
+        auto put = [&](DWORD attribute, const auto& value) {
+            set(hwnd, attribute, &value, static_cast<DWORD>(sizeof value));
+        };
+        const BOOL dark = theme != "parchment" ? TRUE : FALSE;
+        put(20, dark);  // DWMWA_USE_IMMERSIVE_DARK_MODE
+        put(19, dark);  // the same, on Windows 10 before its 2020 update
+        const COLORREF caption = colourRef(backgroundColour());
+        put(35, caption);  // DWMWA_CAPTION_COLOR, Windows 11
+        put(34, caption);  // DWMWA_BORDER_COLOR
+        put(36, colourRef(dark ? palette().gold : ImGui::GetStyle().Colors[ImGuiCol_Text]));  // DWMWA_TEXT_COLOR
+        // Redraws the frame when the theme is switched while the window is open.
+        SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
+    FreeLibrary(dwm);
+#else
+    (void)window;
+    (void)theme;
+#endif
+}
+
 void drawLoadError(const std::string& problem, bool& quit) {
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -241,6 +280,8 @@ int main(int argc, char** argv) {
         if (areaWidth > 0) windowWidth = std::min(windowWidth, areaWidth * 9 / 10);
         if (areaHeight > 0) windowHeight = std::min(windowHeight, areaHeight * 9 / 10);
     }
+    // Shown once the theme is applied, so the title bar never flashes white first (see matchTitleBar).
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "LoTM Creator Suite", nullptr, nullptr);
     if (!window) {
         showFatal("Could not open the window: " + glfwProblem +
@@ -290,6 +331,8 @@ int main(int argc, char** argv) {
         if (appliedTheme != w.app.db.settings.windowTheme) {  // between frames, never halfway through one
             appliedTheme = w.app.db.settings.windowTheme;
             applyTheme(appliedTheme, scale);
+            matchTitleBar(window, appliedTheme);
+            if (!glfwGetWindowAttrib(window, GLFW_VISIBLE)) glfwShowWindow(window);
         }
         ImGui::GetStyle().FontScaleMain = w.app.db.settings.windowTextSize / 100.0f;
         setAnimations(w.app.db.settings.windowAnimations);
