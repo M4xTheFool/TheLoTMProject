@@ -128,6 +128,10 @@ bool isDualPathwayGod(const Character& c) {
     return dualPathwayEligible(c) && !c.secondPathway.empty();
 }
 
+bool isKingOfAngels(const Character& c) {
+    return sequenceOneChoices(c) && (c.beyonderCharacteristics >= 2 || c.hasUniqueness);
+}
+
 std::string levelName(const Character& c) {
     if (c.pathwayId.empty()) return "Mortal";
     if (c.aboveSequence) return "Above the Sequence";
@@ -427,18 +431,42 @@ std::vector<std::string> normalizeCharacter(Character& c) {
 
     if (!c.stats.hpIncluded) c.stats.hp = 0;
 
-    // Stages, earliest first (undated ones last), each with a Sequence that exists.
-    for (CharacterStage& stage : c.stages) {
-        if (stage.pathwayId.empty()) {
-            stage.sequence = 9;
-            stage.aboveSequence = false;
-        }
-        if (stage.aboveSequence) stage.sequence = 0;
-        stage.sequence = std::clamp(stage.sequence, 0, 9);
-    }
+    // Stages, earliest first (undated ones last), each making sense on its own.
+    for (CharacterStage& stage : c.stages) normalizeStage(stage);
     std::stable_sort(c.stages.begin(), c.stages.end(),
                      [](const CharacterStage& a, const CharacterStage& b) { return storyDateBefore(a.date, b.date); });
     return notes;
+}
+
+void putStageLevel(Character& c, const CharacterStage& stage) {
+    c.pathwayId = stage.pathwayId;
+    c.sequence = stage.sequence;
+    c.aboveSequence = stage.aboveSequence;
+    c.beyonderCharacteristics = stage.beyonderCharacteristics;
+    c.hasUniqueness = stage.hasUniqueness;
+    c.uniquenessForm = stage.uniquenessForm;
+    c.uniquenessAbilities = stage.uniquenessAbilities;
+    c.secondPathway = stage.secondPathway;
+    c.sefirahId = stage.sefirahId;
+}
+
+void takeStageLevel(CharacterStage& stage, const Character& c) {
+    stage.pathwayId = c.pathwayId;
+    stage.sequence = c.sequence;
+    stage.aboveSequence = c.aboveSequence;
+    stage.beyonderCharacteristics = c.beyonderCharacteristics;
+    stage.hasUniqueness = c.hasUniqueness;
+    stage.uniquenessForm = c.uniquenessForm;
+    stage.uniquenessAbilities = c.uniquenessAbilities;
+    stage.secondPathway = c.secondPathway;
+    stage.sefirahId = c.sefirahId;
+}
+
+void normalizeStage(CharacterStage& stage) {
+    Character level;
+    putStageLevel(level, stage);
+    normalizeCharacter(level);
+    takeStageLevel(stage, level);
 }
 
 }  // namespace lotm

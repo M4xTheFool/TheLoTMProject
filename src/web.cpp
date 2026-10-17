@@ -312,6 +312,7 @@ void WebLayout::start(const Web& web, const Database& db) {
         y[i] = std::sin(angle) * radius + jitter(web.key(i), 2) * 0.05f;
     }
     temperature = std::max(0.4f, std::sqrt(static_cast<float>(n)) * 0.35f);
+    around = -1;
 }
 
 void WebLayout::adapt(const Web& oldWeb, const Web& newWeb, const Database& db) {
@@ -361,6 +362,7 @@ void WebLayout::adapt(const Web& oldWeb, const Web& newWeb, const Database& db) 
     y = ny;
     pinned = np;
     temperature = std::max(temperature, 0.35f);
+    around = -1;
 }
 
 bool WebLayout::step(const Web& web) {
@@ -373,6 +375,18 @@ bool WebLayout::step(const Web& web) {
     std::vector<float> dx(n, 0.0f), dy(n, 0.0f);
     std::vector<bool> loner(n, false);
     for (size_t i = 0; i < n; ++i) loner[i] = web.nodes[i].connections == 0;
+    // Who may move: everyone not held, or only the people linked to the one being dragged.
+    std::vector<bool> held(n, false);
+    for (size_t i = 0; i < n; ++i) held[i] = pinned.size() == n && pinned[i];
+    if (around >= 0 && static_cast<size_t>(around) < n) {
+        std::vector<bool> near(n, false);
+        near[static_cast<size_t>(around)] = true;
+        for (const WebEdge& e : web.edges) {
+            if (e.a == static_cast<size_t>(around)) near[e.b] = true;
+            if (e.b == static_cast<size_t>(around)) near[e.a] = true;
+        }
+        for (size_t i = 0; i < n; ++i) held[i] = held[i] || !near[i];
+    }
     // Everyone with a line pushes everyone else away.
     for (size_t i = 0; i < n; ++i) {
         if (loner[i]) continue;
@@ -446,7 +460,7 @@ bool WebLayout::step(const Web& web) {
             dx[i] -= x[i] * 0.12f;
             dy[i] -= y[i] * 0.12f;
         }
-        if (pinned.size() == n && pinned[i]) continue;
+        if (held[i]) continue;
         const float length = std::sqrt(dx[i] * dx[i] + dy[i] * dy[i]);
         if (length < 1e-6f) continue;
         const float move = std::min(length, std::max(temperature, loner[i] ? 0.08f : 0.0f));
@@ -454,7 +468,8 @@ bool WebLayout::step(const Web& web) {
         y[i] += dy[i] / length * move;
         moving = moving || move > 0.002f;
     }
-    // Then anyone still overlapping someone is moved apart, half the overlap each.
+    // Then anyone still overlapping someone is moved apart, half the overlap each (even the ones not
+    // linked to someone being dragged, so they make room).
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
             const float ox = x[i] - x[j], oy = y[i] - y[j];
@@ -475,6 +490,7 @@ bool WebLayout::step(const Web& web) {
     }
     temperature *= 0.965f;
     if (temperature < 0.004f || !moving) temperature = 0.0f;
+    if (temperature <= 0.0f) around = -1;
     return temperature > 0.0f;
 }
 

@@ -352,32 +352,58 @@ void canvas(WindowState& w, const std::vector<size_t>& path) {
     ImDrawList* draw = ImGui::GetWindowDrawList();
     draw->PushClipRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), true);
 
-    // Who is under the pointer (the last drawn is on top).
+    // Who is under the pointer: on their circle (the last drawn is on top), or else on their name.
+    const bool namesFit = s.shownScale > font * 2.4f;
+    const float nameFont = font * 0.82f;
     int under = -1;
     if (hovered || active) {
-        for (size_t i = s.web.nodes.size(); i-- > 0;) {
+        for (size_t i = s.web.nodes.size(); i-- > 0 && under < 0;) {
             const ImVec2 p = toScreen(i);
             const float r = nodeRadius(s, s.web.nodes[i]) + 3.0f;
             if ((io.MousePos.x - p.x) * (io.MousePos.x - p.x) + (io.MousePos.y - p.y) * (io.MousePos.y - p.y) <= r * r) {
                 under = static_cast<int>(i);
-                break;
+            }
+        }
+        for (size_t i = s.web.nodes.size(); namesFit && i-- > 0 && under < 0;) {
+            const ImVec2 p = toScreen(i);
+            const float top = p.y + nodeRadius(s, s.web.nodes[i]) + font * 0.2f;
+            const float half = ImGui::GetFont()->CalcTextSizeA(nameFont, FLT_MAX, 0.0f, s.web.nodes[i].name.c_str()).x * 0.5f + 3.0f;
+            if (std::abs(io.MousePos.x - p.x) <= half && io.MousePos.y >= top && io.MousePos.y <= top + nameFont) {
+                under = static_cast<int>(i);
             }
         }
     }
 
     // ---- pointer: drag people or the view, scroll to zoom, click to pick, double-click to open
     static bool pressedOnNode = false;
+    auto pointerInWeb = [&] {
+        return ImVec2(s.shownCentre.x + (io.MousePos.x - middle.x) / s.shownScale,
+                      s.shownCentre.y + (io.MousePos.y - middle.y) / s.shownScale);
+    };
     if (ImGui::IsItemActivated()) {
         pressedOnNode = under >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-        if (pressedOnNode) s.dragging = under;
+        if (pressedOnNode) {
+            // Held where they were grabbed (the circle or the name), so they don't jump to the pointer.
+            const size_t i = static_cast<size_t>(under);
+            const ImVec2 at = pointerInWeb();
+            s.dragging = under;
+            s.grabOffset = ImVec2(s.layout.x[i] - at.x, s.layout.y[i] - at.y);
+        }
     }
     if (active && s.dragging >= 0 && static_cast<size_t>(s.dragging) < s.web.nodes.size() &&
         ImGui::IsMouseDragging(ImGuiMouseButton_Left, 3.0f)) {
         const size_t i = static_cast<size_t>(s.dragging);
-        s.layout.x[i] = s.shownCentre.x + (io.MousePos.x - middle.x) / s.shownScale;
-        s.layout.y[i] = s.shownCentre.y + (io.MousePos.y - middle.y) / s.shownScale;
+        const ImVec2 at = pointerInWeb();
+        const float moved = std::hypot(at.x + s.grabOffset.x - s.layout.x[i], at.y + s.grabOffset.y - s.layout.y[i]);
+        s.layout.x[i] = at.x + s.grabOffset.x;
+        s.layout.y[i] = at.y + s.grabOffset.y;
         if (s.layout.pinned.size() == s.web.nodes.size()) s.layout.pinned[i] = true;
-        s.layout.temperature = std::max(s.layout.temperature, 0.12f);  // the others make room
+        // The people linked to them follow, and only while they are moved: the whole web kept warm
+        // wanders off and shakes, even with the pointer resting.
+        if (s.layout.settled() || s.layout.around >= 0) {  // not while it first settles
+            s.layout.around = static_cast<int>(i);
+            s.layout.temperature = std::max(s.layout.temperature, std::min(moved, 0.06f));
+        }
         s.follow = false;
     } else if (active && !pressedOnNode) {
         for (ImGuiMouseButton button : {ImGuiMouseButton_Left, ImGuiMouseButton_Right, ImGuiMouseButton_Middle}) {
@@ -500,7 +526,6 @@ void canvas(WindowState& w, const std::vector<size_t>& path) {
 
     // ---- the people
     const int picked = nodeOfKey(s.web, s.selected);
-    const bool namesFit = s.shownScale > font * 2.4f;
     for (size_t i = 0; i < s.web.nodes.size(); ++i) {
         const WebNode& node = s.web.nodes[i];
         const ImVec2 p = toScreen(i);
@@ -533,7 +558,6 @@ void canvas(WindowState& w, const std::vector<size_t>& path) {
         }
         const bool showName = namesFit || static_cast<int>(i) == picked || onPath[i] || (focus > 0.2f && on[i]);
         if (showName) {
-            const float nameFont = font * 0.82f;
             const ImVec2 textSize = ImGui::GetFont()->CalcTextSizeA(nameFont, FLT_MAX, 0.0f, node.name.c_str());
             const ImVec2 at(p.x - textSize.x * 0.5f, p.y + r + font * 0.2f);
             draw->AddRectFilled(ImVec2(at.x - 3.0f, at.y), ImVec2(at.x + textSize.x + 3.0f, at.y + textSize.y),

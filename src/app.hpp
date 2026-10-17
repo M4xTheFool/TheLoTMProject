@@ -28,6 +28,10 @@ void runTimelineMenu(App& app);
 void runWebMenu(App& app);
 // The character creator's Stages step: how they were earlier in the story, each from a date on.
 void editStages(const App& app, Character& c);
+// The creator's questions about Sequence 1 (Beyonder characteristics, the Uniqueness) and Sequence 0 (the
+// absorbed Uniqueness), and about a second pathway, for a stage as well.
+void editSequenceOne(const App& app, Character& c);
+void editSecondPathway(const App& app, Character& c);
 // Lists abilities ("Name: what it does") and lets you add, change, move and remove them.
 void editAbilityList(std::vector<std::string>& abilities, const std::string& whose);
 

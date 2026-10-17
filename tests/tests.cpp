@@ -1509,6 +1509,15 @@ static void testComparison() {
 
 static StoryDate date(const std::string& text) { return parseStoryDate(text).value_or(StoryDate{}); }
 
+// Someone in an event: a saved character (id), or anyone by name.
+static EventPerson who(int characterId, const std::string& name, const std::string& role) {
+    EventPerson person;
+    person.characterId = characterId;
+    person.name = name;
+    person.role = role;
+    return person;
+}
+
 // Dates are read the way people write them and written back the way the books do.
 static void testStoryDates() {
     const auto full = parseStoryDate("3 July 1360");
@@ -1716,6 +1725,27 @@ static void testRelationshipWeb() {
     CHECK(adapted.x[static_cast<size_t>(kleinNow)] == layout.x[static_cast<size_t>(klein)]);
     adapted.settle(withFors);
     for (size_t i = 0; i < withFors.nodes.size(); ++i) CHECK(std::isfinite(adapted.x[i]) && std::isfinite(adapted.y[i]));
+    // Dragging someone warms up only the people linked to them: they follow, the rest stay put.
+    const size_t k = static_cast<size_t>(klein), au = static_cast<size_t>(audrey), al = static_cast<size_t>(alista);
+    const float awayX = (layout.x[k] - layout.x[al]) / distance(klein, alista);
+    const float awayY = (layout.y[k] - layout.y[al]) / distance(klein, alista);
+    WebLayout dragged = layout;
+    dragged.pinned[k] = true;
+    dragged.x[k] += awayX * 1.5f;  // away from Alista, so he doesn't push her aside
+    dragged.y[k] += awayY * 1.5f;
+    dragged.around = klein;
+    dragged.temperature = 0.06f;
+    dragged.settle(web);
+    CHECK(dragged.x[al] == layout.x[al] && dragged.y[al] == layout.y[al]);
+    CHECK((dragged.x[au] != layout.x[au] || dragged.y[au] != layout.y[au]) && dragged.around == -1);
+    const WebLayout placed = dragged;
+    dragged.pinned[al] = true;
+    dragged.x[al] -= awayX * 3.0f;  // Alista knows nobody: nobody follows her
+    dragged.y[al] -= awayY * 3.0f;
+    dragged.around = alista;
+    dragged.temperature = 0.06f;
+    dragged.settle(web);
+    CHECK(dragged.x[au] == placed.x[au] && dragged.y[au] == placed.y[au] && dragged.x[k] == placed.x[k]);
 
     // As a sheet: the picture (linking to everyone's sheets), then the connections in words.
     const Sheet sheet = buildWebSheet(db, true);
@@ -1764,7 +1794,7 @@ static void testStoryEvents() {
     gathering.kind = "Meeting";
     gathering.place = "Above the grey fog";
     gathering.chapter = "Chapter 2";
-    gathering.people = {{klein.id, "", "The Fool"}, {0, "audrey hall", "Justice"}, {0, "Fors Wall", ""}, {0, "", ""}};
+    gathering.people = {who(klein.id, "", "The Fool"), who(0, "audrey hall", "Justice"), who(0, "Fors Wall", ""), who(0, "", "")};
     gathering.artifactIds = {mask.id};
     saveEvent(app, gathering, true);
     CHECK(eventCode(gathering.id) == "E-001");
@@ -1784,7 +1814,7 @@ static void testStoryEvents() {
     earlier.id = app.db.nextEventId();
     earlier.title = "Klein wakes up";
     earlier.date = date("June 1349");
-    earlier.people = {{klein.id, "", ""}};
+    earlier.people = {who(klein.id, "", "")};
     saveEvent(app, earlier, true);
     const auto ordered = eventsInOrder(app.db);
     CHECK(ordered.size() == 3 && ordered[0]->title == "Klein wakes up" && ordered[2]->title == "Someday");
@@ -1887,11 +1917,11 @@ static void testSampleSetEvents() {
         saveEvent(app, e, true);
         return e.id;
     };
-    const int both = event("The first gathering", "3 July 1349", {{klein.id, "", "The Fool"}, {audrey.id, "", "Justice"}});
+    const int both = event("The first gathering", "3 July 1349", {who(klein.id, "", "The Fool"), who(audrey.id, "", "Justice")});
     app.db.findEvent(both)->artifactIds = {mask.id};
     app.storage.saveEvents(app.db);
-    event("Audrey's ball", "1350", {{audrey.id, "", "Host"}});
-    event("A storm at sea", "1351", {{0, "Some sailor", ""}});
+    event("Audrey's ball", "1350", {who(audrey.id, "", "Host")});
+    event("A storm at sea", "1351", {who(0, "Some sailor", "")});
 
     // Sharing Klein: his events and the events with nobody saved come along, and so do the glove
     // (held in a stage) and the mask (at his event). Audrey stays a name.
@@ -1957,6 +1987,143 @@ static void testSampleSetEvents() {
     fs::remove_all(root);
 }
 
+// What changed for someone at a story event counts as one of their stages, and a stage holds a King of
+// Angels' characteristics and Uniqueness and a dual-pathway god's second pathway.
+static void testEventChanges() {
+    const fs::path root = fs::temp_directory_path() / "lotm_tests_event_changes";
+    fs::remove_all(root);
+    fs::create_directories(root / "data");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", root / "data" / "pathways.json");
+    App app{Database{}, Storage(root / "data"), Dice{}};
+    app.storage.loadAll(app.db);
+
+    Character klein;
+    klein.id = app.db.nextCharacterId();
+    klein.name = "Klein Moretti";
+    klein.pathwayId = "seer";
+    klein.sequence = 0;
+    CharacterStage seer;
+    seer.date = date("1349");
+    seer.pathwayId = "seer";
+    seer.sequence = 9;
+    klein.stages = {seer};
+    saveCharacter(app, klein, true);
+
+    // A King of Angels: Sequence 1 with two characteristics or the Uniqueness, kept by a stage.
+    CharacterStage angel = stageFromNow(klein);
+    angel.sequence = 1;
+    angel.beyonderCharacteristics = 2;
+    angel.hasUniqueness = true;
+    angel.uniquenessForm = "A grey fog";
+    normalizeStage(angel);
+    CHECK(angel.beyonderCharacteristics == 2 && angel.hasUniqueness && angel.uniquenessForm == "A grey fog");
+    CHECK(stageLevelText(angel, app.db) == "Sequence 1 Attendant of Mysteries, King of Angels, Seer pathway");
+    CharacterStage nine = angel;
+    nine.sequence = 9;
+    normalizeStage(nine);  // a Uniqueness only at Sequence 1
+    CHECK(!nine.hasUniqueness && nine.beyonderCharacteristics == 1 && nine.uniquenessForm.empty());
+
+    // An advancement: Klein becomes a King of Angels there. A change for someone not saved is dropped.
+    StoryEvent rise;
+    rise.id = app.db.nextEventId();
+    rise.title = "Becoming an angel";
+    rise.date = date("3 July 1351");
+    rise.kind = "Advancement";
+    EventPerson changed = eventPerson(*app.db.findCharacter(klein.id));
+    changed.changed = true;
+    changed.change = angel;
+    EventPerson stranger = who(0, "A stranger", "");
+    stranger.changed = true;
+    stranger.change = angel;
+    rise.people = {changed, stranger};
+    saveEvent(app, rise, true);
+    const StoryEvent* saved = app.db.findEvent(rise.id);
+    CHECK(saved->people[0].changed && sameStoryDate(saved->people[0].change.date, rise.date));
+    CHECK(!saved->people[1].changed);
+
+    const Character& k = *app.db.findCharacter(klein.id);
+    const auto stages = stagesOf(k, app.db);
+    CHECK(stages.size() == 2 && stages[0].ownIndex == 0 && stages[1].eventId == rise.id && stages[1].ownIndex == -1);
+    CHECK(stages[1].stage.label == "At \"Becoming an angel\"" && sameStoryDate(stages[1].stage.date, rise.date));
+    CHECK(characterAsOf(k, date("1350"), app.db).stageIndex == 0);
+    const AsOf then = characterAsOf(k, date("1352"), app.db);
+    CHECK(then.inStage() && then.eventId == rise.id && then.stageIndex == -1);
+    CHECK(then.character.sequence == 1 && isKingOfAngels(then.character) && then.character.uniquenessForm == "A grey fog");
+    // Coming into the event (its own change left out) he is still a Seer.
+    CHECK(characterAsOf(k, rise.date, app.db, rise.id).character.sequence == 9);
+    CHECK(characterAsOf(k, rise.date, app.db).character.sequence == 1);
+    // On the same date as one of his own stages, the event's change is the one that counts.
+    Character twice = k;
+    CharacterStage sameDay = seer;
+    sameDay.date = rise.date;
+    sameDay.sequence = 5;
+    twice.stages = {seer, sameDay};
+    CHECK(characterAsOf(twice, rise.date, app.db).eventId == rise.id);
+
+    // The event's sheet says how he came to it and what he became; his sheet lists it with his stages.
+    const std::string eventText = renderText(buildEventSheet(*saved, app.db));
+    CHECK(eventText.find("Klein Moretti: Sequence 9 Seer, Seer pathway. After this: Sequence 1 Attendant of Mysteries, "
+                         "King of Angels, Seer pathway") != std::string::npos);
+    const std::string sheetText = renderText(buildCharacterSheet(k, app.db));
+    CHECK(sheetText.find("From 3 July 1351: Sequence 1 Attendant of Mysteries, King of Angels, Seer pathway. At "
+                         "\"Becoming an angel\"") != std::string::npos);
+    CHECK(renderText(buildCharacterSheetAsOf(k, date("1352"), app.db)).find("King of Angels") != std::string::npos);
+
+    // In events.json only who changed has a "change"; it comes back from disk.
+    const nlohmann::json j = nlohmann::json(*saved);
+    CHECK(j["people"][0].contains("change") && !j["people"][1].contains("change"));
+    Database reloaded;
+    app.storage.loadAll(reloaded);
+    const EventPerson& back = reloaded.findEvent(rise.id)->people[0];
+    CHECK(back.changed && back.change.hasUniqueness && back.change.beyonderCharacteristics == 2);
+
+    // A dual-pathway god in a stage; below Sequence 0 the second pathway goes.
+    Character amon;
+    amon.id = app.db.nextCharacterId();
+    amon.name = "Amon";
+    amon.pathwayId = "marauder";
+    amon.sequence = 0;
+    CharacterStage god = stageFromNow(amon);
+    god.date = date("1340");
+    god.secondPathway.pathwayId = "apprentice";
+    god.secondPathway.hasUniqueness = true;
+    normalizeStage(god);
+    CHECK(god.secondPathway.pathwayId == "apprentice");
+    CHECK(stageLevelText(god, app.db) == "Sequence 0 Error, Marauder pathway and the Apprentice pathway");
+    CHECK(isDualPathwayGod(characterInStage(amon, god, app.db)) && !isDualPathwayGod(amon));
+    CharacterStage angelAmon = god;
+    angelAmon.sequence = 1;
+    normalizeStage(angelAmon);
+    CHECK(angelAmon.secondPathway.empty());
+    amon.stages = {god};
+    saveCharacter(app, amon, true);
+    CHECK(app.db.findCharacter(amon.id)->stages[0].secondPathway.pathwayId == "apprentice");
+
+    // Shared, the change travels with Klein's event; a friend who imports it has it for their Klein.
+    const SampleSet set = makeSampleSet(app.db, "Angels", "", {klein.id}, {});
+    CHECK(set.events.size() == 1 && set.events[0].people.size() == 2 && set.events[0].people[0].changed);
+    const SampleSet amonOnly = makeSampleSet(app.db, "Amon", "", {amon.id}, {});
+    CHECK(amonOnly.events.empty());  // Klein's event stays with Klein
+    const fs::path other = root / "other";
+    fs::create_directories(other / "samples");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", other / "pathways.json");
+    App friendApp{Database{}, Storage(other), Dice{}};
+    friendApp.storage.loadAll(friendApp.db);
+    Character someone;
+    someone.id = friendApp.db.nextCharacterId();
+    someone.name = "Someone else";
+    saveCharacter(friendApp, someone, true);
+    importAllSampleSets(friendApp, {set});
+    const Character* friendKlein = friendApp.db.findCharactersByName("Klein Moretti", 0).at(0);
+    CHECK(friendKlein->id != klein.id);
+    CHECK(characterAsOf(*friendKlein, date("1352"), friendApp.db).character.sequence == 1);
+
+    // Deleting Klein keeps him in the event by name, without the change.
+    deleteCharacter(app, klein.id);
+    CHECK(app.db.findEvent(rise.id)->people[0].characterId == 0 && !app.db.findEvent(rise.id)->people[0].changed);
+    fs::remove_all(root);
+}
+
 int main() {
     testModifiers();
     testTiers();
@@ -1989,6 +2156,7 @@ int main() {
     testRelationshipWeb();
     testStoryEvents();
     testSampleSetEvents();
+    testEventChanges();
     if (failures == 0) {
         std::cout << "All checks passed.\n";
         return 0;

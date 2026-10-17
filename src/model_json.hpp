@@ -32,8 +32,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SecondPathway, pathwayId, beyond
                                                 uniquenessForm, uniquenessAbilities)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SequenceStep, sequence, pathwayId)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(CharacterStage, date, label, pathwayId, sequence, aboveSequence,
-                                                sefirahId, stateOfMind, affiliation, status, titles, aliases,
-                                                artifactIds, note)
+                                                beyonderCharacteristics, hasUniqueness, uniquenessForm,
+                                                uniquenessAbilities, secondPathway, sefirahId, stateOfMind,
+                                                affiliation, status, titles, aliases, artifactIds, note)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, appearance, age, gender, shortDescription,
                                                 backstory, pathwayId, sequence, mixedSequences, stateOfMind,
                                                 stateOfMindNote, alignment, titles, aliases,
@@ -45,7 +46,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Character, id, name, appearance,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Artifact, id, name, visualDescription, pathwayId, sequenceLevel,
                                                 ability, drawback, notes, createdAt, updatedAt)
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(EventPerson, characterId, name, role)
+// "change" is only written for someone who changed at the event, so events.json stays short.
+void to_json(nlohmann::json& j, const EventPerson& person);
+void from_json(const nlohmann::json& j, EventPerson& person);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StoryEvent, id, title, date, kind, place, chapter, people, artifactIds,
                                                 description, notes, createdAt, updatedAt)
 

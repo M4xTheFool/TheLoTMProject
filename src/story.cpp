@@ -234,6 +234,20 @@ void from_json(const nlohmann::json& j, StoryDate& date) {
     date = *parsed;
 }
 
+void to_json(nlohmann::json& j, const EventPerson& person) {
+    j = nlohmann::json{{"characterId", person.characterId}, {"name", person.name}, {"role", person.role}};
+    if (person.changed) j["change"] = person.change;
+}
+
+void from_json(const nlohmann::json& j, EventPerson& person) {
+    const EventPerson blank;
+    person.characterId = j.value("characterId", blank.characterId);
+    person.name = j.value("name", blank.name);
+    person.role = j.value("role", blank.role);
+    person.changed = j.contains("change") && j.at("change").is_object();
+    person.change = person.changed ? j.at("change").get<CharacterStage>() : CharacterStage{};
+}
+
 // ---------------------------------------------------------------- events
 
 std::string eventKindColour(const std::string& kind) {
@@ -280,6 +294,13 @@ std::vector<const StoryEvent*> eventsOf(const Database& db, int characterId) {
     return theirs;
 }
 
+EventPerson eventPerson(const Character& c) {
+    EventPerson person;
+    person.characterId = c.id;
+    person.name = c.name;
+    return person;
+}
+
 std::string eventPersonName(const Database& db, const EventPerson& person) {
     if (const Character* c = person.characterId != 0 ? db.findCharacter(person.characterId) : nullptr) return c->name;
     return person.name.empty() ? "(unknown)" : person.name;
@@ -303,12 +324,30 @@ std::string eventSummary(const StoryEvent& e) {
 
 // ---------------------------------------------------------------- characters as of a date
 
+std::vector<StageRef> stagesOf(const Character& c, const Database& db, int skipEventId) {
+    std::vector<StageRef> stages;
+    for (size_t i = 0; i < c.stages.size(); ++i) stages.push_back({c.stages[i], static_cast<int>(i), 0});
+    if (c.id != 0) {
+        for (const StoryEvent* e : eventsInOrder(db)) {
+            if (e->id == skipEventId) continue;
+            for (const EventPerson& p : e->people) {
+                if (!p.changed || p.characterId != c.id) continue;
+                StageRef ref{p.change, -1, e->id};
+                ref.stage.date = e->date;
+                const std::string at = "\"" + (e->title.empty() ? std::string("(untitled event)") : e->title) + "\"";
+                ref.stage.label = p.change.label.empty() ? "At " + at : p.change.label + " (at " + at + ")";
+                stages.push_back(std::move(ref));
+            }
+        }
+    }
+    std::stable_sort(stages.begin(), stages.end(),
+                     [](const StageRef& a, const StageRef& b) { return storyDateBefore(a.stage.date, b.stage.date); });
+    return stages;
+}
+
 Character characterInStage(const Character& c, const CharacterStage& stage, const Database& db) {
     Character then = c;
-    then.pathwayId = stage.pathwayId;
-    then.sequence = stage.sequence;
-    then.aboveSequence = stage.aboveSequence;
-    then.sefirahId = stage.sefirahId;
+    putStageLevel(then, stage);
     if (stage.stateOfMind != c.stateOfMind) then.stateOfMindNote.clear();
     then.stateOfMind = stage.stateOfMind;
     then.affiliation = stage.affiliation;
@@ -335,26 +374,28 @@ Character characterInStage(const Character& c, const CharacterStage& stage, cons
     return then;
 }
 
-AsOf characterAsOf(const Character& c, const StoryDate& date, const Database& db) {
-    AsOf result{c, -1, false};
+AsOf characterAsOf(const Character& c, const StoryDate& date, const Database& db, int skipEventId) {
+    AsOf result;
+    result.character = c;
     if (date.empty()) return result;
     if (!c.nowSince.empty() && !storyDateBefore(date, c.nowSince)) return result;
-    int best = -1, earliest = -1;
-    for (size_t i = 0; i < c.stages.size(); ++i) {
-        const StoryDate& when = c.stages[i].date;
-        if (when.empty()) continue;
-        const int index = static_cast<int>(i);
-        if (earliest < 0 || storyDateBefore(when, c.stages[static_cast<size_t>(earliest)].date)) earliest = index;
-        const bool started = !storyDateBefore(date, when);
-        if (started && (best < 0 || !storyDateBefore(when, c.stages[static_cast<size_t>(best)].date))) best = index;
+    const std::vector<StageRef> stages = stagesOf(c, db, skipEventId);
+    const StageRef* best = nullptr;
+    const StageRef* earliest = nullptr;
+    for (const StageRef& ref : stages) {  // in date order, so the last one started wins
+        if (ref.stage.date.empty()) continue;
+        if (!earliest) earliest = &ref;
+        if (!storyDateBefore(date, ref.stage.date)) best = &ref;
     }
-    if (best < 0 && earliest >= 0) {
+    if (!best && earliest) {
         best = earliest;
         result.beforeKnown = true;
     }
-    if (best >= 0) {
-        result.character = characterInStage(c, c.stages[static_cast<size_t>(best)], db);
-        result.stageIndex = best;
+    if (best) {
+        result.character = characterInStage(c, best->stage, db);
+        result.stageIndex = best->ownIndex;
+        result.eventId = best->eventId;
+        result.stage = best->stage;
         return result;
     }
     result.beforeKnown = !c.nowSince.empty();  // no stages, and the date is before "now" began
@@ -363,10 +404,7 @@ AsOf characterAsOf(const Character& c, const StoryDate& date, const Database& db
 
 CharacterStage stageFromNow(const Character& c) {
     CharacterStage stage;
-    stage.pathwayId = c.pathwayId;
-    stage.sequence = c.sequence;
-    stage.aboveSequence = c.aboveSequence;
-    stage.sefirahId = c.sefirahId;
+    takeStageLevel(stage, c);
     stage.stateOfMind = c.stateOfMind;
     stage.affiliation = c.affiliation;
     stage.status = c.dossier.status;
@@ -376,14 +414,26 @@ CharacterStage stageFromNow(const Character& c) {
     return stage;
 }
 
+std::string levelText(const Character& c, const Database& db) {
+    if (c.pathwayId.empty()) return "Mortal";
+    const Pathway* p = db.findPathway(c.pathwayId);
+    const std::string pathway = (p ? p->name : c.pathwayId) + " pathway";
+    if (c.aboveSequence) return "Above the Sequence, " + pathway;
+    const SequenceInfo* seq = p ? p->findSequence(c.sequence) : nullptr;
+    std::string text = "Sequence " + std::to_string(c.sequence) + (seq && !seq->name.empty() ? " " + seq->name : "");
+    if (isKingOfAngels(c)) text += ", King of Angels";
+    text += ", " + pathway;
+    if (isDualPathwayGod(c)) {
+        const Pathway* other = db.findPathway(c.secondPathway.pathwayId);
+        text += " and the " + (other ? other->name : c.secondPathway.pathwayId) + " pathway";
+    }
+    return text;
+}
+
 std::string stageLevelText(const CharacterStage& stage, const Database& db) {
-    if (stage.pathwayId.empty()) return "Mortal";
-    const Pathway* p = db.findPathway(stage.pathwayId);
-    const std::string pathway = (p ? p->name : stage.pathwayId) + " pathway";
-    if (stage.aboveSequence) return "Above the Sequence, " + pathway;
-    const SequenceInfo* seq = p ? p->findSequence(stage.sequence) : nullptr;
-    return "Sequence " + std::to_string(stage.sequence) + (seq && !seq->name.empty() ? " " + seq->name : "") + ", " +
-           pathway;
+    Character level;
+    putStageLevel(level, stage);
+    return levelText(level, db);
 }
 
 std::string stageSummary(const CharacterStage& stage, const Database& db) {
@@ -458,17 +508,13 @@ Sheet buildEventSheet(const StoryEvent& e, const Database& db) {
         std::string line = eventPersonName(db, p);
         if (!p.role.empty()) line += " (" + p.role + ")";
         if (const Character* c = p.characterId != 0 ? db.findCharacter(p.characterId) : nullptr) {
-            const AsOf then = characterAsOf(*c, e.date, db);
-            line += ": " + levelName(then.character);
-            if (const Pathway* path = db.findPathway(then.character.pathwayId)) {
-                if (!then.character.aboveSequence) {
-                    if (const SequenceInfo* seq = path->findSequence(then.character.sequence); seq && !seq->name.empty()) {
-                        line += " " + seq->name;
-                    }
-                }
-                line += ", " + path->name + " pathway";
-            }
+            const AsOf then = characterAsOf(*c, e.date, db, e.id);  // as they came to it
+            line += ": " + levelText(then.character, db);
             if (then.beforeKnown) line += " (before anything recorded about them)";
+            if (p.changed) {
+                line += ". After this: " + levelText(characterInStage(*c, p.change, db), db);
+                if (!p.change.label.empty()) line += " (" + p.change.label + ")";
+            }
         }
         who.bullet(line);
     }
@@ -535,11 +581,8 @@ Sheet buildCharacterSheetAsOf(const Character& c, const StoryDate& date, const D
     if (then.beforeKnown) badges.push_back({"Before anything recorded about them", "muted", "", ""});
     badges.insert(badges.end(), sheet.badges.begin(), sheet.badges.end());
     sheet.badges = badges;
-    std::string from = then.stageIndex >= 0 ? "Their stage from " + storyDateText(c.stages[static_cast<size_t>(then.stageIndex)].date)
-                                            : "As they are now";
-    if (then.stageIndex >= 0 && !c.stages[static_cast<size_t>(then.stageIndex)].label.empty()) {
-        from += ": " + c.stages[static_cast<size_t>(then.stageIndex)].label;
-    }
+    std::string from = then.inStage() ? "Their stage from " + storyDateText(then.stage.date) : "As they are now";
+    if (then.inStage() && !then.stage.label.empty()) from += ": " + then.stage.label;
     sheet.footer = from + (sheet.footer.empty() ? "" : ". " + sheet.footer);
     return sheet;
 }

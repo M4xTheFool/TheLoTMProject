@@ -172,18 +172,24 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   pink for love, orange for family, green for friends, blue for allies and work, purple for teaching,
   red for conflict. People who know each other drift together while it settles. Hover over someone to
   light up their lines and read what they are to each other; click them to list their connections on the
-  left; double-click to open their sheet. Drag someone to move them (they stay where you put them until
-  **Let them move again**), scroll to zoom and drag the background to look around. On the left you can
-  hide kinds of relationship, show only one organization, add people who are only named in a
-  relationship, and pick two people under **How Are They Connected?** to find the shortest chain between
-  them ("Audrey Hall is Friend of Klein Moretti, who is Enemy of Amon"). **Export...** saves the web as a
-  page with the picture and every connection written out.
+  left; double-click to open their sheet. Drag someone by their circle or their name to move them (the
+  people they know follow, the rest stay still, and they stay where you put them until **Let them move
+  again**), scroll to zoom and drag the background to look
+  around. On the left you can hide kinds of relationship, show only one organization, add people who are
+  only named in a relationship, and pick two people under **How Are They Connected?** to find the
+  shortest chain between them ("Audrey Hall is Friend of Klein Moretti, who is Enemy of Amon").
+  **Export...** saves the web as a page with the picture and every connection written out.
 - **Timeline** lists your story events, earliest first. **+ New event** asks what happened, when, what
   kind of event it was (a battle, a meeting, an advancement ... or your own word), where, the chapter of
   your book, who was there and in what part, the Sealed Artifacts involved, and notes. The strip at the
   top has a dot for every date. Click a date, drag the slider, or press **Play** to step through the
   story: the cards below show every character as they were then, and light up when someone changes.
   **Export the timeline...** saves it as a sheet.
+- **What changed for someone at an event:** on an event's **People** tab, **Before** shows how each saved
+  character came to it. If something changed for them there (they advanced, joined someone, became a
+  King of Angels ...), click **+ Change** and set it; it starts from how they were. From the event's date
+  on they are like that, until their next stage, so an Advancement event really advances them. The
+  change also shows on their Stages tab (with **Open the event**), on their sheet and on the Timeline.
 - **Dates** are written the way the books write them: `3 July 1360`, `July 1360` or just `1360`. The
   month and day are optional. Everything is in the Fifth Epoch unless you name another (`1200, Fourth
   Epoch`). `July 3, 1360`, `3rd July 1360` and `Jul 1360` work too; under the box it says how it reads
@@ -191,7 +197,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - **Stages** (a character's Stages tab) say how a character was earlier in the story. **+ Add a stage
   from how they are now** copies their pathway, Sequence, state of mind, organization, status, titles,
   aliases and Sealed Artifacts into a stage; give it the date it began and change what was different
-  then. A stage lasts until their next one, and after the last one they are as the other tabs describe
+  then. At Sequence 1 a stage holds their Beyonder characteristics and the Uniqueness (two
+  characteristics or the Uniqueness make a **King of Angels**), and at Sequence 0 a second pathway (a
+  dual-pathway god). A stage lasts until their next one, and after the last one they are as the other tabs describe
   them (**Now since** can give that a date too). Everything else, like their name, looks and stats, is the
   same in every stage. **See their sheet as of then** shows the sheet for that time, and the Timeline uses
   the stages to show everyone on any date.
@@ -233,7 +241,8 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
   prints them as a table, with the highest value in each row marked `*`.
 - **Timeline** in the main menu shows every story event, or one character's, adds, changes and deletes
   events, and prints everyone as they were on a date you type (`3 July 1360`, `July 1360`, `1360`).
-  The character creator has a **Stages** step for how a character was earlier in the story.
+  The character creator has a **Stages** step for how a character was earlier in the story. In an
+  event's **Who was there**, a saved character's number gives **Something changed for them here**.
 - **Relationship web** lists who one character knows, finds how two characters are connected through
   others, and lists who has the most connections. Its export draws the web as a picture in the HTML file.
 

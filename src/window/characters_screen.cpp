@@ -40,6 +40,7 @@ void open(WindowState& w, const Character& c, bool isNew) {
     w.characters.lastRolls = {};
     w.characters.lastSpeedRoll.clear();
     w.characters.sheetStage = -1;
+    w.characters.sheetEvent = 0;
     w.characters.openStage = -1;
 }
 
@@ -860,6 +861,52 @@ void dossierTab(Character& c) {
     multilineField("Remarks", d.remarks, 4);
 }
 
+}  // namespace
+
+void stageFields(WindowState& w, const Character& c, CharacterStage& stage, const std::string& key) {
+    const Database& db = w.app.db;
+    textField("What changed", stage.label, "joins the Tarot Club, advances to Sequence 7 ...");
+    pathwayCombo("Pathway", db, stage.pathwayId, "No pathway (ordinary mortal)");
+    if (const Pathway* p = db.findPathway(stage.pathwayId)) {
+        ImGui::TextUnformatted("Sequence");
+        sequenceSlider("##stageSequence", p, stage.sequence, &stage.aboveSequence);
+    }
+    // At Sequence 1 the characteristics and the Uniqueness (a King of Angels), at Sequence 0 the absorbed
+    // Uniqueness and a second pathway: the Pathway tab's own sections, on the stage.
+    Character level = c;
+    putStageLevel(level, stage);
+    if (sequenceOneChoices(level) || absorbedUniqueness(level)) uniquenessSection(w, level);
+    if (dualPathwayEligible(level)) secondPathwaySection(w, level);
+    takeStageLevel(stage, level);
+    if (isKingOfAngels(level)) ImGui::TextColored(palette().gold, "A King of Angels then.");
+
+    ImGui::SeparatorText("Then");
+    presetField("State of mind", stage.stateOfMind, kStatesOfMind);
+    presetField("Organization", stage.affiliation.organization, kOrganizations);
+    if (!stage.affiliation.organization.empty()) textField("Rank or role", stage.affiliation.rank);
+    presetField("Status", stage.status, kStatuses);
+    sefirahCombo("Sefirah", db, stage.sefirahId, "None");
+    ImGui::SeparatorText("Titles then");
+    listEditor(("stageTitles" + key).c_str(), stage.titles, "add a title");
+    ImGui::SeparatorText("Aliases then");
+    listEditor(("stageAliases" + key).c_str(), stage.aliases, "add an alias");
+    if (!db.artifacts.empty()) {
+        ImGui::SeparatorText("Sealed Artifacts held then");
+        for (const auto& a : db.artifacts) {
+            bool held = std::find(stage.artifactIds.begin(), stage.artifactIds.end(), a.id) != stage.artifactIds.end();
+            if (ImGui::Checkbox((a.name + "##stageArtifact" + std::to_string(a.id)).c_str(), &held)) {
+                auto& ids = stage.artifactIds;
+                if (held) ids.push_back(a.id);
+                else ids.erase(std::remove(ids.begin(), ids.end(), a.id), ids.end());
+            }
+        }
+    }
+    ImGui::Spacing();
+    textField("Note", stage.note, "anything else about this time");
+}
+
+namespace {
+
 // Stages: how they were earlier in the story, each from a date on. Everything a stage doesn't hold is
 // as they are now.
 void stagesTab(WindowState& w, Draft<Character>& draft) {
@@ -904,36 +951,10 @@ void stagesTab(WindowState& w, Draft<Character>& draft) {
             if (stage.date.empty()) {
                 ImGui::TextColored(palette().warning, "Give the stage the date it began; without one it isn't used.");
             }
-            textField("What changed", stage.label, "joins the Tarot Club, advances to Sequence 7 ...");
-            pathwayCombo("Pathway", db, stage.pathwayId, "No pathway (ordinary mortal)");
-            if (const Pathway* p = db.findPathway(stage.pathwayId)) {
-                ImGui::TextUnformatted("Sequence");
-                sequenceSlider("##stageSequence", p, stage.sequence, &stage.aboveSequence);
-            }
-            presetField("State of mind", stage.stateOfMind, kStatesOfMind);
-            presetField("Organization", stage.affiliation.organization, kOrganizations);
-            if (!stage.affiliation.organization.empty()) textField("Rank or role", stage.affiliation.rank);
-            presetField("Status", stage.status, kStatuses);
-            sefirahCombo("Sefirah", db, stage.sefirahId, "None");
-            ImGui::SeparatorText("Titles then");
-            listEditor(("stageTitles" + std::to_string(i)).c_str(), stage.titles, "add a title");
-            ImGui::SeparatorText("Aliases then");
-            listEditor(("stageAliases" + std::to_string(i)).c_str(), stage.aliases, "add an alias");
-            if (!db.artifacts.empty()) {
-                ImGui::SeparatorText("Sealed Artifacts held then");
-                for (const auto& a : db.artifacts) {
-                    bool held = std::find(stage.artifactIds.begin(), stage.artifactIds.end(), a.id) != stage.artifactIds.end();
-                    if (ImGui::Checkbox((a.name + "##stageArtifact" + std::to_string(a.id)).c_str(), &held)) {
-                        auto& ids = stage.artifactIds;
-                        if (held) ids.push_back(a.id);
-                        else ids.erase(std::remove(ids.begin(), ids.end(), a.id), ids.end());
-                    }
-                }
-            }
-            ImGui::Spacing();
-            textField("Note", stage.note, "anything else about this time");
+            stageFields(w, c, stage, "own" + std::to_string(i));
             if (ImGui::Button("See their sheet as of then")) {
                 screen.sheetStage = static_cast<int>(i);
+                screen.sheetEvent = 0;
                 screen.selectSheet = true;
             }
             ImGui::SameLine();
@@ -949,6 +970,34 @@ void stagesTab(WindowState& w, Draft<Character>& draft) {
         c.stages.erase(c.stages.begin() + remove);
         if (screen.sheetStage == remove) screen.sheetStage = -1;
         else if (screen.sheetStage > remove) --screen.sheetStage;
+    }
+
+    // What changed for them at story events: made and changed on the event's People tab.
+    std::vector<StageRef> atEvents;
+    if (!draft.isNew) {
+        for (StageRef& ref : stagesOf(c, db)) {
+            if (ref.eventId != 0) atEvents.push_back(std::move(ref));
+        }
+    }
+    if (!atEvents.empty()) {
+        ImGui::SeparatorText("Changes at story events");
+        ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+        ImGui::TextWrapped("These come from the People tab of each event, where you change them. They count like stages, "
+                           "from the event's date on.");
+        ImGui::PopStyleColor();
+        for (const StageRef& ref : atEvents) {
+            ImGui::PushID(ref.eventId);
+            statusDot(pathwayColour(db, ref.stage.pathwayId));
+            ImGui::TextWrapped("%s", stageSummary(ref.stage, db).c_str());
+            if (ImGui::SmallButton("Open the event")) openEvent(w, ref.eventId);
+            ImGui::SameLine();
+            if (ImGui::SmallButton("See their sheet as of then")) {
+                screen.sheetStage = -1;
+                screen.sheetEvent = ref.eventId;
+                screen.selectSheet = true;
+            }
+            ImGui::PopID();
+        }
     }
 
     ImGui::SeparatorText("Their story events");
@@ -972,32 +1021,44 @@ void stagesTab(WindowState& w, Draft<Character>& draft) {
     if (ImGui::Button("+ New story event with them")) openNewEvent(w, {c.id});
 }
 
-// The sheet, as they are now or as they were in one of their stages.
+// The sheet, as they are now or as they were in one of their stages (their own, or a change at a story
+// event).
 void sheetTab(WindowState& w, const Character& c, const Sheet& now) {
     auto& screen = w.characters;
     const Database& db = w.app.db;
-    if (screen.sheetStage >= static_cast<int>(c.stages.size())) screen.sheetStage = -1;
-    if (!c.stages.empty()) {
+    const std::vector<StageRef> stages = stagesOf(c, db);
+    auto isShown = [&](const StageRef& ref) {
+        return ref.eventId != 0 ? ref.eventId == screen.sheetEvent : ref.ownIndex == screen.sheetStage;
+    };
+    const auto shown = std::find_if(stages.begin(), stages.end(), isShown);
+    if (shown == stages.end()) {
+        screen.sheetStage = -1;
+        screen.sheetEvent = 0;
+    }
+    if (!stages.empty()) {
         fieldLabel("Show them");
-        const std::string preview = screen.sheetStage < 0 ? std::string("As they are now")
-                                                          : stageSummary(c.stages[static_cast<size_t>(screen.sheetStage)], db);
+        const std::string preview = shown == stages.end() ? std::string("As they are now") : stageSummary(shown->stage, db);
         if (ImGui::BeginCombo("##sheetStage", preview.c_str())) {
-            if (ImGui::Selectable("As they are now", screen.sheetStage < 0)) screen.sheetStage = -1;
-            for (size_t i = 0; i < c.stages.size(); ++i) {
-                const std::string label = stageSummary(c.stages[i], db) + "##" + std::to_string(i);
-                if (ImGui::Selectable(label.c_str(), screen.sheetStage == static_cast<int>(i))) {
-                    screen.sheetStage = static_cast<int>(i);
+            if (ImGui::Selectable("As they are now", shown == stages.end())) {
+                screen.sheetStage = -1;
+                screen.sheetEvent = 0;
+            }
+            for (size_t i = 0; i < stages.size(); ++i) {
+                const std::string label = stageSummary(stages[i].stage, db) + "##" + std::to_string(i);
+                if (ImGui::Selectable(label.c_str(), isShown(stages[i]))) {
+                    screen.sheetStage = stages[i].ownIndex;
+                    screen.sheetEvent = stages[i].eventId;
                 }
             }
             ImGui::EndCombo();
         }
         ImGui::Spacing();
     }
-    if (screen.sheetStage < 0) {
+    if (shown == stages.end()) {
         drawSheet(w, now);
         return;
     }
-    const CharacterStage& stage = c.stages[static_cast<size_t>(screen.sheetStage)];
+    const CharacterStage& stage = shown->stage;
     drawSheet(w, stage.date.empty() ? buildCharacterSheet(characterInStage(c, stage, db), db)
                                     : buildCharacterSheetAsOf(c, stage.date, db));
 }

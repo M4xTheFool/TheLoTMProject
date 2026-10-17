@@ -297,6 +297,33 @@ void chooseSefirah(const App& app, Character& c) {
     else if (pick >= 0) c.sefirahId = app.db.sefirot[pick].id;
 }
 
+// Sequence 1: one or two Beyonder characteristics and the Uniqueness; Sequence 0: the absorbed Uniqueness.
+void stepUniqueness(const App& app, Character& c) {
+    const Pathway* p = pathwayOf(app, c);
+    if (sequenceOneChoices(c)) {
+        c.beyonderCharacteristics =
+            ui::readInt("Beyonder characteristics they hold (1 or 2)", 1, 2, c.beyonderCharacteristics);
+        c.hasUniqueness = ui::yesNo("Does this character hold the pathway's Uniqueness?", c.hasUniqueness);
+        if (c.hasUniqueness) {
+            // A pathway that describes its Uniqueness gives the starting text; Enter keeps it.
+            const std::string current = c.uniquenessForm.empty() && p ? p->uniqueness : c.uniquenessForm;
+            c.uniquenessForm = ui::readMultiline("Describe the Uniqueness: what it looks like and what shape it takes",
+                                                 current);
+            ui::info("The Uniqueness grants a couple of the Sequence 0 powers. Pick them:");
+            chooseUniquenessAbilities(p, c.uniquenessAbilities);
+        }
+    } else if (absorbedUniqueness(c)) {
+        ui::info(c.aboveSequence ? "Above the Sequence they have absorbed every Uniqueness of their pathway group."
+                                 : "At Sequence 0 the Uniqueness has been absorbed, so its powers are all theirs.");
+        const std::string current = c.uniquenessForm.empty() && p ? p->uniqueness : c.uniquenessForm;
+        c.uniquenessForm = ui::readMultiline("Describe the absorbed Uniqueness and how it shows itself now (optional)",
+                                             current);
+    } else {
+        ui::info("Uniqueness (its look and the Sequence 0 powers it grants) and a second Beyonder characteristic:");
+        ui::info("these are set at Sequence 1. Change the Sequence to 1 to describe them.");
+    }
+}
+
 void stepCustomization(const App& app, Character& c) {
     ui::header("5. Customization");
     int pick = ui::choose("Alignment" + (c.alignment.empty() ? std::string() : " [current: " + c.alignment + "]"),
@@ -326,30 +353,7 @@ void stepCustomization(const App& app, Character& c) {
     }
 
     ui::blank();
-    const Pathway* p = pathwayOf(app, c);
-    if (sequenceOneChoices(c)) {
-        c.beyonderCharacteristics =
-            ui::readInt("Beyonder characteristics they hold (1 or 2)", 1, 2, c.beyonderCharacteristics);
-        c.hasUniqueness = ui::yesNo("Does this character hold the pathway's Uniqueness?", c.hasUniqueness);
-        if (c.hasUniqueness) {
-            // A pathway that describes its Uniqueness gives the starting text; Enter keeps it.
-            const std::string current = c.uniquenessForm.empty() && p ? p->uniqueness : c.uniquenessForm;
-            c.uniquenessForm = ui::readMultiline("Describe the Uniqueness: what it looks like and what shape it takes",
-                                                 current);
-            ui::info("The Uniqueness grants a couple of the Sequence 0 powers. Pick them:");
-            chooseUniquenessAbilities(p, c.uniquenessAbilities);
-        }
-    } else if (absorbedUniqueness(c)) {
-        ui::info(c.aboveSequence ? "Above the Sequence they have absorbed every Uniqueness of their pathway group."
-                                 : "At Sequence 0 the Uniqueness has been absorbed, so its powers are all theirs.");
-        const std::string current = c.uniquenessForm.empty() && p ? p->uniqueness : c.uniquenessForm;
-        c.uniquenessForm = ui::readMultiline("Describe the absorbed Uniqueness and how it shows itself now (optional)",
-                                             current);
-    } else {
-        ui::info("Uniqueness (its look and the Sequence 0 powers it grants) and a second Beyonder characteristic:");
-        ui::info("these are set at Sequence 1. Change the Sequence to 1 to describe them.");
-    }
-
+    stepUniqueness(app, c);
     ui::blank();
     stepSecondPathway(app, c);
     ui::blank();
@@ -669,6 +673,9 @@ bool save(App& app, Character& c, bool isNew) {
 }
 
 }  // namespace
+
+void editSequenceOne(const App& app, Character& c) { stepUniqueness(app, c); }
+void editSecondPathway(const App& app, Character& c) { stepSecondPathway(app, c); }
 
 std::optional<int> runCharacterCreator(App& app, std::optional<int> editId) {
     Character c;

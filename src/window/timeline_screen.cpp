@@ -160,9 +160,16 @@ void eventList(WindowState& w) {
 
 // ---------------------------------------------------------------- the story
 
+// A character's stage that begins on a date: one of their own, or what changed for them at an event.
+struct StripStage {
+    const Character* who;
+    const CharacterStage* stage;
+    const StoryEvent* event;  // null for one of their own
+};
+
 struct StripDate {
     std::vector<const StoryEvent*> events;
-    std::vector<std::pair<const Character*, const CharacterStage*>> stages;
+    std::vector<StripStage> stages;
 };
 
 // The strip: every date where something happens, evenly spaced, events as dots above the line and
@@ -238,7 +245,7 @@ void storyStrip(WindowState& w, const std::vector<StoryDate>& dates, const std::
         for (size_t k = 0; k < stages.size() && k < 3; ++k) {
             const float d = dotRadius * 0.9f;
             const ImVec2 at(x, railY + d * 2.2f + static_cast<float>(k) * d * 2.4f);
-            const ImU32 colour = colourU32(pathwayColour(db, stages[k].second->pathwayId), fade);
+            const ImU32 colour = colourU32(pathwayColour(db, stages[k].stage->pathwayId), fade);
             draw->AddQuadFilled(ImVec2(at.x, at.y - d), ImVec2(at.x + d, at.y), ImVec2(at.x, at.y + d), ImVec2(at.x - d, at.y), colour);
         }
         // The year, when there is room for it.
@@ -275,8 +282,8 @@ void storyStrip(WindowState& w, const std::vector<StoryDate>& dates, const std::
                 statusDot(colourFromHex(eventKindColour(e->kind)));
                 ImGui::TextUnformatted(e->title.c_str());
             }
-            for (const auto& [c, stage] : on[i].stages) {
-                ImGui::TextDisabled("%s: %s", c->name.c_str(), stageLevelText(*stage, db).c_str());
+            for (const StripStage& st : on[i].stages) {
+                ImGui::TextDisabled("%s: %s", st.who->name.c_str(), stageLevelText(*st.stage, db).c_str());
             }
         }
         ImGui::TextDisabled("Click to see everyone as they were then.");
@@ -335,6 +342,7 @@ void castGrid(WindowState& w, const StoryDate& date) {
         const Character& t = then.character;
         const Pathway* p = db.findPathway(t.pathwayId);
         std::string line = t.pathwayId.empty() ? "Mortal" : levelName(t) + (p ? ", " + p->name : "");
+        if (isKingOfAngels(t)) line += ", King of Angels";
         const std::string key = line + "|" + t.stateOfMind + "|" + t.affiliation.organization;
         auto& seen = s.castLines[c.id];
         if (!seen.empty() && seen != key) s.castChangedAt[c.id] = now;
@@ -374,9 +382,8 @@ void castGrid(WindowState& w, const StoryDate& date) {
         draw->AddText(ImGui::GetFont(), font * 0.8f, ImVec2(textX, at.y + font * 2.35f), colourU32(extraColour), extra.c_str());
         ImGui::PopClipRect();
         if (hovered) {
-            ImGui::SetItemTooltip("%s", then.stageIndex >= 0
-                                            ? stageSummary(c.stages[static_cast<size_t>(then.stageIndex)], db).c_str()
-                                            : "As they are now. Click to see their sheet as of this date.");
+            ImGui::SetItemTooltip("%s", then.inStage() ? stageSummary(then.stage, db).c_str()
+                                                       : "As they are now. Click to see their sheet as of this date.");
         }
         column = (column + 1) % perRow;
     }
@@ -444,9 +451,18 @@ void storyView(WindowState& w) {
     for (const Character& c : db.characters) {
         for (const CharacterStage& stage : c.stages) {
             if (const int i = slotOf(stage.date); i >= 0) {
-                on[static_cast<size_t>(i)].stages.push_back({&c, &stage});
+                on[static_cast<size_t>(i)].stages.push_back({&c, &stage, nullptr});
                 ++stages;
             }
+        }
+    }
+    for (const StoryEvent* e : eventsInOrder(db)) {  // and what changed for people at events
+        const int i = slotOf(e->date);
+        for (const EventPerson& p : e->people) {
+            const Character* c = p.changed ? db.findCharacter(p.characterId) : nullptr;
+            if (!c || i < 0) continue;
+            on[static_cast<size_t>(i)].stages.push_back({c, &p.change, e});
+            ++stages;
         }
     }
 
@@ -493,13 +509,21 @@ void storyView(WindowState& w) {
             if (!people.empty()) ImGui::TextWrapped("With %s", people.c_str());
             ImGui::PopStyleColor();
             if (!e->description.empty()) ImGui::TextWrapped("%s", e->description.c_str());
+            for (const StripStage& st : on[static_cast<size_t>(s.asOf)].stages) {  // who changed here
+                if (st.event != e) continue;
+                statusDot(pathwayColour(db, st.stage->pathwayId));
+                ImGui::TextColored(palette().gold, "%s becomes %s%s", st.who->name.c_str(),
+                                   stageLevelText(*st.stage, db).c_str(),
+                                   st.stage->label.empty() ? "" : (". " + st.stage->label).c_str());
+            }
             ImGui::Spacing();
             ImGui::PopID();
         }
-        for (const auto& [c, stage] : on[static_cast<size_t>(s.asOf)].stages) {
-            statusDot(pathwayColour(db, stage->pathwayId));
-            ImGui::TextWrapped("%s: %s%s", c->name.c_str(), stageLevelText(*stage, db).c_str(),
-                               stage->label.empty() ? "" : (". " + stage->label).c_str());
+        for (const StripStage& st : on[static_cast<size_t>(s.asOf)].stages) {
+            if (st.event) continue;  // under its event, above
+            statusDot(pathwayColour(db, st.stage->pathwayId));
+            ImGui::TextWrapped("%s: %s%s", st.who->name.c_str(), stageLevelText(*st.stage, db).c_str(),
+                               st.stage->label.empty() ? "" : (". " + st.stage->label).c_str());
         }
         ImGui::PopStyleVar();
     }
@@ -511,8 +535,9 @@ void storyView(WindowState& w) {
     }
     if (stages == 0) {
         ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
-        ImGui::TextWrapped("Everyone is shown as they are now. Give a character stages on their Stages tab to see them "
-                           "change as you move through the story.");
+        ImGui::TextWrapped("Everyone is shown as they are now. Give a character stages on their Stages tab, or say what "
+                           "changed for them at an event (+ Change on its People tab), to see them change as you move "
+                           "through the story.");
         ImGui::PopStyleColor();
     }
     castGrid(w, date);
@@ -534,17 +559,68 @@ void detailsTab(WindowState& w, Draft<StoryEvent>& draft) {
     (void)w;
 }
 
+// What changed for one person at the event, in a window over the editor.
+void changeEditor(WindowState& w, StoryEvent& e) {
+    TimelineScreen& s = w.timeline;
+    const float font = ImGui::GetFontSize();
+    ImGui::SetNextWindowSize(ImVec2(font * 40.0f, ImGui::GetMainViewport()->WorkSize.y * 0.8f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    bool open = true;
+    if (!ImGui::BeginPopupModal("What changed for them###eventChange", &open)) return;
+    EventPerson* person = s.changingPerson >= 0 && static_cast<size_t>(s.changingPerson) < e.people.size()
+                              ? &e.people[static_cast<size_t>(s.changingPerson)]
+                              : nullptr;
+    const Character* c = person && person->changed ? w.app.db.findCharacter(person->characterId) : nullptr;
+    if (!c) {
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+        return;
+    }
+    ImGui::PushFont(w.fonts.bold, 0.0f);
+    ImGui::TextUnformatted(("What changed for " + c->name + " here").c_str());
+    ImGui::PopFont();
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
+    ImGui::TextWrapped("From the event's date on they are as you set here, until their next stage. It shows on their "
+                       "Stages tab and their sheet too. It started from how they were coming into the event.");
+    ImGui::PopStyleColor();
+    if (e.date.empty()) ImGui::TextColored(palette().warning, "Give the event a date; without one this change isn't used.");
+    const float buttons = ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y;
+    ImGui::BeginChild("change", ImVec2(0, -buttons), ImGuiChildFlags_Borders);
+    stageFields(w, *c, person->change, "event" + std::to_string(s.changingPerson));
+    ImGui::EndChild();
+    if (ImGui::Button("Done") || !open) ImGui::CloseCurrentPopup();
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, palette().danger);
+    if (ImGui::Button("Remove this change")) {
+        person->changed = false;
+        person->change = CharacterStage{};
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::PopStyleColor();
+    ImGui::EndPopup();
+}
+
 void peopleTab(WindowState& w, StoryEvent& e) {
+    TimelineScreen& s = w.timeline;
     const Database& db = w.app.db;
     ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
-    ImGui::TextWrapped("Who was there. Pick saved characters, or type anyone's name. Their sheet lists the event, and "
-                       "the event shows each of them as they were on its date.");
+    ImGui::TextWrapped("Who was there. Pick saved characters, or type anyone's name. Their sheet lists the event. Before "
+                       "is how each of them came to it; if something changed for them here (they advanced, joined "
+                       "someone, became a King of Angels ...), use + Change, and they are like that from the event's "
+                       "date on.");
     ImGui::PopStyleColor();
+    const bool advancement = lower(e.kind) == "advancement";
+    if (advancement && std::none_of(e.people.begin(), e.people.end(), [](const EventPerson& p) { return p.changed; })) {
+        ImGui::TextColored(palette().gold, "An advancement: use + Change next to whoever advanced to give them their new "
+                                           "Sequence.");
+    }
     int removeIndex = -1;
-    if (!e.people.empty() && ImGui::BeginTable("people", 4, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg)) {
+    bool openChange = false;
+    if (!e.people.empty() && ImGui::BeginTable("people", 5, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg)) {
         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 3.0f);
         ImGui::TableSetupColumn("Role", ImGuiTableColumnFlags_WidthStretch, 2.0f);
-        ImGui::TableSetupColumn("Then", ImGuiTableColumnFlags_WidthStretch, 2.5f);
+        ImGui::TableSetupColumn("Before", ImGuiTableColumnFlags_WidthStretch, 2.6f);
+        ImGui::TableSetupColumn("After", ImGuiTableColumnFlags_WidthStretch, 2.6f);
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFrameHeight());
         ImGui::TableHeadersRow();
         for (size_t i = 0; i < e.people.size(); ++i) {
@@ -564,6 +640,7 @@ void peopleTab(WindowState& w, StoryEvent& e) {
                 for (const Character& c : db.characters) {
                     if (ImGui::Selectable((c.name + "  (" + characterCode(c.id) + ")##" + std::to_string(c.id)).c_str(),
                                           c.id == person.characterId)) {
+                        if (c.id != person.characterId) person.changed = false;  // a change is for one person
                         person.characterId = c.id;
                         person.name = c.name;
                     }
@@ -575,18 +652,46 @@ void peopleTab(WindowState& w, StoryEvent& e) {
             ImGui::TableNextColumn();
             ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::InputTextWithHint("##role", "role (optional)", &person.role);
+            const Character* c = db.findCharacter(person.characterId);
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            if (const Character* c = db.findCharacter(person.characterId)) {
-                const AsOf then = characterAsOf(*c, e.date, db);
-                const Pathway* p = db.findPathway(then.character.pathwayId);
-                const std::string level = then.character.pathwayId.empty()
-                                              ? "Mortal"
-                                              : levelName(then.character) + (p ? ", " + p->name : "");
-                ImGui::TextColored(pathwayColour(db, then.character.pathwayId), "%s", level.c_str());
-                if (then.stageIndex >= 0) ImGui::SetItemTooltip("From their stage: %s", stageSummary(c->stages[static_cast<size_t>(then.stageIndex)], db).c_str());
+            if (c) {
+                const AsOf then = characterAsOf(*c, e.date, db, e.id);
+                ImGui::PushStyleColor(ImGuiCol_Text, pathwayColour(db, then.character.pathwayId));
+                ImGui::TextWrapped("%s", levelText(then.character, db).c_str());
+                ImGui::PopStyleColor();
+                if (then.inStage()) ImGui::SetItemTooltip("From their stage: %s", stageSummary(then.stage, db).c_str());
+                ImGui::TableNextColumn();
+                ImGui::AlignTextToFramePadding();
+                if (!person.changed) {
+                    if (ImGui::SmallButton("+ Change")) {
+                        person.changed = true;
+                        person.change = stageFromNow(then.character);  // starting from how they came to it
+                        person.change.date = e.date;
+                        openChange = true;
+                        s.changingPerson = static_cast<int>(i);
+                    }
+                    ImGui::SetItemTooltip("Something changed for them here: they advanced, joined an organization, "
+                                          "picked up a Sealed Artifact ...");
+                } else {
+                    const Character after = characterInStage(*c, person.change, db);
+                    const std::string text = levelText(after, db) + (person.change.label.empty() ? "" : ". " + person.change.label);
+                    // Wrapped like Before, and clickable.
+                    ImGui::PushStyleColor(ImGuiCol_Text, palette().gold);
+                    ImGui::TextWrapped("%s", text.c_str());
+                    ImGui::PopStyleColor();
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                        ImGui::SetTooltip("Click to change it");
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                            openChange = true;
+                            s.changingPerson = static_cast<int>(i);
+                        }
+                    }
+                }
             } else {
                 ImGui::TextDisabled("not a saved character");
+                ImGui::TableNextColumn();
             }
             ImGui::TableNextColumn();
             if (ImGui::Button("x", ImVec2(ImGui::GetFrameHeight(), 0))) removeIndex = static_cast<int>(i);
@@ -596,19 +701,21 @@ void peopleTab(WindowState& w, StoryEvent& e) {
         ImGui::EndTable();
     }
     if (removeIndex >= 0) e.people.erase(e.people.begin() + removeIndex);
+    if (openChange) ImGui::OpenPopup("###eventChange");
+    changeEditor(w, e);
     if (ImGui::Button("+ Add a saved character")) ImGui::OpenPopup("pickPerson");
     if (ImGui::BeginPopup("pickPerson")) {
         static std::string search;
         if (const int id = savedCharacterList(w, search, 0)) {
             const bool already = std::any_of(e.people.begin(), e.people.end(), [&](const EventPerson& p) { return p.characterId == id; });
-            if (const Character* c = db.findCharacter(id); c && !already) e.people.push_back({id, c->name, ""});
+            if (const Character* c = db.findCharacter(id); c && !already) e.people.push_back(eventPerson(*c));
             search.clear();
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("+ Add someone by name")) e.people.push_back({0, "", ""});
+    if (ImGui::Button("+ Add someone by name")) e.people.push_back({});
 }
 
 void eventArtifactsTab(WindowState& w, StoryEvent& e) {
@@ -720,7 +827,7 @@ void openNewEvent(WindowState& w, const std::vector<int>& characterIds) {
         StoryEvent e;
         e.id = w.app.db.nextEventId();
         for (int id : characterIds) {
-            if (const Character* c = w.app.db.findCharacter(id)) e.people.push_back({id, c->name, ""});
+            if (const Character* c = w.app.db.findCharacter(id)) e.people.push_back(eventPerson(*c));
         }
         open(w, e, true);
         w.switchTo = Tab::Timeline;
