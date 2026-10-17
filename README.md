@@ -38,8 +38,8 @@ It comes as two programs that share the same saves:
   you drag along it to see every character as they were on that date.
 - **Sample sets:** the members of the Tarot Club, the brothers Adam and Amon, and a few canon Sealed
   Artifacts, added to your saves with one **Import all** button in Settings. Share your own characters the
-  same way: Settings turns them into a sample set that you commit to GitHub. Story events go along with
-  the characters in them.
+  same way: Settings turns them, your Sealed Artifacts and your story events into a sample set that you
+  commit to GitHub.
 - **Export:** one entry or the whole catalogue as styled HTML (light and dark themes, prints to PDF),
   Markdown, or plain text.
 
@@ -293,17 +293,22 @@ characters link to it:
 So importing again only brings in what is new or changed. When two sets have the same character, the most
 recently edited version wins.
 
-### Sharing your own characters on GitHub
+### Sharing your own characters and story events on GitHub
 
-Your characters and Sealed Artifacts stay on your computer until you share them as a sample set:
+Your characters, Sealed Artifacts and story events stay on your computer until you share them as a sample
+set:
 
 1. In the app window, open **Settings** and scroll to **Share your own** (in the console: **Settings**, then
-   **Share your own characters and Sealed Artifacts as a sample set**).
-2. Give the set a title, like *Max's characters*, and tick who goes in. Everything that isn't already in
-   another sample set starts ticked; the Sealed Artifacts your characters hold go in by themselves, and
-   so do the story events they take part in (and events that name none of your saved characters).
+   **Share your own characters, Sealed Artifacts and story events as a sample set**).
+2. Give the set a title, like *Max's characters*, and tick what goes in: characters, Sealed Artifacts and
+   story events. Everything that isn't already in another sample set starts ticked, and the Sealed
+   Artifacts your characters hold go in by themselves. **Tick the ones with your ticked characters**
+   ticks every event they were at. A set can be only story events: the people at them go as names and
+   link up again (with what changed for them there) when they are imported from another set, because
+   **Import all** brings in everyone before any events.
 3. Click **Save as data/samples/...**. Saving again with the same title replaces the file, so you can
-   update it whenever your characters change. This works for the sets that came with the program too:
+   update it whenever your characters change; events written since with its characters in them start
+   ticked, so they aren't left behind. This works for the sets that came with the program too:
    type *The Tarot Club* or *Adam and Amon* as the title, and the ones already in it start ticked, so
    your changed versions replace the old ones.
 4. Open **GitHub Desktop**. It lists the new file under Changes. Write a summary like "Share my
