@@ -53,29 +53,36 @@ struct SampleImportReport {
 // characters keep their links to characters and Sealed Artifacts the set doesn't have. Importing
 // the same set twice changes nothing.
 SampleImportReport importSampleSet(App& app, const SampleSet& set);
-// Imports every sample set, one after another, and adds up what happened. When two sets have the
-// same record, the most recently edited version ends up saved.
+// Imports every sample set and adds up what happened: first every set's characters and Sealed
+// Artifacts, then every set's story events, so the people at an event are found whichever set they
+// are in. When two sets have the same record, the most recently edited version ends up saved.
 SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& sets);
 
-// Packs saved characters and Sealed Artifacts into a sample set, to share them through
-// data/samples. The Sealed Artifacts the characters hold (now or in a stage) go in too, and so do
-// the story events they take part in and the events that name no saved character at all. A
-// relationship to someone left out, or someone left out who was at an event, keeps their name but no
-// link, so it links up again if they are imported later.
+// Packs saved characters, Sealed Artifacts and story events into a sample set, to share them through
+// data/samples. The Sealed Artifacts the characters hold (now, in a stage or at an event) and the ones
+// the events name go in too. A relationship to someone left out, or someone left out who was at an
+// event (with what changed for them there), keeps their name but no link, so it links up again when
+// they are imported too, from another set.
 SampleSet makeSampleSet(const Database& db, const std::string& title, const std::string& description,
-                        const std::vector<int>& characterIds, const std::vector<int>& artifactIds);
+                        const std::vector<int>& characterIds, const std::vector<int>& artifactIds,
+                        const std::vector<int>& eventIds);
+// The story events with any of these characters in them, in story order.
+std::vector<int> eventsWithCharacters(const Database& db, const std::vector<int>& characterIds);
 // The file a sample set with this title is saved as: "Max's Creations" -> "maxs_creations.json".
 std::string sampleSetFileName(const std::string& title);
 // The names of the characters and Sealed Artifacts in these sample sets, in lower case, except the
 // one saved in exceptFile (the set being replaced).
 std::vector<std::string> namesInSampleSets(const std::vector<SampleSet>& sets, const std::string& exceptFile);
+// Whether a sample set other than exceptFile has this story event (the same title and date).
+bool eventInSampleSets(const std::vector<SampleSet>& sets, const std::string& exceptFile, const StoryEvent& e);
 // The file to save a sample set with this title in: the file of a set that already has this title
 // (any capitals), so saving "The Tarot Club" again replaces tarot_club.json, or else sampleSetFileName.
 std::string sampleSetFileFor(const std::vector<SampleSet>& sets, const std::string& title);
 // What sharing ticks before you change anything. Replacing the set saved in fileName ticks the
-// records that set already has; a new set ticks everything not already in another sample set.
+// records that set already has, and the events since with its characters in them that no other set
+// has; a new set ticks everything not already in another sample set.
 void defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, const std::string& fileName,
-                       std::vector<int>& characterIds, std::vector<int>& artifactIds);
+                       std::vector<int>& characterIds, std::vector<int>& artifactIds, std::vector<int>& eventIds);
 
 // Saves one of your own pathways. A new one gets an id made from its name.
 void saveCustomPathway(App& app, Pathway& p, bool isNew);

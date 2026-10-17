@@ -186,6 +186,7 @@ struct WindowState {
         std::string description;
         std::vector<int> characterIds;
         std::vector<int> artifactIds;
+        std::vector<int> eventIds;
         bool touched = false;  // ticked by hand, so a new title no longer changes the ticks
         std::string pickedFor = "\x01";  // the file the default ticks were made for
     } share;

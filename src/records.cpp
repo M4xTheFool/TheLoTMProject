@@ -216,7 +216,11 @@ bool sameDetails(Record a, Record b) {
     return nlohmann::json(a) == nlohmann::json(b);
 }
 
-SampleImportReport importSampleSet(App& app, const SampleSet& set) {
+namespace {
+
+// Imports a sample set's characters and Sealed Artifacts (records), its story events (events), or
+// both. Events alone still find the set's characters and Sealed Artifacts, saved already, by name.
+SampleImportReport importParts(App& app, const SampleSet& set, bool records, bool events) {
     SampleImportReport report;
     const auto charactersBackup = app.db.characters;
     const auto artifactsBackup = app.db.artifacts;
@@ -237,6 +241,7 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
                                         [&](const Artifact& x) { return sameName(x.name, a.name); });
         if (saved != app.db.artifacts.end()) {
             artifactIds[sampleId] = saved->id;
+            if (!records) continue;
             a.id = saved->id;
             a.createdAt = saved->createdAt;
             const bool isNewer = newer(a.updatedAt, saved->updatedAt);
@@ -250,6 +255,7 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
             }
             continue;
         }
+        if (!records) continue;
         a.id = app.db.nextArtifactId();
         a.createdAt = a.updatedAt = editedAt(a.updatedAt);
         artifactIds[sampleId] = a.id;
@@ -265,14 +271,14 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
         const auto saved = std::find_if(app.db.characters.begin(), app.db.characters.end(),
                                         [&](const Character& x) { return sameName(x.name, c.name); });
         const bool exists = saved != app.db.characters.end();
-        characterIds[c.id] = exists ? saved->id : nextId++;
+        if (exists || records) characterIds[c.id] = exists ? saved->id : nextId++;
         alreadySaved.push_back(exists);
     }
 
     // Each sample character as it would be saved here: ids mapped, links found by name.
     std::vector<Character> incoming;
     std::vector<bool> isNewer;
-    for (size_t i = 0; i < set.characters.size(); ++i) {
+    for (size_t i = 0; records && i < set.characters.size(); ++i) {
         Character c = set.characters[i];
         c.id = characterIds[c.id];
         auto mapArtifacts = [&](std::vector<int>& ids) {
@@ -348,7 +354,7 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
     // Story events: the same title and date is the same event. People are linked to the set's
     // characters as they are saved here, or by name.
     bool eventsChanged = false;
-    for (StoryEvent e : set.events) {
+    for (StoryEvent e : events ? set.events : std::vector<StoryEvent>{}) {
         auto mapArtifacts = [&](std::vector<int>& ids) {
             std::vector<int> mapped;
             for (int id : ids) {
@@ -401,21 +407,28 @@ SampleImportReport importSampleSet(App& app, const SampleSet& set) {
     return report;
 }
 
+}  // namespace
+
+SampleImportReport importSampleSet(App& app, const SampleSet& set) { return importParts(app, set, true, true); }
+
 SampleImportReport importAllSampleSets(App& app, const std::vector<SampleSet>& sets) {
     SampleImportReport total;
-    for (const SampleSet& set : sets) {
-        SampleImportReport report = importSampleSet(app, set);
+    auto add = [&](SampleImportReport report) {
         for (auto& name : report.addedCharacters) total.addedCharacters.push_back(std::move(name));
         for (auto& name : report.addedArtifacts) total.addedArtifacts.push_back(std::move(name));
         for (auto& name : report.addedEvents) total.addedEvents.push_back(std::move(name));
         for (auto& name : report.updated) total.updated.push_back(std::move(name));
         for (auto& name : report.skipped) total.skipped.push_back(std::move(name));
-    }
+    };
+    // Everyone first, then the events, so an event finds the people at it whichever set they're in.
+    for (const SampleSet& set : sets) add(importParts(app, set, true, false));
+    for (const SampleSet& set : sets) add(importParts(app, set, false, true));
     return total;
 }
 
 SampleSet makeSampleSet(const Database& db, const std::string& title, const std::string& description,
-                        const std::vector<int>& characterIds, const std::vector<int>& artifactIds) {
+                        const std::vector<int>& characterIds, const std::vector<int>& artifactIds,
+                        const std::vector<int>& eventIds) {
     SampleSet set;
     set.title = title;
     set.description = description;
@@ -440,23 +453,15 @@ SampleSet makeSampleSet(const Database& db, const std::string& title, const std:
         }
         set.characters.push_back(std::move(copy));
     }
-    // Events with a shared character in them, and events that name no saved character at all.
     for (const StoryEvent* e : eventsInOrder(db)) {
-        const bool withShared = std::any_of(e->people.begin(), e->people.end(),
-                                            [&](const EventPerson& p) { return picked(characterIds, p.characterId); });
-        const bool withSaved = std::any_of(e->people.begin(), e->people.end(), [&](const EventPerson& p) {
-            return p.characterId != 0 && db.findCharacter(p.characterId);
-        });
-        if (!withShared && withSaved) continue;
+        if (!picked(eventIds, e->id)) continue;
         StoryEvent copy = *e;
         for (EventPerson& p : copy.people) {
+            // Someone left out keeps their name, and what changed for them, for when they are
+            // imported from another set.
             if (p.characterId != 0 && !picked(characterIds, p.characterId)) {
                 p.name = eventPersonName(db, p);
                 p.characterId = 0;
-            }
-            if (p.characterId == 0) {  // a change only travels with the character it's for
-                p.changed = false;
-                p.change = CharacterStage{};
             }
             for (int id : p.change.artifactIds) {
                 if (!picked(artifacts, id)) artifacts.push_back(id);
@@ -471,6 +476,19 @@ SampleSet makeSampleSet(const Database& db, const std::string& title, const std:
         if (picked(artifacts, a.id)) set.artifacts.push_back(a);
     }
     return set;
+}
+
+std::vector<int> eventsWithCharacters(const Database& db, const std::vector<int>& characterIds) {
+    std::vector<int> ids;
+    for (const StoryEvent* e : eventsInOrder(db)) {
+        if (std::any_of(e->people.begin(), e->people.end(), [&](const EventPerson& p) {
+                return p.characterId != 0 &&
+                       std::find(characterIds.begin(), characterIds.end(), p.characterId) != characterIds.end();
+            })) {
+            ids.push_back(e->id);
+        }
+    }
+    return ids;
 }
 
 std::string sampleSetFileName(const std::string& title) {
@@ -498,6 +516,15 @@ std::vector<std::string> namesInSampleSets(const std::vector<SampleSet>& sets, c
     return names;
 }
 
+bool eventInSampleSets(const std::vector<SampleSet>& sets, const std::string& exceptFile, const StoryEvent& e) {
+    return std::any_of(sets.begin(), sets.end(), [&](const SampleSet& set) {
+        return set.file.filename().string() != exceptFile &&
+               std::any_of(set.events.begin(), set.events.end(), [&](const StoryEvent& x) {
+                   return sameName(x.title, e.title) && sameStoryDate(x.date, e.date);
+               });
+    });
+}
+
 std::string sampleSetFileFor(const std::vector<SampleSet>& sets, const std::string& title) {
     for (const SampleSet& set : sets) {
         if (!set.file.empty() && sameName(set.title, title)) return set.file.filename().string();
@@ -506,9 +533,10 @@ std::string sampleSetFileFor(const std::vector<SampleSet>& sets, const std::stri
 }
 
 void defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, const std::string& fileName,
-                       std::vector<int>& characterIds, std::vector<int>& artifactIds) {
+                       std::vector<int>& characterIds, std::vector<int>& artifactIds, std::vector<int>& eventIds) {
     characterIds.clear();
     artifactIds.clear();
+    eventIds.clear();
     const auto existing = std::find_if(sets.begin(), sets.end(),
                                        [&](const SampleSet& set) { return set.file.filename().string() == fileName; });
     if (existing != sets.end()) {
@@ -524,6 +552,16 @@ void defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, c
                 artifactIds.push_back(a.id);
             }
         }
+        // Its events, and the ones written since with its characters in them, so they aren't left behind.
+        const std::vector<int> withThem = eventsWithCharacters(db, characterIds);
+        for (const StoryEvent* e : eventsInOrder(db)) {
+            const bool inThisSet = std::any_of(existing->events.begin(), existing->events.end(), [&](const StoryEvent& x) {
+                return sameName(x.title, e->title) && sameStoryDate(x.date, e->date);
+            });
+            const bool newWithThem = std::find(withThem.begin(), withThem.end(), e->id) != withThem.end() &&
+                                     !eventInSampleSets(sets, fileName, *e);
+            if (inThisSet || newWithThem) eventIds.push_back(e->id);
+        }
         return;
     }
     const auto taken = namesInSampleSets(sets, fileName);
@@ -535,6 +573,9 @@ void defaultSharePicks(const Database& db, const std::vector<SampleSet>& sets, c
     }
     for (const auto& a : db.artifacts) {
         if (!isTaken(a.name)) artifactIds.push_back(a.id);
+    }
+    for (const StoryEvent* e : eventsInOrder(db)) {
+        if (!eventInSampleSets(sets, fileName, *e)) eventIds.push_back(e->id);
     }
 }
 

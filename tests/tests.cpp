@@ -1297,7 +1297,7 @@ static void testSampleImport() {
     // sample set of their own; the glove comes along, and the links to Klein and Dunn keep only names.
     CHECK(sampleSetFileName("Max's Characters!") == "maxs_characters.json");
     CHECK(sampleSetFileName("???") == "my_sample_set.json");
-    const SampleSet shared = makeSampleSet(app.db, "Max's Characters", "Mine.", {addedAudrey->id, addedLeonard->id}, {});
+    const SampleSet shared = makeSampleSet(app.db, "Max's Characters", "Mine.", {addedAudrey->id, addedLeonard->id}, {}, {});
     CHECK(shared.characters.size() == 2 && shared.artifacts.size() == 1 && shared.artifacts[0].name == "Creeping Hunger");
     const Relationship& toKlein = shared.characters[0].relationships.at(0);
     CHECK(toKlein.characterId == 0 && toKlein.name == "Klein Moretti");
@@ -1358,11 +1358,11 @@ static void testSampleImport() {
     const auto renamed = friendApp.storage.loadSampleSets();
     CHECK(sampleSetFileFor(renamed, "max's CHARACTERS") == "max.json");
     CHECK(sampleSetFileFor(renamed, "Something new") == "something_new.json");
-    std::vector<int> pickedCharacters, pickedArtifacts;
-    defaultSharePicks(friendApp.db, renamed, "max.json", pickedCharacters, pickedArtifacts);
+    std::vector<int> pickedCharacters, pickedArtifacts, pickedEvents;
+    defaultSharePicks(friendApp.db, renamed, "max.json", pickedCharacters, pickedArtifacts, pickedEvents);
     CHECK(pickedCharacters.size() == 2 && pickedArtifacts.size() == 1);
     CHECK(std::find(pickedCharacters.begin(), pickedCharacters.end(), friendOwn.id) == pickedCharacters.end());
-    defaultSharePicks(friendApp.db, renamed, "something_new.json", pickedCharacters, pickedArtifacts);
+    defaultSharePicks(friendApp.db, renamed, "something_new.json", pickedCharacters, pickedArtifacts, pickedEvents);
     CHECK(pickedCharacters.size() == 2 && pickedArtifacts.empty());  // Klein and Fors, in no set yet
     fs::remove_all(root);
 }
@@ -1920,18 +1920,39 @@ static void testSampleSetEvents() {
     const int both = event("The first gathering", "3 July 1349", {who(klein.id, "", "The Fool"), who(audrey.id, "", "Justice")});
     app.db.findEvent(both)->artifactIds = {mask.id};
     app.storage.saveEvents(app.db);
-    event("Audrey's ball", "1350", {who(audrey.id, "", "Host")});
-    event("A storm at sea", "1351", {who(0, "Some sailor", "")});
+    const int ball = event("Audrey's ball", "1350", {who(audrey.id, "", "Host")});
+    const int storm = event("A storm at sea", "1351", {who(0, "Some sailor", "")});
 
-    // Sharing Klein: his events and the events with nobody saved come along, and so do the glove
-    // (held in a stage) and the mask (at his event). Audrey stays a name.
-    const SampleSet set = makeSampleSet(app.db, "Klein's Story", "", {klein.id}, {});
+    // A new sample set starts with every event ticked; "the ones with your ticked characters" are Klein's.
+    std::vector<int> pickedCharacters, pickedArtifacts, pickedEvents;
+    defaultSharePicks(app.db, {}, "kleins_story.json", pickedCharacters, pickedArtifacts, pickedEvents);
+    CHECK((pickedEvents == std::vector<int>{both, ball, storm}));
+    std::vector<int> picked = eventsWithCharacters(app.db, {klein.id});
+    CHECK(picked == std::vector<int>{both});
+
+    // Sharing Klein, his event and the storm: the glove (held in a stage) and the mask (at his event)
+    // come along. Audrey stays a name.
+    picked.push_back(storm);
+    const SampleSet set = makeSampleSet(app.db, "Klein's Story", "", {klein.id}, {}, picked);
     CHECK(set.characters.size() == 1 && set.artifacts.size() == 2);
     CHECK(set.events.size() == 2 && set.events[0].title == "The first gathering" && set.events[1].title == "A storm at sea");
     CHECK(set.events[0].people[1].characterId == 0 && set.events[0].people[1].name == "Audrey Hall");
     const fs::path file = app.storage.saveSampleSet(set, sampleSetFileName(set.title));
     const auto loaded = app.storage.loadSampleSets();
     CHECK(loaded.size() == 1 && loaded[0].events.size() == 2 && loaded[0].events[0].people.size() == 2);
+    // Only events: Audrey's ball on its own, with Audrey as a name.
+    const SampleSet ballOnly = makeSampleSet(app.db, "The ball", "", {}, {}, {ball});
+    CHECK(ballOnly.characters.empty() && ballOnly.events.size() == 1 && ballOnly.events[0].people[0].characterId == 0);
+    // Sharing Klein's set again ticks its events and a new one with Klein in it; a new set ticks the
+    // events no set has yet.
+    const int later = event("Klein returns", "1352", {who(klein.id, "", "")});
+    defaultSharePicks(app.db, loaded, file.filename().string(), pickedCharacters, pickedArtifacts, pickedEvents);
+    CHECK((pickedCharacters == std::vector<int>{klein.id} && pickedEvents == std::vector<int>{both, storm, later}));
+    defaultSharePicks(app.db, loaded, "something_new.json", pickedCharacters, pickedArtifacts, pickedEvents);
+    CHECK((pickedEvents == std::vector<int>{ball, later}));
+    CHECK(eventInSampleSets(loaded, "something_new.json", *app.db.findEvent(storm)));
+    CHECK(!eventInSampleSets(loaded, file.filename().string(), *app.db.findEvent(storm)));
+    deleteEvent(app, later);
 
     // A friend with their own Audrey (and their own ids) imports it.
     const fs::path other = root / "other";
@@ -2100,10 +2121,13 @@ static void testEventChanges() {
     CHECK(app.db.findCharacter(amon.id)->stages[0].secondPathway.pathwayId == "apprentice");
 
     // Shared, the change travels with Klein's event; a friend who imports it has it for their Klein.
-    const SampleSet set = makeSampleSet(app.db, "Angels", "", {klein.id}, {});
+    const SampleSet set = makeSampleSet(app.db, "Angels", "", {klein.id}, {}, {rise.id});
     CHECK(set.events.size() == 1 && set.events[0].people.size() == 2 && set.events[0].people[0].changed);
-    const SampleSet amonOnly = makeSampleSet(app.db, "Amon", "", {amon.id}, {});
-    CHECK(amonOnly.events.empty());  // Klein's event stays with Klein
+    // Shared without Klein, he is a name at it, with his change, for when he comes from another set.
+    const SampleSet eventOnly = makeSampleSet(app.db, "Amon", "", {}, {}, {rise.id});
+    CHECK(eventOnly.events.size() == 1 && eventOnly.events[0].people[0].characterId == 0 &&
+          eventOnly.events[0].people[0].name == "Klein Moretti" && eventOnly.events[0].people[0].changed);
+    const SampleSet kleinOnly = makeSampleSet(app.db, "Klein", "", {klein.id}, {}, {});
     const fs::path other = root / "other";
     fs::create_directories(other / "samples");
     fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", other / "pathways.json");
@@ -2117,6 +2141,17 @@ static void testEventChanges() {
     const Character* friendKlein = friendApp.db.findCharactersByName("Klein Moretti", 0).at(0);
     CHECK(friendKlein->id != klein.id);
     CHECK(characterAsOf(*friendKlein, date("1352"), friendApp.db).character.sequence == 1);
+    // Import all brings in everyone before the events, so the event set can come first.
+    const fs::path third = root / "third";
+    fs::create_directories(third / "samples");
+    fs::copy_file(fs::path(LOTM_SOURCE_DIR) / "data" / "pathways.json", third / "pathways.json");
+    App thirdApp{Database{}, Storage(third), Dice{}};
+    thirdApp.storage.loadAll(thirdApp.db);
+    const SampleImportReport both = importAllSampleSets(thirdApp, {eventOnly, kleinOnly});
+    CHECK(both.addedCharacters.size() == 1 && both.addedEvents.size() == 1 && thirdApp.db.events.size() == 1);
+    const Character* thirdKlein = thirdApp.db.findCharactersByName("Klein Moretti", 0).at(0);
+    CHECK(thirdApp.db.events[0].people[0].characterId == thirdKlein->id && thirdApp.db.events[0].people[0].changed);
+    CHECK(characterAsOf(*thirdKlein, date("1352"), thirdApp.db).character.sequence == 1);
 
     // Deleting Klein keeps him in the event by name, without the change.
     deleteCharacter(app, klein.id);
