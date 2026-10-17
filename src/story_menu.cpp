@@ -21,8 +21,9 @@ bool isNumber(const std::string& text) {
            std::all_of(text.begin(), text.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)); });
 }
 
-// A saved character from a numbered list, or 0.
-int chooseCharacter(const App& app, const std::string& title, const std::string& zeroLabel = "Cancel") {
+}  // namespace
+
+int chooseCharacter(const App& app, const std::string& title, const std::string& zeroLabel) {
     if (app.db.characters.empty()) {
         ui::info("No characters yet.");
         return 0;
@@ -32,6 +33,8 @@ int chooseCharacter(const App& app, const std::string& title, const std::string&
     const int pick = ui::choose(title, names, zeroLabel);
     return pick >= 0 ? app.db.characters[static_cast<size_t>(pick)].id : 0;
 }
+
+namespace {
 
 // ---------------------------------------------------------------- dates
 

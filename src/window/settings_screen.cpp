@@ -286,6 +286,9 @@ void drawSettingsScreen(WindowState& w) {
             changed = true;
         }
     }
+    if (ImGui::Checkbox("Animations", &s.windowAnimations)) changed = true;
+    ImGui::SameLine();
+    ImGui::TextDisabled("dice that tumble, screens that fade in, numbers that count up");
     // The new size is applied when the slider is let go, so the slider doesn't move under the mouse.
     static int textSize = 100;
     static bool dragging = false;

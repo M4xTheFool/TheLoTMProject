@@ -24,6 +24,7 @@ void mainMenu(lotm::App& app) {
         int pick = lotm::ui::choose("", {"Create a character", "Create a Sealed Artifact", "Open the Catalogue",
                                          "Timeline (story events, and everyone as they were on a date)",
                                          "Relationship web (who knows whom)",
+                                         "Dice and checks (roll for your characters, or any dice)",
                                          "Pathways (look through them, or add your own)",
                                          "Sefirot (the sources of power, and who holds them)", "Export", "Settings"},
                                     "Quit");
@@ -33,10 +34,11 @@ void mainMenu(lotm::App& app) {
             case 2: lotm::runCatalogue(app); break;
             case 3: lotm::runTimelineMenu(app); break;
             case 4: lotm::runWebMenu(app); break;
-            case 5: lotm::runPathwayMenu(app); break;
-            case 6: lotm::runSefirotMenu(app); break;
-            case 7: lotm::runExportMenu(app); break;
-            case 8: lotm::runSettingsMenu(app); break;
+            case 5: lotm::runDiceMenu(app); break;
+            case 6: lotm::runPathwayMenu(app); break;
+            case 7: lotm::runSefirotMenu(app); break;
+            case 8: lotm::runExportMenu(app); break;
+            case 9: lotm::runSettingsMenu(app); break;
             default: return;
         }
     }

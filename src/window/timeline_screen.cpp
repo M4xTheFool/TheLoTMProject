@@ -15,8 +15,6 @@ namespace lotm::window {
 
 namespace {
 
-ImU32 colourU32(const ImVec4& c, float alpha = 1.0f) { return ImGui::GetColorU32(ImVec4(c.x, c.y, c.z, c.w * alpha)); }
-
 std::string lower(std::string text) {
     for (char& ch : text) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
     return text;

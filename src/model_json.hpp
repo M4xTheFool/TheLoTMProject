@@ -53,6 +53,6 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(StoryEvent, id, title, date, kin
                                                 description, notes, createdAt, updatedAt)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Settings, hpMode, exportTheme, backupsToKeep, windowTextSize,
-                                                windowTheme)
+                                                windowTheme, windowAnimations)
 
 }  // namespace lotm

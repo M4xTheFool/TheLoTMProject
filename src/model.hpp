@@ -285,6 +285,7 @@ struct Settings {
     int backupsToKeep = 5;
     int windowTextSize = 100;  // app window only: text size in percent
     std::string windowTheme = "night";  // app window only: night (dark) or parchment (light)
+    bool windowAnimations = true;       // app window only: things move smoothly (dice tumble, tabs fade in)
 };
 
 // Everything loaded in memory while the program runs.

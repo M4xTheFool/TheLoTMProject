@@ -16,6 +16,7 @@
 #include <nlohmann/json.hpp>
 
 #include "app.hpp"
+#include "checks.hpp"
 #include "exporter.hpp"
 #include "list_filter.hpp"
 #include "model_json.hpp"
@@ -160,7 +161,54 @@ struct TimelineScreen {
     std::map<int, double> castChangedAt;
 };
 
-enum class Tab { Characters, Compare, Web, Timeline, Artifacts, Pathways, Sefirot, Settings };
+// The Dice tab: checks, contests and any dice, thrown onto a tray.
+struct ThrownDie {
+    int sides = 20;
+    int value = 1;
+    int side = 0;        // in a contest, whose die it is (0 or 1)
+    bool kept = true;    // false: the d20 that advantage or disadvantage set aside
+    float delay = 0.0f;  // seconds after the throw that it sets off
+};
+
+struct DiceThrow {
+    std::vector<ThrownDie> dice;
+    double at = -100.0;  // ImGui::GetTime() when thrown
+    unsigned seed = 1;   // for the faces that flicker past and the way each die tumbles
+    // What it came to: one of these.
+    std::optional<CheckOutcome> check;
+    std::optional<ContestOutcome> contest;
+    std::optional<DiceRoll> free;
+    double landsAt() const;  // when the last die comes to rest
+};
+
+// The colour a roll is listed in, looked up in the theme when drawn (it can change in between).
+enum class DiceTone { Gold, Success, Danger, Muted, First, Second };
+
+struct DiceLogEntry {
+    std::string headline;  // "Success by 4"
+    std::string text;      // the whole roll in words
+    DiceTone tone = DiceTone::Gold;
+    double showAt = 0.0;   // once its dice have landed
+};
+
+struct DiceScreen {
+    enum Mode { Check, Contest, AnyDice };
+    int mode = Check;
+    struct Side {
+        int characterId = 0;  // 0: nobody in particular
+        CheckSetup setup;
+        std::string search;   // in the "Who" list
+    };
+    std::array<Side, 2> sides;  // a check uses the first; a contest both
+    int difficulty = 15;
+    std::string formula = "2d6";
+    std::string formulaProblem;
+    DiceThrow last;
+    std::vector<DiceLogEntry> log;  // newest first
+    bool rollNow = false;  // throw on the next frame (the Check buttons on a character's Stats tab)
+};
+
+enum class Tab { Characters, Compare, Web, Timeline, Dice, Artifacts, Pathways, Sefirot, Settings };
 
 struct WindowState {
     App app{Database{}, Storage{std::filesystem::path()}, Dice{}};  // loaded once the window is open
@@ -172,6 +220,7 @@ struct WindowState {
     CompareScreen compare;
     WebScreen web;
     TimelineScreen timeline;
+    DiceScreen dice;
     ArtifactScreen artifacts;
     PathwayScreen pathways;
     SefirotScreen sefirot;
@@ -194,6 +243,8 @@ struct WindowState {
     // The line at the bottom of the window: the result of the last save, export or error.
     std::string status;
     bool statusIsError = false;
+    double statusAt = -100.0;  // when it was set, for fading it in
+    double tabShownAt = 0.0;  // when the tab on show changed (or the window opened), for fading the screen in
 
     // "You have unsaved changes" question. `afterwards` runs once the user saves or discards.
     bool askUnsaved = false;
@@ -208,6 +259,7 @@ void drawCharactersScreen(WindowState& w);
 void drawCompareScreen(WindowState& w);
 void drawWebScreen(WindowState& w);
 void drawTimelineScreen(WindowState& w);
+void drawDiceScreen(WindowState& w);
 void drawArtifactsScreen(WindowState& w);
 void drawPathwaysScreen(WindowState& w);
 void drawSefirotScreen(WindowState& w);
@@ -228,6 +280,9 @@ void stageFields(WindowState& w, const Character& c, CharacterStage& stage, cons
 // Opens a story event on the Timeline tab, or a new one with these people in it.
 void openEvent(WindowState& w, int id);
 void openNewEvent(WindowState& w, const std::vector<int>& characterIds = {});
+// Opens the Dice tab on a check for this character (kind: a stat, or kSpeedCheck) and rolls it. The roll
+// uses the character as they are on the Characters tab, unsaved changes included.
+void openCheck(WindowState& w, int characterId, int kind);
 // Shows a Sefirah on the Sefirot tab, in the editor when it is one of your own.
 void openSefirah(WindowState& w, const std::string& id);
 // Starts a new Sefirah of your own on the Sefirot tab, gathering this pathway.
@@ -295,9 +350,21 @@ void medallionAt(const WindowState& w, ImVec2 centre, float radius, const ImVec4
 
 // ---- movement (widgets.cpp)
 
+// Settings > This window > Animations. While off, glide and popIn arrive at once.
+void setAnimations(bool on);
+bool animations();
+// An ImU32 colour with its alpha multiplied (and the window's fade, like every ImGui colour).
+inline ImU32 colourU32(const ImVec4& c, float alpha = 1.0f) {
+    return ImGui::GetColorU32(ImVec4(c.x, c.y, c.z, c.w * alpha));
+}
+
 // A number that glides towards `target` instead of jumping, remembered under `id` between frames.
 // `speed`: about how many times a second it closes the gap.
 float glide(ImGuiID id, float target, float speed = 10.0f);
+// The same, starting from `start` the first time it is asked for (a chart growing out of its middle).
+float glideFrom(ImGuiID id, float start, float target, float speed = 10.0f);
+// From 0 to 1 over `seconds` after `since`, easing out without overshooting: fades and slides.
+float easeIn(double since, float seconds = 0.3f);
 // From 0 to 1 over `seconds` after `since` (ImGui::GetTime()), easing out with a small overshoot.
 float popIn(double since, float seconds = 0.45f);
 // Seconds since the last frame, never more than a tenth of a second (after a pause, nothing jumps).
