@@ -230,7 +230,9 @@ To run the automatic checks: `ctest --test-dir build -C Release`.
 - **Export...** saves the open sheet as HTML, Markdown or plain text in the `exports` folder; HTML opens in
   your browser. Settings has a button that exports everything at once.
 - In Settings, **Text size** makes everything in the window bigger or smaller, and the window comes in
-  two themes: **Night** (dark ink with gold) and **Parchment** (light paper with brown ink).
+  two themes: **Night** (dark ink with gold) and **Parchment** (light paper with brown ink). On Windows
+  the title bar above the window follows the theme too: dark on Night, light on Parchment, and on
+  Windows 11 in the window's own colours.
   **Animations** turns the movement off (the dice, screens fading in, numbers counting up, the grey fog
   drifting behind the title) for a window that changes at once.
 - Every pathway group has its own colour. A character's medallion in the list shows their Sequence in
