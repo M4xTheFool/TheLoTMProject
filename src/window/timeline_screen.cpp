@@ -113,6 +113,7 @@ void eventList(WindowState& w) {
                  draft.value.title.empty() ? "(new event)" : draft.value.title, "Not saved yet");
     }
     if (db.events.empty()) {
+        if (draft.open && draft.isNew) return;  // the new event's card is already there; the note would sit under it
         ImGui::PushStyleColor(ImGuiCol_Text, palette().muted);
         ImGui::TextWrapped("No story events yet. An event is something that happens in your story: a meeting, a "
                            "battle, a character's advancement. Give it a date and the people who were there.");

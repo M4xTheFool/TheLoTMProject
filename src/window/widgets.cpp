@@ -64,9 +64,11 @@ void drawMedallion(const WindowState& w, ImVec2 centre, float radius, const ImVe
     } else {
         draw->AddCircle(centre, radius, colourU32(colour), 0, thickness);
     }
-    if (text.empty()) return;
-    ImFont* font = w.fonts.bold;
     const float size = radius * (text.size() > 2 ? 0.72f : 0.86f);
+    // ImGui rounds a text size to whole pixels and stops on a size of 0 (in a debug build), which a
+    // medallion still popping in would ask for.
+    if (text.empty() || size < 1.0f) return;
+    ImFont* font = w.fonts.bold;
     const ImVec2 textSize = font->CalcTextSizeA(size, FLT_MAX, 0.0f, text.c_str());
     draw->AddText(font, size, ImVec2(centre.x - textSize.x * 0.5f, centre.y - textSize.y * 0.5f), colourU32(colour),
                   text.c_str());
